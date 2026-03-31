@@ -26,9 +26,8 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
   ])
 
   if (!group) notFound()
-  if (!membership) notFound() // not a member
+  if (!membership) notFound()
 
-  // Load leaderboard members with profiles
   const { data: membersRaw } = await supabase
     .from('group_members')
     .select('user_id, points, profiles(display_name)')
@@ -43,7 +42,6 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
     display_name: (m.profiles as unknown as ProfileResult)?.display_name ?? null,
   }))
 
-  // Load user's sessions grouped by week
   const { data: sessions } = await supabase
     .from('sessions')
     .select('*')
@@ -65,41 +63,38 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
   )
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-8">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{group.name}</h1>
-          <p className="text-gray-500 mt-0.5">
-            {group.event_name} · {daysUntil > 0 ? `${daysUntil} days to go` : 'Race day!'}
+          <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">{group.name}</h1>
+          <p className="text-zinc-500 dark:text-zinc-400 mt-0.5 text-sm">
+            {group.event_name} · {daysUntil > 0 ? `${daysUntil} days to go` : 'Race day'}
           </p>
         </div>
         <InviteButton inviteCode={group.invite_code} />
       </div>
 
-      {/* Leaderboard */}
       <LeaderboardTable
         groupId={group.id}
         initialMembers={members}
         currentUserId={user!.id}
       />
 
-      {/* Training Plan */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-gray-900">Your training plan</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Training plan</h2>
           <Link
             href={`/groups/${group.id}/plan`}
-            className="text-sm text-orange-500 hover:underline"
+            className="text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
           >
-            View full plan →
+            View all weeks
           </Link>
         </div>
 
         {weeks.length === 0 ? (
-          <p className="text-gray-400 text-sm">No sessions found.</p>
+          <p className="text-zinc-400 dark:text-zinc-500 text-sm">No sessions found.</p>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {weeks.slice(0, 4).map(([weekNum, weekSessions]) => (
               <WeekView key={weekNum} weekNumber={weekNum} sessions={weekSessions} />
             ))}

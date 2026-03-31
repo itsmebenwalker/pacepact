@@ -1,19 +1,11 @@
 import type { Session } from '@/types'
 
-const SESSION_ICONS: Record<string, string> = {
-  run: '🏃',
-  ride: '🚴',
-  swim: '🏊',
-  brick: '🔥',
-  rest: '😴',
-}
-
-const SESSION_COLORS: Record<string, string> = {
-  run: 'bg-blue-50 border-blue-200',
-  ride: 'bg-green-50 border-green-200',
-  swim: 'bg-cyan-50 border-cyan-200',
-  brick: 'bg-red-50 border-red-200',
-  rest: 'bg-gray-50 border-gray-200',
+const SESSION_LABEL: Record<string, string> = {
+  run: 'Run',
+  ride: 'Ride',
+  swim: 'Swim',
+  brick: 'Brick',
+  rest: 'Rest',
 }
 
 interface Props {
@@ -22,32 +14,41 @@ interface Props {
 
 export default function SessionCard({ session }: Props) {
   const isCompleted = session.completed
-  const icon = SESSION_ICONS[session.session_type] ?? '📋'
-  const colorClass = SESSION_COLORS[session.session_type] ?? 'bg-gray-50 border-gray-200'
+  const label = SESSION_LABEL[session.session_type] ?? session.session_type.toUpperCase()
 
   return (
-    <div className={`relative border rounded-lg p-3 text-sm ${isCompleted ? 'opacity-60 bg-gray-50 border-gray-200' : colorClass}`}>
-      {isCompleted && (
-        <div className="absolute top-2 right-2 text-green-500 text-base">✓</div>
-      )}
-      <div className="flex items-start gap-2">
-        <span className="text-lg leading-tight">{icon}</span>
-        <div className="min-w-0">
-          <p className={`font-medium ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
-            {session.target_description}
-          </p>
-          {(session.target_distance_km || session.target_duration_minutes) && (
-            <p className="text-gray-400 text-xs mt-0.5">
-              {session.target_distance_km ? `${session.target_distance_km} km` : ''}
-              {session.target_distance_km && session.target_duration_minutes ? ' · ' : ''}
-              {session.target_duration_minutes ? `${session.target_duration_minutes} min` : ''}
-            </p>
-          )}
-          {isCompleted && session.points_awarded > 0 && (
-            <p className="text-green-600 text-xs font-medium mt-0.5">+{session.points_awarded} pts</p>
-          )}
-        </div>
+    <div className={`relative border rounded-md p-3 text-sm transition-colors ${
+      isCompleted
+        ? 'bg-zinc-50 dark:bg-zinc-800/30 border-zinc-200 dark:border-zinc-800 opacity-60'
+        : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'
+    }`}>
+      <div className="flex items-start justify-between gap-2 mb-1.5">
+        <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+          {label}
+        </span>
+        {isCompleted && (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400 dark:text-zinc-500 shrink-0 mt-0.5">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        )}
       </div>
+      <p className={`font-medium leading-snug ${
+        isCompleted
+          ? 'text-zinc-400 dark:text-zinc-500 line-through'
+          : 'text-zinc-900 dark:text-zinc-50'
+      }`}>
+        {session.target_description}
+      </p>
+      {(session.target_distance_km || session.target_duration_minutes) && (
+        <p className="text-zinc-400 dark:text-zinc-500 text-xs mt-1">
+          {session.target_distance_km ? `${session.target_distance_km} km` : ''}
+          {session.target_distance_km && session.target_duration_minutes ? ' · ' : ''}
+          {session.target_duration_minutes ? `${session.target_duration_minutes} min` : ''}
+        </p>
+      )}
+      {isCompleted && session.points_awarded > 0 && (
+        <p className="text-zinc-500 dark:text-zinc-400 text-xs font-medium mt-1">+{session.points_awarded} pts</p>
+      )}
     </div>
   )
 }

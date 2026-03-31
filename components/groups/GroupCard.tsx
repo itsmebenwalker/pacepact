@@ -13,7 +13,7 @@ const EVENT_LABELS: Record<string, string> = {
 const AMBITION_LABELS: Record<string, string> = {
   finish: 'Just finish',
   pb: 'Beat my PB',
-  podium: 'Go for podium',
+  podium: 'Podium',
 }
 
 interface Props {
@@ -28,27 +28,25 @@ export default function GroupCard({ group }: Props) {
 
   return (
     <Link href={`/groups/${group.id}`}>
-      <div className="bg-white border border-gray-200 rounded-xl p-5 hover:border-orange-300 hover:shadow-sm transition-all cursor-pointer">
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <h2 className="font-semibold text-gray-900">{group.name}</h2>
-            <p className="text-sm text-gray-500">{group.event_name}</p>
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-5 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors cursor-pointer">
+        <div className="flex items-start justify-between mb-4">
+          <div className="min-w-0 mr-3">
+            <h2 className="font-medium text-zinc-900 dark:text-zinc-50 truncate">{group.name}</h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate mt-0.5">{group.event_name}</p>
           </div>
-          <span className="text-xs bg-orange-50 text-orange-600 font-medium px-2 py-1 rounded-full">
+          <span className="text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-medium px-2 py-1 rounded shrink-0">
             {EVENT_LABELS[group.event_type] ?? group.event_type}
           </span>
         </div>
 
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-400">
-            {daysUntil > 0 ? `${daysUntil} days to go` : 'Race day!'}
-          </span>
-          <span className="text-gray-500">{AMBITION_LABELS[group.ambition]}</span>
+        <div className="flex items-center justify-between text-xs text-zinc-400 dark:text-zinc-500">
+          <span>{daysUntil > 0 ? `${daysUntil} days to go` : 'Race day'}</span>
+          <span>{AMBITION_LABELS[group.ambition]}</span>
         </div>
 
-        <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
-          <span className="text-xs text-gray-400">Your points</span>
-          <span className="font-bold text-orange-500">{group.my_points}</span>
+        <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+          <span className="text-xs text-zinc-400 dark:text-zinc-500">Your points</span>
+          <span className="font-semibold text-zinc-900 dark:text-zinc-50 text-sm">{group.my_points}</span>
         </div>
       </div>
     </Link>

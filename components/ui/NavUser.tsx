@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import ThemeToggle from './ThemeToggle'
 
 export default function NavUser() {
   const router = useRouter()
@@ -14,11 +15,18 @@ export default function NavUser() {
   }
 
   return (
-    <div className="flex items-center gap-3 text-sm">
-      <Link href="/profile" className="text-gray-600 hover:text-gray-900">
+    <div className="flex items-center gap-1 text-sm">
+      <ThemeToggle />
+      <Link
+        href="/profile"
+        className="px-3 py-1.5 rounded-md text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+      >
         Profile
       </Link>
-      <button onClick={signOut} className="text-gray-400 hover:text-gray-700">
+      <button
+        onClick={signOut}
+        className="px-3 py-1.5 rounded-md text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+      >
         Sign out
       </button>
     </div>

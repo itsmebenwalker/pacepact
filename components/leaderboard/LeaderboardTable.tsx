@@ -50,30 +50,32 @@ export default function LeaderboardTable({ groupId, initialMembers, currentUserI
   }, [groupId])
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-gray-100">
-        <h2 className="font-semibold text-gray-900">Leaderboard</h2>
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
+      <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800">
+        <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Leaderboard</h2>
       </div>
-      <div className="divide-y divide-gray-100">
+      <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
         {members.map((member, i) => (
           <div
             key={member.user_id}
             className={`flex items-center gap-4 px-5 py-3 ${
-              member.user_id === currentUserId ? 'bg-orange-50' : ''
+              member.user_id === currentUserId
+                ? 'bg-zinc-50 dark:bg-zinc-800/50'
+                : ''
             }`}
           >
-            <span className={`w-6 text-center font-bold text-sm ${
-              i === 0 ? 'text-yellow-500' : i === 1 ? 'text-gray-400' : i === 2 ? 'text-amber-600' : 'text-gray-300'
+            <span className={`w-5 text-center font-medium text-xs tabular-nums ${
+              i === 0 ? 'text-zinc-900 dark:text-zinc-50' : 'text-zinc-400 dark:text-zinc-500'
             }`}>
               {i + 1}
             </span>
-            <span className="flex-1 font-medium text-gray-900">
+            <span className="flex-1 text-sm font-medium text-zinc-900 dark:text-zinc-50">
               {member.display_name ?? 'Athlete'}
               {member.user_id === currentUserId && (
-                <span className="ml-2 text-xs text-orange-500 font-normal">(you)</span>
+                <span className="ml-2 text-xs text-zinc-400 dark:text-zinc-500 font-normal">you</span>
               )}
             </span>
-            <span className="font-bold text-orange-500">{member.points} pts</span>
+            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 tabular-nums">{member.points}</span>
           </div>
         ))}
       </div>

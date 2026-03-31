@@ -11,7 +11,6 @@ export default async function JoinPage({ params }: { params: Promise<{ inviteCod
     redirect(`/login?next=/join/${inviteCode}`)
   }
 
-  // Look up group
   const { data: group } = await supabase
     .from('groups')
     .select('*')
@@ -21,12 +20,11 @@ export default async function JoinPage({ params }: { params: Promise<{ inviteCod
   if (!group) {
     return (
       <div className="text-center py-20">
-        <p className="text-gray-500">Invalid invite link.</p>
+        <p className="text-zinc-500 dark:text-zinc-400 text-sm">Invalid invite link.</p>
       </div>
     )
   }
 
-  // Check if already a member
   const { data: existing } = await supabase
     .from('group_members')
     .select('id')
@@ -38,7 +36,6 @@ export default async function JoinPage({ params }: { params: Promise<{ inviteCod
     redirect(`/groups/${group.id}`)
   }
 
-  // Check Strava connected
   const { data: profile } = await supabase
     .from('profiles')
     .select('strava_athlete_id')
@@ -47,23 +44,23 @@ export default async function JoinPage({ params }: { params: Promise<{ inviteCod
 
   if (!profile?.strava_athlete_id) {
     return (
-      <div className="max-w-md mx-auto text-center py-20 space-y-4">
-        <h1 className="text-xl font-bold text-gray-900">Connect Strava first</h1>
-        <p className="text-gray-500 text-sm">
-          You need to connect your Strava account before joining <strong>{group.name}</strong>.
+      <div className="max-w-sm mx-auto text-center py-20 space-y-4">
+        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Connect Strava first</h1>
+        <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+          You need to connect your Strava account before joining{' '}
+          <span className="text-zinc-900 dark:text-zinc-100 font-medium">{group.name}</span>.
           PacePact uses Strava to automatically mark your sessions complete.
         </p>
         <a
-          href={`/profile`}
-          className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-medium px-5 py-2.5 rounded-lg text-sm transition-colors"
+          href="/profile"
+          className="inline-block bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-medium px-5 py-2.5 rounded-md text-sm transition-colors"
         >
-          Go to Profile → Connect Strava
+          Go to Profile
         </a>
       </div>
     )
   }
 
-  // Join the group
   const serviceClient = createServiceClient()
 
   await serviceClient.from('group_members').insert({
@@ -72,7 +69,6 @@ export default async function JoinPage({ params }: { params: Promise<{ inviteCod
     points: 0,
   })
 
-  // Fan out sessions to new member
   await fanOutSessionsForUser(serviceClient, group, user.id)
 
   redirect(`/groups/${group.id}`)

@@ -7,7 +7,17 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'PacePact — Train Together',
   description: 'AI-powered group training plans for endurance events. Keep each other accountable.',
+  icons: { icon: '/favicon.svg' },
 }
+
+const themeScript = `
+  try {
+    const t = localStorage.getItem('theme')
+    if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark')
+    }
+  } catch {}
+`
 
 export default function RootLayout({
   children,
@@ -15,7 +25,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className={`${inter.className} antialiased`}>{children}</body>
     </html>
   )

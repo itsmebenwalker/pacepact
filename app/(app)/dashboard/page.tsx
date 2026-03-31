@@ -7,8 +7,6 @@ interface GroupWithPoints extends Group {
   my_points: number
 }
 
-// Shape of the joined group columns we select — using the exact union types
-// so the spread satisfies GroupWithPoints without further casting.
 interface GroupRow {
   id: string
   name: string
@@ -35,8 +33,6 @@ export default async function DashboardPage() {
     .eq('user_id', user!.id)
     .order('joined_at', { ascending: false })
 
-  // Supabase infers joined relations as arrays without generated DB types,
-  // so we go through `unknown` before asserting the actual row shape.
   const groups: GroupWithPoints[] = memberships?.map((m) => ({
     ...(m.groups as unknown as GroupRow),
     training_plan: [],
@@ -48,31 +44,31 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Your groups</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Groups</h1>
         <Link
           href="/groups/new"
-          className="bg-orange-500 hover:bg-orange-600 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors"
+          className="bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-medium px-4 py-2 rounded-md text-sm transition-colors"
         >
-          + New group
+          New group
         </Link>
       </div>
 
       {groups.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
-          <p className="text-gray-400 text-lg mb-4">No groups yet</p>
-          <p className="text-gray-400 text-sm mb-6">
+        <div className="text-center py-20 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+          <p className="text-zinc-900 dark:text-zinc-50 font-medium mb-2">No groups yet</p>
+          <p className="text-zinc-400 dark:text-zinc-500 text-sm mb-6">
             Create one for your next race, or ask a friend for their invite link.
           </p>
           <Link
             href="/groups/new"
-            className="bg-orange-500 hover:bg-orange-600 text-white font-medium px-5 py-2.5 rounded-lg text-sm transition-colors"
+            className="bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-medium px-5 py-2.5 rounded-md text-sm transition-colors"
           >
             Create your first group
           </Link>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           {groups.map((group) => (
             <GroupCard key={group.id} group={group} myPoints={group.my_points} />
           ))}
