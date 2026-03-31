@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-export default function NavUser({ userId }: { userId: string }) {
+export default function NavUser() {
   const router = useRouter()
   const supabase = createClient()
 

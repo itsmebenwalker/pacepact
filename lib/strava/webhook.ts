@@ -2,7 +2,8 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { matchActivity } from './activity-matcher'
 import { calculatePoints } from '@/lib/points/calculator'
 import { ensureFreshToken, getStravaActivity } from './oauth'
-import type { StravaActivity, StravaWebhookPayload } from '@/types'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Session, StravaWebhookPayload } from '@/types'
 
 export async function processWebhookEvent(payload: StravaWebhookPayload) {
   const serviceClient = createServiceClient()
@@ -43,13 +44,13 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
 
   if (!pendingSessions || pendingSessions.length === 0) return
 
-  const matchedSession = matchActivity(activity, pendingSessions as any)
+  const matchedSession = matchActivity(activity, pendingSessions as Session[])
   if (!matchedSession) return
 
   // Check if user has a streak (7 consecutive days with completed sessions)
   const streakActive = await checkStreak(serviceClient, profile.id)
 
-  const points = calculatePoints(matchedSession as any, activity, streakActive)
+  const points = calculatePoints(matchedSession, activity, streakActive)
 
   // Mark session complete
   await serviceClient
@@ -79,7 +80,7 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
   }
 }
 
-async function checkStreak(serviceClient: any, userId: string): Promise<boolean> {
+async function checkStreak(serviceClient: SupabaseClient, userId: string): Promise<boolean> {
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
@@ -94,7 +95,7 @@ async function checkStreak(serviceClient: any, userId: string): Promise<boolean>
 
   // Check there's a completion for each of the last 7 days
   const completedDays = new Set(
-    recentSessions.map((s: any) => s.completed_at.split('T')[0])
+    recentSessions.map((s: { completed_at: string }) => s.completed_at.split('T')[0])
   )
 
   for (let i = 0; i < 7; i++) {

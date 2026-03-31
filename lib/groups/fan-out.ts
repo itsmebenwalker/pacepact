@@ -1,8 +1,9 @@
 import { addDays, startOfWeek, format } from 'date-fns'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Group, TrainingSession } from '@/types'
 
 export async function fanOutSessionsForUser(
-  serviceClient: any,
+  serviceClient: SupabaseClient,
   group: Group,
   userId: string
 ) {

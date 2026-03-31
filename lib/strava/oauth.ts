@@ -1,4 +1,5 @@
-import type { StravaTokenResponse } from '@/types'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { StravaActivity, StravaTokenResponse } from '@/types'
 
 const STRAVA_TOKEN_URL = 'https://www.strava.com/oauth/token'
 
@@ -58,7 +59,7 @@ export async function refreshStravaToken(refreshToken: string): Promise<{
 export async function getStravaActivity(
   activityId: number,
   accessToken: string
-): Promise<any> {
+): Promise<StravaActivity> {
   const res = await fetch(`https://www.strava.com/api/v3/activities/${activityId}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   })
@@ -71,7 +72,7 @@ export async function getStravaActivity(
 }
 
 export async function ensureFreshToken(
-  supabase: any,
+  supabase: SupabaseClient,
   profile: {
     id: string
     strava_access_token: string

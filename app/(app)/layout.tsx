@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Link href="/dashboard" className="font-bold text-orange-500 text-lg tracking-tight">
             PacePact
           </Link>
-          <NavUser userId={user.id} />
+          <NavUser />
         </div>
       </header>
       <main className="max-w-5xl mx-auto px-4 py-6">{children}</main>

@@ -1,8 +1,6 @@
 import type { Session } from '@/types'
 import SessionCard from './SessionCard'
 
-const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-
 interface Props {
   weekNumber: number
   sessions: Session[]

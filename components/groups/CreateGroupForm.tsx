@@ -51,8 +51,8 @@ export default function CreateGroupForm() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Something went wrong')
       router.push(`/groups/${data.groupId}`)
-    } catch (e: any) {
-      setError(e.message)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Something went wrong')
       setLoading(false)
     }
   }
@@ -189,7 +189,7 @@ export default function CreateGroupForm() {
           </div>
 
           <p className="text-sm text-gray-500">
-            Claude will generate a personalised training plan. This takes 5–15 seconds — don't navigate away.
+            Claude will generate a personalised training plan. This takes 5–15 seconds — don&apos;t navigate away.
           </p>
 
           {error && <p className="text-sm text-red-600">{error}</p>}

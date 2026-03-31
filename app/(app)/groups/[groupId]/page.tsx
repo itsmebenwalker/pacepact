@@ -34,10 +34,12 @@ export default async function GroupPage({ params }: { params: { groupId: string 
     .eq('group_id', params.groupId)
     .order('points', { ascending: false })
 
+  interface ProfileResult { display_name: string | null }
+
   const members = (membersRaw ?? []).map((m) => ({
     user_id: m.user_id,
     points: m.points,
-    display_name: (m.profiles as any)?.display_name ?? null,
+    display_name: (m.profiles as ProfileResult)?.display_name ?? null,
   }))
 
   // Load user's sessions grouped by week

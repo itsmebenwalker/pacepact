@@ -1,6 +1,21 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import GroupCard from '@/components/groups/GroupCard'
+import type { Group } from '@/types'
+
+interface GroupWithPoints extends Group {
+  my_points: number
+}
+
+interface GroupRow {
+  id: string
+  name: string
+  event_name: string
+  event_type: string
+  event_date: string
+  ambition: string
+  invite_code: string
+}
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -18,8 +33,12 @@ export default async function DashboardPage() {
     .eq('user_id', user!.id)
     .order('joined_at', { ascending: false })
 
-  const groups = memberships?.map((m) => ({
-    ...(m.groups as any),
+  const groups: GroupWithPoints[] = memberships?.map((m) => ({
+    ...(m.groups as GroupRow),
+    training_plan: [],
+    training_plan_raw: undefined,
+    created_by: '',
+    created_at: '',
     my_points: m.points,
   })) ?? []
 
@@ -50,7 +69,7 @@ export default async function DashboardPage() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
-          {groups.map((group: any) => (
+          {groups.map((group) => (
             <GroupCard key={group.id} group={group} myPoints={group.my_points} />
           ))}
         </div>
