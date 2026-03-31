@@ -4,13 +4,14 @@ import WeekView from '@/components/training/WeekView'
 import Link from 'next/link'
 import type { Session } from '@/types'
 
-export default async function PlanPage({ params }: { params: { groupId: string } }) {
-  const supabase = createClient()
+export default async function PlanPage({ params }: { params: Promise<{ groupId: string }> }) {
+  const { groupId } = await params
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const [{ data: group }, { data: membership }] = await Promise.all([
-    supabase.from('groups').select('id, name, event_name, event_date').eq('id', params.groupId).single(),
-    supabase.from('group_members').select('id').eq('group_id', params.groupId).eq('user_id', user!.id).maybeSingle(),
+    supabase.from('groups').select('id, name, event_name, event_date').eq('id', groupId).single(),
+    supabase.from('group_members').select('id').eq('group_id', groupId).eq('user_id', user!.id).maybeSingle(),
   ])
 
   if (!group || !membership) notFound()
@@ -18,7 +19,7 @@ export default async function PlanPage({ params }: { params: { groupId: string }
   const { data: sessions } = await supabase
     .from('sessions')
     .select('*')
-    .eq('group_id', params.groupId)
+    .eq('group_id', groupId)
     .eq('user_id', user!.id)
     .order('scheduled_date', { ascending: true })
 
@@ -34,7 +35,7 @@ export default async function PlanPage({ params }: { params: { groupId: string }
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Link href={`/groups/${params.groupId}`} className="text-gray-400 hover:text-gray-600 text-sm">
+        <Link href={`/groups/${groupId}`} className="text-gray-400 hover:text-gray-600 text-sm">
           ← Back
         </Link>
         <div>

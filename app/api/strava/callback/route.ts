@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/profile?error=strava_denied`)
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {

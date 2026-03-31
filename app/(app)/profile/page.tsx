@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getStravaAuthUrl } from '@/lib/strava/oauth'
 
 export default async function ProfilePage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const { data: profile } = await supabase

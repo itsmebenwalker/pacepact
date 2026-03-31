@@ -2,19 +2,20 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { fanOutSessionsForUser } from '@/lib/groups/fan-out'
 
-export default async function JoinPage({ params }: { params: { inviteCode: string } }) {
-  const supabase = createClient()
+export default async function JoinPage({ params }: { params: Promise<{ inviteCode: string }> }) {
+  const { inviteCode } = await params
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect(`/login?next=/join/${params.inviteCode}`)
+    redirect(`/login?next=/join/${inviteCode}`)
   }
 
   // Look up group
   const { data: group } = await supabase
     .from('groups')
     .select('*')
-    .eq('invite_code', params.inviteCode)
+    .eq('invite_code', inviteCode)
     .single()
 
   if (!group) {

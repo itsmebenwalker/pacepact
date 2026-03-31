@@ -2,13 +2,16 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 
-export default async function MembersPage({ params }: { params: { groupId: string } }) {
-  const supabase = createClient()
+interface ProfileResult { display_name: string | null; strava_athlete_id: number | null }
+
+export default async function MembersPage({ params }: { params: Promise<{ groupId: string }> }) {
+  const { groupId } = await params
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const [{ data: group }, { data: membership }] = await Promise.all([
-    supabase.from('groups').select('id, name, event_name').eq('id', params.groupId).single(),
-    supabase.from('group_members').select('id').eq('group_id', params.groupId).eq('user_id', user!.id).maybeSingle(),
+    supabase.from('groups').select('id, name, event_name').eq('id', groupId).single(),
+    supabase.from('group_members').select('id').eq('group_id', groupId).eq('user_id', user!.id).maybeSingle(),
   ])
 
   if (!group || !membership) notFound()
@@ -16,13 +19,13 @@ export default async function MembersPage({ params }: { params: { groupId: strin
   const { data: members } = await supabase
     .from('group_members')
     .select('user_id, points, joined_at, profiles(display_name, strava_athlete_id)')
-    .eq('group_id', params.groupId)
+    .eq('group_id', groupId)
     .order('points', { ascending: false })
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Link href={`/groups/${params.groupId}`} className="text-gray-400 hover:text-gray-600 text-sm">
+        <Link href={`/groups/${groupId}`} className="text-gray-400 hover:text-gray-600 text-sm">
           ← Back
         </Link>
         <div>
@@ -34,7 +37,6 @@ export default async function MembersPage({ params }: { params: { groupId: strin
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <div className="divide-y divide-gray-100">
           {(members ?? []).map((m, i) => {
-            interface ProfileResult { display_name: string | null; strava_athlete_id: number | null }
             const profile = m.profiles as unknown as ProfileResult
             const isConnected = !!profile?.strava_athlete_id
             return (

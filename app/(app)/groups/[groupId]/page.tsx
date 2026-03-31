@@ -6,20 +6,21 @@ import InviteButton from '@/components/groups/InviteButton'
 import Link from 'next/link'
 import type { Session } from '@/types'
 
-export default async function GroupPage({ params }: { params: { groupId: string } }) {
-  const supabase = createClient()
+export default async function GroupPage({ params }: { params: Promise<{ groupId: string }> }) {
+  const { groupId } = await params
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const [{ data: group }, { data: membership }] = await Promise.all([
     supabase
       .from('groups')
       .select('*')
-      .eq('id', params.groupId)
+      .eq('id', groupId)
       .single(),
     supabase
       .from('group_members')
       .select('*')
-      .eq('group_id', params.groupId)
+      .eq('group_id', groupId)
       .eq('user_id', user!.id)
       .maybeSingle(),
   ])
@@ -31,7 +32,7 @@ export default async function GroupPage({ params }: { params: { groupId: string 
   const { data: membersRaw } = await supabase
     .from('group_members')
     .select('user_id, points, profiles(display_name)')
-    .eq('group_id', params.groupId)
+    .eq('group_id', groupId)
     .order('points', { ascending: false })
 
   interface ProfileResult { display_name: string | null }
@@ -46,7 +47,7 @@ export default async function GroupPage({ params }: { params: { groupId: string 
   const { data: sessions } = await supabase
     .from('sessions')
     .select('*')
-    .eq('group_id', params.groupId)
+    .eq('group_id', groupId)
     .eq('user_id', user!.id)
     .order('scheduled_date', { ascending: true })
 
