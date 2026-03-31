@@ -3,7 +3,7 @@ import { matchActivity } from './activity-matcher'
 import { calculatePoints } from '@/lib/points/calculator'
 import { ensureFreshToken, getStravaActivity } from './oauth'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Session, StravaWebhookPayload } from '@/types'
+import type { Session, StravaActivity, StravaWebhookPayload } from '@/types'
 
 export async function processWebhookEvent(payload: StravaWebhookPayload) {
   const serviceClient = createServiceClient()

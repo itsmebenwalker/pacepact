@@ -35,7 +35,7 @@ export default async function MembersPage({ params }: { params: { groupId: strin
         <div className="divide-y divide-gray-100">
           {(members ?? []).map((m, i) => {
             interface ProfileResult { display_name: string | null; strava_athlete_id: number | null }
-            const profile = m.profiles as ProfileResult
+            const profile = m.profiles as unknown as ProfileResult
             const isConnected = !!profile?.strava_athlete_id
             return (
               <div key={m.user_id} className={`flex items-center gap-4 px-5 py-4 ${m.user_id === user!.id ? 'bg-orange-50' : ''}`}>

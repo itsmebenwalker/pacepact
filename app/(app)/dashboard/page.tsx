@@ -1,19 +1,21 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import GroupCard from '@/components/groups/GroupCard'
-import type { Group } from '@/types'
+import type { Group, EventType, Ambition } from '@/types'
 
 interface GroupWithPoints extends Group {
   my_points: number
 }
 
+// Shape of the joined group columns we select — using the exact union types
+// so the spread satisfies GroupWithPoints without further casting.
 interface GroupRow {
   id: string
   name: string
   event_name: string
-  event_type: string
+  event_type: EventType
   event_date: string
-  ambition: string
+  ambition: Ambition
   invite_code: string
 }
 
@@ -33,8 +35,10 @@ export default async function DashboardPage() {
     .eq('user_id', user!.id)
     .order('joined_at', { ascending: false })
 
+  // Supabase infers joined relations as arrays without generated DB types,
+  // so we go through `unknown` before asserting the actual row shape.
   const groups: GroupWithPoints[] = memberships?.map((m) => ({
-    ...(m.groups as GroupRow),
+    ...(m.groups as unknown as GroupRow),
     training_plan: [],
     training_plan_raw: undefined,
     created_by: '',
