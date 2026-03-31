@@ -11,7 +11,7 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [{ data: group }, { data: membership }] = await Promise.all([
+  const [{ data: group, error: groupError }, { data: membership, error: membershipError }] = await Promise.all([
     supabase
       .from('groups')
       .select('*')
@@ -24,6 +24,10 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
       .eq('user_id', user!.id)
       .maybeSingle(),
   ])
+
+  if (groupError) console.error('[GroupPage] group query error:', JSON.stringify(groupError))
+  if (membershipError) console.error('[GroupPage] membership query error:', JSON.stringify(membershipError))
+  console.log('[GroupPage] groupId:', groupId, 'userId:', user!.id, 'group:', !!group, 'membership:', !!membership)
 
   if (!group) notFound()
   if (!membership) notFound()
