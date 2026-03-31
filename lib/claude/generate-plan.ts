@@ -47,7 +47,7 @@ Rules:
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-20250514',
-    max_tokens: 4096,
+    max_tokens: 16000,
     system: `You are an expert endurance sports coach. You generate structured training plans as JSON. Respond ONLY with valid JSON — no markdown, no explanation.`,
     messages: [{ role: 'user', content: userPrompt }],
   })

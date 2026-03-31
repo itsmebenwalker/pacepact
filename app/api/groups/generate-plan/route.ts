@@ -3,7 +3,7 @@ import { generateTrainingPlan } from '@/lib/claude/generate-plan'
 import { fanOutSessionsForUser } from '@/lib/groups/fan-out'
 import { NextResponse } from 'next/server'
 import { nanoid } from 'nanoid'
-import type { EventType, Ambition } from '@/types'
+import type { EventType, Ambition, TrainingSession } from '@/types'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -27,7 +27,13 @@ export async function POST(request: Request) {
   }
 
   // Generate plan via Claude
-  const { sessions, raw } = await generateTrainingPlan(event_type, event_date, ambition)
+  let sessions: TrainingSession[], raw: string
+  try {
+    ;({ sessions, raw } = await generateTrainingPlan(event_type, event_date, ambition))
+  } catch (e) {
+    console.error('Plan generation error:', e)
+    return NextResponse.json({ error: 'Failed to generate training plan. Please try again.' }, { status: 500 })
+  }
 
   const serviceClient = createServiceClient()
 
