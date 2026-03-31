@@ -89,25 +89,23 @@ create policy "Users can update own profile"
 create policy "Users can insert own profile"
   on profiles for insert with check (auth.uid() = id);
 
+-- Helper function: checks group membership without triggering RLS recursion
+-- Must use security definer so it bypasses RLS on the inner group_members query
+create or replace function auth_user_is_group_member(g_id uuid)
+returns boolean language sql security definer stable as $$
+  select exists (
+    select 1 from group_members
+    where group_id = g_id and user_id = auth.uid()
+  );
+$$;
+
 -- Groups: members can read groups they belong to
 create policy "Members can view their groups"
-  on groups for select using (
-    exists (
-      select 1 from group_members
-      where group_members.group_id = groups.id
-      and group_members.user_id = auth.uid()
-    )
-  );
+  on groups for select using (auth_user_is_group_member(id));
 
 -- Group members: members can see other members in same group
 create policy "Members can view group members"
-  on group_members for select using (
-    exists (
-      select 1 from group_members gm2
-      where gm2.group_id = group_members.group_id
-      and gm2.user_id = auth.uid()
-    )
-  );
+  on group_members for select using (auth_user_is_group_member(group_id));
 
 -- Sessions: users can only see their own sessions
 create policy "Users can view own sessions"
