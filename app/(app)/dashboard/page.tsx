@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import GroupCard from '@/components/groups/GroupCard'
@@ -33,14 +35,16 @@ export default async function DashboardPage() {
     .eq('user_id', user!.id)
     .order('joined_at', { ascending: false })
 
-  const groups: GroupWithPoints[] = memberships?.map((m) => ({
-    ...(m.groups as unknown as GroupRow),
-    training_plan: [],
-    training_plan_raw: undefined,
-    created_by: '',
-    created_at: '',
-    my_points: m.points,
-  })) ?? []
+  const groups: GroupWithPoints[] = memberships
+    ?.filter((m) => m.groups != null)
+    .map((m) => ({
+      ...(m.groups as unknown as GroupRow),
+      training_plan: [],
+      training_plan_raw: undefined,
+      created_by: '',
+      created_at: '',
+      my_points: m.points,
+    })) ?? []
 
   return (
     <div>
