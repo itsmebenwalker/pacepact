@@ -38,13 +38,21 @@ npm install
 Open the SQL editor in your Supabase dashboard and run the entire contents of [`supabase/schema.sql`](../supabase/schema.sql).
 
 This creates:
-- `profiles` — user profile data extending Supabase Auth
+- `profiles` — user profile data extending Supabase Auth (cascades on user delete)
 - `groups` — training groups with generated plans
 - `group_members` — membership + point totals
 - `sessions` — individual training sessions per user per group
 - `strava_webhook_events` — raw webhook payload log
 - All RLS policies
 - A trigger that auto-creates a profile row on signup
+
+> **Existing installs**: if you applied the schema before this was fixed, run the following to add the missing cascade:
+> ```sql
+> ALTER TABLE profiles
+> DROP CONSTRAINT profiles_id_fkey,
+> ADD CONSTRAINT profiles_id_fkey
+>   FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
+> ```
 
 ### 2.3 Enable Realtime
 

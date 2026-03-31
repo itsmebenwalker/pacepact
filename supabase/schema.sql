@@ -3,7 +3,7 @@
 
 -- Profiles (extends auth.users)
 create table profiles (
-  id uuid references auth.users primary key,
+  id uuid references auth.users on delete cascade primary key,
   display_name text,
   avatar_url text,
   strava_athlete_id bigint unique,

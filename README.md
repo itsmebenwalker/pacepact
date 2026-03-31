@@ -61,13 +61,16 @@ pacepact/
 │   │   ├── strava/
 │   │   │   ├── callback/     # OAuth token exchange
 │   │   │   └── webhook/      # Strava webhook receiver
-│   │   └── groups/
-│   │       └── generate-plan/# Claude plan generation
+│   │   ├── groups/
+│   │   │   └── generate-plan/# Claude plan generation
+│   │   └── user/
+│   │       └── delete/       # Delete authenticated user account
 │   └── auth/callback/        # Auth callback handler (magic link / OAuth)
 ├── components/
 │   ├── leaderboard/          # Real-time leaderboard table
 │   ├── training/             # Week view + session cards
 │   ├── groups/               # Group cards, create form, invite button
+│   ├── profile/              # Delete account button
 │   └── ui/                   # Shared primitives (nav, theme toggle)
 ├── lib/
 │   ├── supabase/             # Browser + server clients
