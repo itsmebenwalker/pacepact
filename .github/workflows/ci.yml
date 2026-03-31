@@ -41,11 +41,9 @@ jobs:
           STRAVA_CLIENT_ID: '12345'
           STRAVA_CLIENT_SECRET: test-client-secret
           STRAVA_WEBHOOK_VERIFY_TOKEN: test-verify-token
-          STRAVA_WEBHOOK_SECRET: test-webhook-secret
           ANTHROPIC_API_KEY: test-anthropic-key
           RESEND_API_KEY: test-resend-key
           NEXT_PUBLIC_APP_URL: http://localhost:3000
-
 
   build:
     name: Build
@@ -74,7 +72,6 @@ jobs:
           STRAVA_CLIENT_ID: '12345'
           STRAVA_CLIENT_SECRET: test-client-secret
           STRAVA_WEBHOOK_VERIFY_TOKEN: test-verify-token
-          STRAVA_WEBHOOK_SECRET: test-webhook-secret
           ANTHROPIC_API_KEY: test-anthropic-key
           RESEND_API_KEY: test-resend-key
           NEXT_PUBLIC_APP_URL: http://localhost:3000

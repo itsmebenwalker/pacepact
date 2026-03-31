@@ -6,7 +6,7 @@ Full walkthrough to get PacePact running locally and deployed to Railway.
 
 ## Prerequisites
 
-- Node.js 18+
+- Node.js 24+
 - A [Supabase](https://supabase.com) account (free tier is fine)
 - A [Strava API application](https://www.strava.com/settings/api)
 - An [Anthropic API key](https://console.anthropic.com)
@@ -50,14 +50,20 @@ This creates:
 
 Go to **Database → Replication** in your Supabase dashboard and enable replication for the `group_members` table. This powers the live leaderboard.
 
-### 2.4 Configure Auth
+### 2.4 Create user accounts
+
+Signup is disabled by default (`NEXT_PUBLIC_SIGNUP_ENABLED=false`). Create user accounts manually in the Supabase dashboard under **Authentication → Users → Add user**. Set an email and password — users sign in with email and password directly.
+
+To allow self-signup (e.g. during testing), set `NEXT_PUBLIC_SIGNUP_ENABLED=true` in your environment. Signup uses a magic link flow.
+
+### 2.5 Configure Auth redirect URLs
 
 Go to **Authentication → URL Configuration** and set:
 
 - **Site URL**: `http://localhost:3000` (update to your production URL when deploying)
 - **Redirect URLs**: Add `http://localhost:3000/auth/callback` and your production equivalent
 
-For magic link email, Supabase handles delivery by default. You can optionally configure a custom SMTP provider under **Authentication → SMTP Settings**.
+These are needed for the magic link signup flow and Strava OAuth callback.
 
 ---
 
@@ -86,7 +92,15 @@ curl -X POST https://www.strava.com/api/v3/push_subscriptions \
 
 `verify_token` must match the `STRAVA_WEBHOOK_VERIFY_TOKEN` value in your environment variables — it's any string you choose.
 
-Strava will call your endpoint to verify it. If the request succeeds you'll receive a `subscription_id` — you don't need to store this anywhere.
+Strava will call your endpoint to verify it. On success you'll receive a `{"id": ...}` response with the subscription ID. You don't need to store this anywhere.
+
+If you see `"already exists"`, a subscription is already registered. To view it:
+
+```bash
+curl -G https://www.strava.com/api/v3/push_subscriptions \
+  -d client_id=YOUR_CLIENT_ID \
+  -d client_secret=YOUR_CLIENT_SECRET
+```
 
 ### 3.3 Local webhook testing
 
@@ -136,7 +150,6 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...   # Settings → API → service_role key
 STRAVA_CLIENT_ID=12345
 STRAVA_CLIENT_SECRET=abc123...
 STRAVA_WEBHOOK_VERIFY_TOKEN=any-string-you-choose
-STRAVA_WEBHOOK_SECRET=returned-by-strava-on-registration
 
 # Anthropic
 ANTHROPIC_API_KEY=sk-ant-...
@@ -146,6 +159,7 @@ RESEND_API_KEY=re_...
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_SIGNUP_ENABLED=false   # Set to 'true' to allow self-signup
 ```
 
 > **Security note**: `SUPABASE_SERVICE_ROLE_KEY` bypasses RLS. It is only used in server-side API routes and is never exposed to the browser. Never commit `.env.local` to version control.
@@ -160,7 +174,7 @@ npm run dev
 
 Visit [http://localhost:3000](http://localhost:3000). You'll be redirected to `/login`.
 
-Sign up with your email — Supabase will send a magic link. Click it to complete sign-in. Your profile is created automatically by the database trigger.
+Sign in with the email and password you set when creating the account in Supabase. Your profile is created automatically by the database trigger on first login.
 
 ---
 
@@ -204,8 +218,6 @@ npm run test:watch    # Watch mode
 npm test -- --coverage  # Coverage report
 ```
 
-See [Testing](#testing) for details on what's covered.
-
 ---
 
 ## Testing
@@ -232,9 +244,10 @@ Located in `__tests__/integration/`. Cover API routes with Supabase mocked via `
 
 ## Troubleshooting
 
-**Magic link doesn't arrive**
-- Check Supabase logs under Authentication → Logs
-- Ensure Site URL matches the URL you're accessing the app on
+**Can't sign in**
+- Confirm the user exists in Supabase → Authentication → Users
+- Check that the password was set correctly (Supabase allows resetting it from the dashboard)
+- If using the signup flow, check Supabase logs under Authentication → Logs for magic link delivery issues
 
 **Strava OAuth fails**
 - Confirm `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET` are correct

@@ -9,12 +9,13 @@ Social training platform for groups of friends preparing for the same endurance 
 - **Live leaderboard** — Supabase Realtime keeps scores updated for everyone in the group simultaneously
 - **Invite links** — 8-character invite codes let friends join a group in one click
 - **Points system** — base points per session, plus bonuses for completing early, exceeding targets, and maintaining a streak
+- **Dark mode** — system preference detected on load, with a manual toggle
 
 ## Tech stack
 
 | Layer | Choice |
 |---|---|
-| Framework | Next.js 14 (App Router) |
+| Framework | Next.js 15 (App Router) |
 | Database | Supabase (Postgres + Auth + Realtime) |
 | Hosting | Railway |
 | AI | Anthropic Claude (`claude-sonnet-4-20250514`) |
@@ -62,12 +63,12 @@ pacepact/
 │   │   │   └── webhook/      # Strava webhook receiver
 │   │   └── groups/
 │   │       └── generate-plan/# Claude plan generation
-│   └── auth/callback/        # Supabase magic link handler
+│   └── auth/callback/        # Auth callback handler (magic link / OAuth)
 ├── components/
 │   ├── leaderboard/          # Real-time leaderboard table
 │   ├── training/             # Week view + session cards
 │   ├── groups/               # Group cards, create form, invite button
-│   └── ui/                   # Shared primitives
+│   └── ui/                   # Shared primitives (nav, theme toggle)
 ├── lib/
 │   ├── supabase/             # Browser + server clients
 │   ├── strava/               # OAuth, webhook processing, activity matching
