@@ -98,12 +98,12 @@ export default function MessageBoard({
   }
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg">
       <div className="px-4 py-3 sm:px-5 sm:py-4 border-b border-zinc-100 dark:border-zinc-800">
         <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Group chat</h2>
       </div>
 
-      <div className="max-h-80 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800">
+      <div className="h-72 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800">
         {messages.length === 0 ? (
           <p className="px-4 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
             No messages yet — say hello!
