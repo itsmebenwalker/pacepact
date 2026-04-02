@@ -185,24 +185,35 @@ pacepact/
 │   │   ├── profile/page.tsx            # Strava connect, settings
 │   │   └── join/[inviteCode]/page.tsx  # Invite link landing
 │   ├── api/
+│   │   ├── auth/
+│   │   │   └── otp/send/route.ts       # Send magic link email via Resend
 │   │   ├── strava/
-│   │   │   ├── callback/route.ts       # OAuth callback
+│   │   │   ├── callback/route.ts       # OAuth token exchange
+│   │   │   ├── disconnect/route.ts     # Deauthorize Strava + clear tokens
 │   │   │   └── webhook/route.ts        # Strava webhook receiver
-│   │   └── groups/
-│   │       └── generate-plan/route.ts  # Claude plan generation
+│   │   ├── groups/
+│   │   │   └── generate-plan/route.ts  # Claude plan generation
+│   │   └── user/
+│   │       └── delete/route.ts         # Delete authenticated user account
+│   ├── auth/
+│   │   └── callback/page.tsx           # Auth callback (PKCE + implicit flow)
 │   └── layout.tsx
 ├── components/
 │   ├── leaderboard/
 │   │   ├── LeaderboardTable.tsx        # Realtime-subscribed
 │   │   └── PointsBadge.tsx
 │   ├── training/
-│   │   ├── WeekView.tsx                # Weekly session grid
+│   │   ├── WeekView.tsx                # Weekly session grid + date range + past states
 │   │   ├── SessionCard.tsx             # Single session, completed state
 │   │   └── PlanOverview.tsx            # Full plan timeline
 │   ├── groups/
 │   │   ├── GroupCard.tsx               # Dashboard summary card
 │   │   ├── CreateGroupForm.tsx         # Multi-step group setup
-│   │   └── InviteButton.tsx            # Copy invite link
+│   │   ├── InviteButton.tsx            # Copy invite link
+│   │   └── MessageBoard.tsx            # Realtime group chat
+│   ├── profile/
+│   │   ├── DeleteAccountButton.tsx     # Delete account (client component)
+│   │   └── DisconnectStravaButton.tsx  # Strava disconnect (client component)
 │   └── ui/                             # Shared primitives
 ├── lib/
 │   ├── supabase/
@@ -210,12 +221,17 @@ pacepact/
 │   │   └── server.ts
 │   ├── strava/
 │   │   ├── oauth.ts                    # Token exchange, refresh
-│   │   ├── webhook.ts                  # Signature verification, processing
-│   │   └── activity-matcher.ts         # Match activity → session
+│   │   ├── webhook.ts                  # Webhook processing, per-group matching
+│   │   └── activity-matcher.ts         # Match activity → session (week-scoped)
 │   ├── claude/
 │   │   └── generate-plan.ts            # Plan generation prompt + parsing
-│   └── points/
-│       └── calculator.ts               # Points logic
+│   ├── resend/
+│   │   └── otp-email.ts                # Magic link email template
+│   ├── points/
+│   │   └── calculator.ts               # Points logic
+│   └── utils/
+│       ├── week-status.ts              # Week state (past-complete/incomplete/active) + sort
+│       └── format-time.ts              # Message timestamp formatting
 ├── types/
 │   └── index.ts                        # Shared TypeScript types
 └── CLAUDE.md
@@ -279,14 +295,14 @@ The webhook endpoint handles two things:
 **GET** — Strava's subscription verification challenge. Respond with the `hub.challenge` value.
 
 **POST** — Incoming activity event. Flow:
-1. Verify the request signature using `STRAVA_WEBHOOK_SECRET`
-2. Log raw payload to `strava_webhook_events`
-3. If `object_type !== 'activity'` or `aspect_type !== 'create'`, return 200 and stop
-4. Look up the user by `owner_id` (Strava athlete ID) in `profiles`
-5. Fetch full activity from Strava API (need distance, type, elapsed time)
-6. Pass activity to `activity-matcher.ts`
-7. Award points, mark sessions complete
-8. Broadcast via Supabase Realtime
+1. Log raw payload to `strava_webhook_events`
+2. If `object_type !== 'activity'` or `aspect_type !== 'create'`, return 200 and stop
+3. Look up the user by `owner_id` (Strava athlete ID) in `profiles`
+4. Fetch full activity from Strava API (need distance, type, elapsed time)
+5. Bucket all pending sessions by `group_id`
+6. Call `matchActivity` once per group — awards the activity to the matching session in **each** group independently
+7. Mark matched sessions complete and award points per group
+8. Leaderboard updates via Supabase Realtime
 
 Always return HTTP 200 immediately — Strava will retry on non-200.
 

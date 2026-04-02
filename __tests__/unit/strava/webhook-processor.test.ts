@@ -49,7 +49,7 @@ jest.mock('@/lib/supabase/server', () => ({
       }
       if (table === 'sessions') {
         return {
-          select: () => ({ eq: () => ({ eq: () => ({ data: mockGetUser._pendingSessions, error: null }) }) }),
+          select: () => ({ eq: () => ({ eq: () => ({ data: [], error: null }) }) }),
           update: mockSessionsUpdate,
         }
       }
