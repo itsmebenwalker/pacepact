@@ -130,6 +130,27 @@ sessions (
 )
 ```
 
+### `messages`
+Group chat messages, scoped per group. 200-character limit enforced at DB level.
+
+```sql
+messages (
+  id uuid primary key default gen_random_uuid(),
+  group_id uuid references groups(id) on delete cascade,
+  user_id uuid references profiles(id) on delete cascade,
+  content text not null check (char_length(content) <= 200),
+  created_at timestamptz default now()
+)
+```
+
+Index: `(group_id, created_at)`
+
+RLS policies required:
+- **Select**: user must be a member of the group (`group_members`)
+- **Insert**: `user_id = auth.uid()` and user must be a member of the group
+
+Supabase Realtime must be enabled on this table for live chat to work.
+
 ### `strava_webhook_events`
 Raw log of incoming Strava webhook payloads for debugging and replay.
 

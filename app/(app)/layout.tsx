@@ -21,7 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <NavUser />
         </div>
       </header>
-      <main className="max-w-5xl mx-auto px-4 py-8">{children}</main>
+      <main className="max-w-5xl mx-auto px-4 py-4 sm:py-8">{children}</main>
     </div>
   )
 }

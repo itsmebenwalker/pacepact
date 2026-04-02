@@ -28,7 +28,7 @@ export default function GroupCard({ group }: Props) {
 
   return (
     <Link href={`/groups/${group.id}`}>
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-5 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors cursor-pointer">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors cursor-pointer">
         <div className="flex items-start justify-between mb-4">
           <div className="min-w-0 mr-3">
             <h2 className="font-medium text-zinc-900 dark:text-zinc-50 truncate">{group.name}</h2>

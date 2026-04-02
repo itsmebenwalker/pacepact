@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getStravaAuthUrl } from '@/lib/strava/oauth'
 import Link from 'next/link'
 import DeleteAccountButton from '@/components/profile/DeleteAccountButton'
+import DisconnectStravaButton from '@/components/profile/DisconnectStravaButton'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -32,7 +33,7 @@ export default async function ProfilePage() {
         <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Profile</h1>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-5 space-y-4">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-4">
         <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Account</h2>
         <div className="text-sm space-y-3">
           <div className="flex justify-between">
@@ -46,7 +47,7 @@ export default async function ProfilePage() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-5 space-y-4">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-4">
         <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Strava</h2>
 
         {isStravaConnected ? (
@@ -58,7 +59,9 @@ export default async function ProfilePage() {
               <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Connected</p>
               <p className="text-xs text-zinc-400 dark:text-zinc-500">Athlete ID: {profile.strava_athlete_id}</p>
             </div>
-            <span className="ml-auto text-sm text-zinc-500 dark:text-zinc-400 font-medium">Active</span>
+            <div className="ml-auto">
+              <DisconnectStravaButton />
+            </div>
           </div>
         ) : (
           <div className="space-y-3">
@@ -75,7 +78,7 @@ export default async function ProfilePage() {
         )}
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-5 space-y-4">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-4">
         <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Danger zone</h2>
         <DeleteAccountButton />
       </div>

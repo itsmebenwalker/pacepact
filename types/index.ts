@@ -115,6 +115,14 @@ export interface StravaWebhookPayload {
   updates: Record<string, unknown>
 }
 
+export interface Message {
+  id: string
+  group_id: string
+  user_id: string
+  content: string
+  created_at: string
+}
+
 // Points breakdown returned by calculator
 export interface PointsResult {
   total: number

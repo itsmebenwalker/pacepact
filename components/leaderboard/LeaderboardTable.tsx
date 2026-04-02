@@ -51,14 +51,14 @@ export default function LeaderboardTable({ groupId, initialMembers, currentUserI
 
   return (
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
-      <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800">
+      <div className="px-4 py-3 sm:px-5 sm:py-4 border-b border-zinc-100 dark:border-zinc-800">
         <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Leaderboard</h2>
       </div>
       <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
         {members.map((member, i) => (
           <div
             key={member.user_id}
-            className={`flex items-center gap-4 px-5 py-3 ${
+            className={`flex items-center gap-3 px-4 py-3 sm:px-5 sm:gap-4 ${
               member.user_id === currentUserId
                 ? 'bg-zinc-50 dark:bg-zinc-800/50'
                 : ''

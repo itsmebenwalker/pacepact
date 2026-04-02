@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
 export default function SignupForm() {
@@ -10,26 +9,25 @@ export default function SignupForm() {
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-        data: { display_name: displayName },
-      },
+    const res = await fetch('/api/auth/otp/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, display_name: displayName }),
     })
 
-    if (error) {
-      setError(error.message)
-    } else {
-      setSent(true)
+    if (!res.ok) {
+      setError('Something went wrong. Please try again.')
+      setLoading(false)
+      return
     }
+
+    setSent(true)
     setLoading(false)
   }
 

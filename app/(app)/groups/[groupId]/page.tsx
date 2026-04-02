@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import LeaderboardTable from '@/components/leaderboard/LeaderboardTable'
 import WeekView from '@/components/training/WeekView'
 import InviteButton from '@/components/groups/InviteButton'
+import MessageBoard from '@/components/groups/MessageBoard'
 import Link from 'next/link'
 import type { Session } from '@/types'
 
@@ -44,6 +45,28 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
     display_name: (m.profiles as unknown as ProfileResult)?.display_name ?? null,
   }))
 
+  const { data: messagesRaw } = await supabase
+    .from('messages')
+    .select('id, user_id, content, created_at, profiles(display_name)')
+    .eq('group_id', groupId)
+    .order('created_at', { ascending: true })
+    .limit(100)
+
+  interface MessageProfileResult { display_name: string | null }
+
+  const initialMessages = (messagesRaw ?? []).map((m) => ({
+    id: m.id as string,
+    user_id: m.user_id as string,
+    content: m.content as string,
+    created_at: m.created_at as string,
+    display_name: (m.profiles as unknown as MessageProfileResult)?.display_name ?? null,
+  }))
+
+  const memberNames: Record<string, string | null> = {}
+  for (const m of members) {
+    memberNames[m.user_id] = m.display_name
+  }
+
   const { data: sessions } = await supabase
     .from('sessions')
     .select('*')
@@ -65,7 +88,7 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
   )
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-8">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">{group.name}</h1>
@@ -103,6 +126,13 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
           </div>
         )}
       </div>
+
+      <MessageBoard
+        groupId={group.id}
+        currentUserId={user!.id}
+        initialMessages={initialMessages}
+        memberNames={memberNames}
+      />
     </div>
   )
 }

@@ -48,7 +48,7 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-5 sm:mb-8">
         <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Groups</h1>
         <Link
           href="/groups/new"

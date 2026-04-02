@@ -11,7 +11,7 @@ export default function WeekView({ weekNumber, sessions }: Props) {
 
   return (
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
-      <div className="px-5 py-3 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+      <div className="px-4 py-3 sm:px-5 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
         <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Week {weekNumber}</h3>
         <span className="text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">{completed}/{sessions.length}</span>
       </div>
