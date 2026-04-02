@@ -109,7 +109,7 @@ describe('rest day session handling', () => {
   })
 
   it('rest note is plural for multiple rest days', () => {
-    const restCount = 2
+    const restCount: number = 2
     const note = restCount === 1
       ? 'Recommended: 1 rest day this week'
       : `Recommended: ${restCount} rest days this week`

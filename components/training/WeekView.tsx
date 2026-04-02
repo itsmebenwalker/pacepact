@@ -1,9 +1,11 @@
 import type { Session } from '@/types'
 import SessionCard from './SessionCard'
+import { getWeekStatus } from '@/lib/utils/week-status'
 
 interface Props {
   weekNumber: number
   sessions: Session[]
+  today: string // YYYY-MM-DD — passed from the server-rendered page
 }
 
 /**
@@ -20,7 +22,6 @@ export function weekDateRange(sessions: Session[]): string | null {
 
   if (dates.length === 0) return null
 
-  // Append T12:00:00 so the date is unambiguous across timezones
   const start = new Date(`${dates[0]}T12:00:00`)
   const end = new Date(`${dates[dates.length - 1]}T12:00:00`)
 
@@ -34,7 +35,8 @@ export function weekDateRange(sessions: Session[]): string | null {
   return `${start.getDate()} ${startMonth} – ${end.getDate()} ${endMonth}`
 }
 
-export default function WeekView({ weekNumber, sessions }: Props) {
+export default function WeekView({ weekNumber, sessions, today }: Props) {
+  const status = getWeekStatus(sessions, today)
   const restCount = sessions.filter((s) => s.session_type === 'rest').length
   const activeSessions = sessions.filter((s) => s.session_type !== 'rest')
   const completed = activeSessions.filter((s) => s.completed).length
@@ -44,16 +46,47 @@ export default function WeekView({ weekNumber, sessions }: Props) {
     ? 'Recommended: 1 rest day this week'
     : `Recommended: ${restCount} rest days this week`
 
+  const cardClass = [
+    'rounded-lg overflow-hidden border',
+    status === 'past-complete'
+      ? 'bg-white dark:bg-zinc-900 border-green-200 dark:border-green-800'
+      : status === 'past-incomplete'
+      ? 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 opacity-60'
+      : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800',
+  ].join(' ')
+
+  const headerClass = [
+    'px-4 py-3 sm:px-5 border-b flex items-center justify-between',
+    status === 'past-complete'
+      ? 'bg-green-50 dark:bg-green-950/30 border-green-100 dark:border-green-900'
+      : status === 'past-incomplete'
+      ? 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700'
+      : 'border-zinc-100 dark:border-zinc-800',
+  ].join(' ')
+
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
-      <div className="px-4 py-3 sm:px-5 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+    <div className={cardClass}>
+      <div className={headerClass}>
         <div className="flex items-baseline gap-2">
           <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Week {weekNumber}</h3>
           {dateRange && (
             <span className="text-xs text-zinc-400 dark:text-zinc-500">{dateRange}</span>
           )}
         </div>
-        <span className="text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">{completed}/{activeSessions.length}</span>
+        <div className="flex items-center gap-2">
+          {status === 'past-complete' && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 dark:text-green-400">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Done
+            </span>
+          )}
+          {status === 'past-incomplete' && (
+            <span className="text-xs font-medium text-zinc-400 dark:text-zinc-500">Ended</span>
+          )}
+          <span className="text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">{completed}/{activeSessions.length}</span>
+        </div>
       </div>
       <div className="p-4 space-y-3">
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">

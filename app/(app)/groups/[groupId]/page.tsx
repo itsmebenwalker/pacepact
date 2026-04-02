@@ -7,6 +7,7 @@ import WeekView from '@/components/training/WeekView'
 import InviteButton from '@/components/groups/InviteButton'
 import MessageBoard from '@/components/groups/MessageBoard'
 import Link from 'next/link'
+import { sortWeeks } from '@/lib/utils/week-status'
 import type { Session } from '@/types'
 
 export default async function GroupPage({ params }: { params: Promise<{ groupId: string }> }) {
@@ -81,7 +82,8 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
     sessionsByWeek.get(week)!.push(session as Session)
   }
 
-  const weeks = Array.from(sessionsByWeek.entries()).sort(([a], [b]) => a - b)
+  const today = new Date().toISOString().split('T')[0]
+  const weeks = sortWeeks(Array.from(sessionsByWeek.entries()), today)
 
   const daysUntil = Math.ceil(
     (new Date(group.event_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
@@ -121,7 +123,7 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
         ) : (
           <div className="space-y-3">
             {weeks.slice(0, 4).map(([weekNum, weekSessions]) => (
-              <WeekView key={weekNum} weekNumber={weekNum} sessions={weekSessions} />
+              <WeekView key={weekNum} weekNumber={weekNum} sessions={weekSessions} today={today} />
             ))}
           </div>
         )}

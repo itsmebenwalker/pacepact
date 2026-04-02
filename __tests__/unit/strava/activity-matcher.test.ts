@@ -1,4 +1,4 @@
-import { matchActivity } from '@/lib/strava/activity-matcher'
+import { matchActivity, getWeekBounds } from '@/lib/strava/activity-matcher'
 import type { Session, StravaActivity } from '@/types'
 
 function makeSession(overrides: Partial<Session> = {}): Session {
@@ -11,7 +11,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     target_distance_km: 10,
     target_duration_minutes: null,
     target_description: 'Easy 10km run',
-    scheduled_date: '2026-03-04',
+    scheduled_date: '2026-04-01', // Wednesday
     completed: false,
     completed_at: null,
     strava_activity_id: null,
@@ -27,18 +27,47 @@ function makeActivity(overrides: Partial<StravaActivity> = {}): StravaActivity {
     name: 'Morning Run',
     type: 'Run',
     sport_type: 'Run',
-    distance: 10000, // 10 km
+    distance: 10000,
     moving_time: 3600,
     elapsed_time: 3600,
-    start_date: '2026-03-04T07:00:00Z',
-    start_date_local: '2026-03-04T08:00:00',
+    start_date: '2026-04-03T07:00:00Z',
+    start_date_local: '2026-04-03T08:00:00', // Friday, same week as session
     athlete: { id: 999 },
     ...overrides,
   }
 }
 
+// ── getWeekBounds ─────────────────────────────────────────────────────────────
+
+describe('getWeekBounds', () => {
+  it('returns Monday and Sunday for a Wednesday', () => {
+    const { start, end } = getWeekBounds('2026-04-01') // Wednesday
+    expect(start).toBe('2026-03-30') // Monday
+    expect(end).toBe('2026-04-05')   // Sunday
+  })
+
+  it('returns the same Monday for a Monday input', () => {
+    const { start } = getWeekBounds('2026-03-30') // Monday
+    expect(start).toBe('2026-03-30')
+  })
+
+  it('returns the same Sunday for a Sunday input', () => {
+    const { start, end } = getWeekBounds('2026-04-05') // Sunday
+    expect(start).toBe('2026-03-30')
+    expect(end).toBe('2026-04-05')
+  })
+
+  it('handles a month boundary correctly', () => {
+    const { start, end } = getWeekBounds('2026-04-01') // Wed 1 Apr
+    expect(start).toBe('2026-03-30') // Mon 30 Mar
+    expect(end).toBe('2026-04-05')   // Sun 5 Apr
+  })
+})
+
+// ── matchActivity — basic matching ────────────────────────────────────────────
+
 describe('matchActivity — basic matching', () => {
-  it('matches a run activity to a run session', () => {
+  it('matches a run activity to a run session in the same week', () => {
     const session = makeSession()
     expect(matchActivity(makeActivity(), [session])).toBe(session)
   })
@@ -54,14 +83,49 @@ describe('matchActivity — basic matching', () => {
   it('skips rest sessions', () => {
     expect(matchActivity(makeActivity(), [makeSession({ session_type: 'rest' })])).toBeNull()
   })
+
+  it('returns null when session has no scheduled_date', () => {
+    expect(matchActivity(makeActivity(), [makeSession({ scheduled_date: null })])).toBeNull()
+  })
 })
 
-describe('matchActivity — type matching', () => {
-  it('matches Strava Run to session_type run', () => {
-    const session = makeSession({ session_type: 'run' })
-    expect(matchActivity(makeActivity({ type: 'Run' }), [session])).toBe(session)
+// ── matchActivity — week scoping ──────────────────────────────────────────────
+
+describe('matchActivity — week scoping', () => {
+  it('matches a session on a different day within the same calendar week', () => {
+    const session = makeSession({ scheduled_date: '2026-03-30' }) // Monday
+    const activity = makeActivity({ start_date_local: '2026-04-03T08:00:00' }) // Friday
+    expect(matchActivity(activity, [session])).toBe(session)
   })
 
+  it('does not match a session from the previous week', () => {
+    const session = makeSession({ scheduled_date: '2026-03-25' }) // previous week Wednesday
+    const activity = makeActivity({ start_date_local: '2026-04-01T08:00:00' }) // this week Wednesday
+    expect(matchActivity(activity, [session])).toBeNull()
+  })
+
+  it('does not match a session from the following week', () => {
+    const session = makeSession({ scheduled_date: '2026-04-08' }) // next week Wednesday
+    const activity = makeActivity({ start_date_local: '2026-04-01T08:00:00' }) // this week Wednesday
+    expect(matchActivity(activity, [session])).toBeNull()
+  })
+
+  it('matches a session on the Monday of the activity week', () => {
+    const session = makeSession({ scheduled_date: '2026-03-30' }) // Monday
+    const activity = makeActivity({ start_date_local: '2026-03-30T08:00:00' })
+    expect(matchActivity(activity, [session])).toBe(session)
+  })
+
+  it('matches a session on the Sunday of the activity week', () => {
+    const session = makeSession({ scheduled_date: '2026-04-05' }) // Sunday
+    const activity = makeActivity({ start_date_local: '2026-04-05T08:00:00' })
+    expect(matchActivity(activity, [session])).toBe(session)
+  })
+})
+
+// ── matchActivity — type matching ─────────────────────────────────────────────
+
+describe('matchActivity — type matching', () => {
   it('matches Strava VirtualRun to session_type run', () => {
     const session = makeSession({ session_type: 'run' })
     expect(matchActivity(makeActivity({ type: 'VirtualRun' }), [session])).toBe(session)
@@ -69,39 +133,20 @@ describe('matchActivity — type matching', () => {
 
   it('matches Strava Ride to session_type ride', () => {
     const session = makeSession({ session_type: 'ride' })
-    const activity = makeActivity({ type: 'Ride', sport_type: 'Ride' })
-    expect(matchActivity(activity, [session])).toBe(session)
+    expect(matchActivity(makeActivity({ type: 'Ride', sport_type: 'Ride' }), [session])).toBe(session)
   })
 
   it('does not match a run activity to a ride session', () => {
-    expect(matchActivity(makeActivity({ type: 'Run' }), [makeSession({ session_type: 'ride' })])).toBeNull()
+    expect(matchActivity(makeActivity(), [makeSession({ session_type: 'ride' })])).toBeNull()
   })
 
   it('falls back to sport_type when type is undefined', () => {
     const session = makeSession({ session_type: 'run' })
-    const activity = makeActivity({ type: undefined as any, sport_type: 'Run' })
-    expect(matchActivity(activity, [session])).toBe(session)
+    expect(matchActivity(makeActivity({ type: undefined as any, sport_type: 'Run' }), [session])).toBe(session)
   })
 })
 
-describe('matchActivity — date is ignored', () => {
-  it('matches a session regardless of how far in the past the scheduled date is', () => {
-    const session = makeSession({ scheduled_date: '2026-01-01' })
-    const activity = makeActivity({ start_date_local: '2026-03-04T08:00:00' })
-    expect(matchActivity(activity, [session])).toBe(session)
-  })
-
-  it('matches a session regardless of how far in the future the scheduled date is', () => {
-    const session = makeSession({ scheduled_date: '2026-12-31' })
-    const activity = makeActivity({ start_date_local: '2026-03-04T08:00:00' })
-    expect(matchActivity(activity, [session])).toBe(session)
-  })
-
-  it('matches session with no scheduled_date', () => {
-    const session = makeSession({ scheduled_date: null })
-    expect(matchActivity(makeActivity(), [session])).toBe(session)
-  })
-})
+// ── matchActivity — distance threshold ────────────────────────────────────────
 
 describe('matchActivity — distance threshold (85% rule)', () => {
   it('matches when activity distance is exactly 85% of target', () => {
@@ -120,6 +165,8 @@ describe('matchActivity — distance threshold (85% rule)', () => {
   })
 })
 
+// ── matchActivity — duration threshold ────────────────────────────────────────
+
 describe('matchActivity — duration threshold (85% rule)', () => {
   it('matches when activity duration meets 85% and no distance target', () => {
     const session = makeSession({ target_distance_km: null, target_duration_minutes: 60 })
@@ -133,28 +180,17 @@ describe('matchActivity — duration threshold (85% rule)', () => {
 
   it('ignores duration check when distance target is also set', () => {
     const session = makeSession({ target_distance_km: 10, target_duration_minutes: 60 })
-    const activity = makeActivity({ distance: 10000, elapsed_time: 2000 })
-    expect(matchActivity(activity, [session])).toBe(session)
+    expect(matchActivity(makeActivity({ distance: 10000, elapsed_time: 2000 }), [session])).toBe(session)
   })
 })
 
-describe('matchActivity — multiple candidates', () => {
+// ── matchActivity — multiple candidates ───────────────────────────────────────
+
+describe('matchActivity — multiple candidates in same week', () => {
   it('picks the earliest scheduled session when multiple match', () => {
-    const earlier = makeSession({ id: 'sess-early', scheduled_date: '2026-02-01' })
-    const later = makeSession({ id: 'sess-late', scheduled_date: '2026-03-10' })
-    const activity = makeActivity({ start_date_local: '2026-03-04T08:00:00' })
+    const earlier = makeSession({ id: 'sess-early', scheduled_date: '2026-03-30' }) // Mon
+    const later = makeSession({ id: 'sess-late', scheduled_date: '2026-04-02' })    // Thu
+    const activity = makeActivity({ start_date_local: '2026-04-01T08:00:00' })      // Wed
     expect(matchActivity(activity, [later, earlier])?.id).toBe('sess-early')
-  })
-
-  it('prefers sessions with a scheduled date over those without', () => {
-    const dated = makeSession({ id: 'dated', scheduled_date: '2026-03-04' })
-    const undated = makeSession({ id: 'undated', scheduled_date: null })
-    expect(matchActivity(makeActivity(), [undated, dated])?.id).toBe('dated')
-  })
-
-  it('matches a session that is weeks overdue', () => {
-    const overdue = makeSession({ scheduled_date: '2026-01-01' })
-    const activity = makeActivity({ start_date_local: '2026-03-04T08:00:00' })
-    expect(matchActivity(activity, [overdue])).toBe(overdue)
   })
 })

@@ -3,10 +3,34 @@ import { mapStravaType } from '@/lib/points/calculator'
 
 const MIN_COMPLETION_RATIO = 0.85
 
+/**
+ * Returns the Monday–Sunday bounds (YYYY-MM-DD) of the calendar week
+ * containing the given date string.
+ */
+export function getWeekBounds(dateStr: string): { start: string; end: string } {
+  const d = new Date(`${dateStr}T12:00:00`)
+  const day = d.getDay() // 0 = Sun, 1 = Mon, …
+  const daysFromMonday = day === 0 ? 6 : day - 1
+
+  const monday = new Date(d)
+  monday.setDate(d.getDate() - daysFromMonday)
+
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+
+  return {
+    start: monday.toISOString().split('T')[0],
+    end: sunday.toISOString().split('T')[0],
+  }
+}
+
 export function matchActivity(
   activity: StravaActivity,
   pendingSessions: Session[]
 ): Session | null {
+  const activityDate = activity.start_date_local.split('T')[0]
+  const { start: weekStart, end: weekEnd } = getWeekBounds(activityDate)
+
   const activityType = mapStravaType(activity.type ?? activity.sport_type)
   const activityDistanceKm = activity.distance / 1000
   const activityDurationMin = activity.elapsed_time / 60
@@ -14,6 +38,10 @@ export function matchActivity(
   const candidates = pendingSessions.filter((session) => {
     if (session.completed) return false
     if (session.session_type === 'rest') return false
+
+    // Must be scheduled within the same calendar week as the activity
+    if (!session.scheduled_date) return false
+    if (session.scheduled_date < weekStart || session.scheduled_date > weekEnd) return false
 
     // Type match
     if (session.session_type !== activityType) return false
@@ -37,12 +65,8 @@ export function matchActivity(
 
   if (candidates.length === 0) return null
 
-  // When multiple sessions match, claim the earliest scheduled one first
-  candidates.sort((a, b) => {
-    if (!a.scheduled_date) return 1
-    if (!b.scheduled_date) return -1
-    return a.scheduled_date.localeCompare(b.scheduled_date)
-  })
+  // When multiple sessions in the week match, claim the earliest scheduled one
+  candidates.sort((a, b) => a.scheduled_date!.localeCompare(b.scheduled_date!))
 
   return candidates[0]
 }
