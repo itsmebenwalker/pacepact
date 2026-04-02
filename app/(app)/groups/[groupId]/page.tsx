@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import LeaderboardTable from '@/components/leaderboard/LeaderboardTable'
 import WeekView from '@/components/training/WeekView'
 import InviteButton from '@/components/groups/InviteButton'
+import DeleteGroupButton from '@/components/groups/DeleteGroupButton'
 import MessageBoard from '@/components/groups/MessageBoard'
 import Link from 'next/link'
 import { sortWeeks } from '@/lib/utils/week-status'
@@ -98,7 +99,12 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
             {group.event_name} · {daysUntil > 0 ? `${daysUntil} days to go` : 'Race day'}
           </p>
         </div>
-        <InviteButton inviteCode={group.invite_code} />
+        <div className="flex items-center gap-2">
+          {group.created_by === user!.id && (
+            <DeleteGroupButton groupId={group.id} />
+          )}
+          <InviteButton inviteCode={group.invite_code} />
+        </div>
       </div>
 
       <LeaderboardTable

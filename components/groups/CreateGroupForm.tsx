@@ -199,7 +199,7 @@ export default function CreateGroupForm() {
           </div>
 
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Claude will generate a personalised training plan. This takes 5–15 seconds — don&apos;t navigate away.
+            AI will generate a personalised training plan. This takes 5–15 seconds — don&apos;t navigate away.
           </p>
 
           {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
