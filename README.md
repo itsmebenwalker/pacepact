@@ -4,12 +4,16 @@ Social training platform for groups of friends preparing for the same endurance 
 
 ## Features
 
-- **Group training plans** — Claude generates a structured plan based on event type, date, and training ambition
-- **Strava auto-sync** — sessions are marked complete when you log a matching Strava activity, no manual input
+- **Group training plans** — Claude generates a structured plan based on event type, date, and training ambition (`finish` / `pb` / `podium`)
+- **Strava auto-sync** — sessions are marked complete when you log a matching Strava activity; matched by activity type and weekly schedule, not exact date
 - **Live leaderboard** — Supabase Realtime keeps scores updated for everyone in the group simultaneously
+- **Group chat** — per-group message board with real-time updates via Supabase Realtime
 - **Invite links** — 8-character invite codes let friends join a group in one click
 - **Points system** — base points per session, plus bonuses for completing early, exceeding targets, and maintaining a streak
-- **Dark mode** — system preference detected on load, with a manual toggle
+- **Week view** — training weeks show date ranges, past weeks are visually locked (green = complete, grey = missed), active week sorted to top
+- **Rest day handling** — rest sessions are excluded from the session grid; a note shows how many rest days are recommended for the week
+- **Magic link auth** — passwordless sign-in via email OTP using Resend; styled email template matches the app
+- **Strava connect / disconnect** — connect Strava on the profile page; disconnect deauthorizes the Strava token and clears stored credentials
 
 ## Tech stack
 
@@ -36,7 +40,7 @@ cp .env.local.example .env.local
 # Fill in all values — see docs/setup.md
 
 # 3. Apply database schema
-# Run supabase/schema.sql in your Supabase SQL editor
+# Run migrations in supabase/migrations/ in your Supabase SQL editor
 
 # 4. Start dev server
 npm run dev
@@ -49,37 +53,43 @@ See [docs/setup.md](docs/setup.md) for the full setup walkthrough including Supa
 ```
 pacepact/
 ├── app/
-│   ├── (auth)/               # Login + signup pages
+│   ├── (auth)/               # Login + signup pages (magic link / OTP)
 │   ├── (app)/                # Authenticated app routes
 │   │   ├── dashboard/        # All groups overview
 │   │   ├── groups/
 │   │   │   ├── new/          # Create group + generate plan
 │   │   │   └── [groupId]/    # Group home, full plan, members
-│   │   ├── profile/          # Strava connect, account info
+│   │   ├── profile/          # Strava connect/disconnect, account info
 │   │   └── join/[inviteCode]/# Invite link landing page
 │   ├── api/
+│   │   ├── auth/otp/send/    # Send magic link email via Resend
 │   │   ├── strava/
 │   │   │   ├── callback/     # OAuth token exchange
+│   │   │   ├── disconnect/   # Deauthorize Strava + clear tokens
 │   │   │   └── webhook/      # Strava webhook receiver
 │   │   ├── groups/
 │   │   │   └── generate-plan/# Claude plan generation
 │   │   └── user/
 │   │       └── delete/       # Delete authenticated user account
-│   └── auth/callback/        # Auth callback handler (magic link / OAuth)
+│   └── auth/callback/        # Auth callback (handles PKCE + implicit flow)
 ├── components/
 │   ├── leaderboard/          # Real-time leaderboard table
 │   ├── training/             # Week view + session cards
-│   ├── groups/               # Group cards, create form, invite button
-│   ├── profile/              # Delete account button
+│   ├── groups/               # Group cards, create form, invite button, message board
+│   ├── profile/              # Delete account + disconnect Strava buttons
 │   └── ui/                   # Shared primitives (nav, theme toggle)
 ├── lib/
 │   ├── supabase/             # Browser + server clients
 │   ├── strava/               # OAuth, webhook processing, activity matching
 │   ├── claude/               # Plan generation prompt + parsing
+│   ├── resend/               # Magic link email template
 │   ├── groups/               # Session fan-out helper
-│   └── points/               # Points calculation
+│   ├── points/               # Points calculation
+│   └── utils/                # Week status, date formatting helpers
 ├── types/index.ts            # Shared TypeScript types
-├── supabase/schema.sql       # Full DB schema + RLS policies
+├── supabase/
+│   ├── schema.sql            # Full DB schema + RLS policies
+│   └── migrations/           # Incremental migrations (e.g. messages table)
 └── docs/setup.md             # Setup guide
 ```
 
@@ -95,7 +105,7 @@ npm run test:watch # Watch mode
 
 ## Testing
 
-Unit tests cover the core business logic (points calculator, activity matcher, plan parser). Integration tests cover the Strava webhook route.
+Unit tests cover core business logic (points calculator, activity matcher, plan parser, week status, date formatting). Integration tests cover the Strava webhook route and auth OTP endpoint.
 
 ```bash
 npm test                                       # Run all tests
@@ -115,6 +125,29 @@ PacePact is designed to deploy on [Railway](https://railway.app). See [docs/setu
 | Session scheduled on Monday or Tuesday | +2 |
 | Activity exceeds target by >10% | +3 |
 | 7-day streak (session every day) | +5 |
+
+## Auth flow
+
+PacePact uses passwordless magic link authentication:
+
+1. User enters their email on `/login`
+2. The server calls `supabase.auth.admin.generateLink()` and sends the link via Resend
+3. User clicks the link → `/auth/callback` (client component)
+4. The callback page handles both flows:
+   - **PKCE** (`?code=` query param): exchanges code for session
+   - **Implicit** (`#access_token=` in URL hash): calls `setSession()` directly — the hash is never sent to the server, so this must be handled client-side
+5. Profile is upserted, user is redirected to `/dashboard`
+
+## Strava activity matching
+
+When a Strava webhook arrives, PacePact matches the activity to a planned session by:
+
+1. Finding incomplete sessions for that user scheduled in the same calendar week as the activity
+2. Filtering by activity type (run, ride, swim, etc.)
+3. Checking the activity meets ≥ 85% of any distance or duration target
+4. Matching to the earliest qualifying session in the week
+
+Multiple activities in the same week can each match a different session — completing two runs on the same day will mark off two run sessions if both are scheduled that week.
 
 ## Environment variables
 
