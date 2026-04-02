@@ -107,6 +107,13 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
         currentUserId={user!.id}
       />
 
+      <MessageBoard
+        groupId={group.id}
+        currentUserId={user!.id}
+        initialMessages={initialMessages}
+        memberNames={memberNames}
+      />
+
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Training plan</h2>
@@ -128,13 +135,6 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
           </div>
         )}
       </div>
-
-      <MessageBoard
-        groupId={group.id}
-        currentUserId={user!.id}
-        initialMessages={initialMessages}
-        memberNames={memberNames}
-      />
     </div>
   )
 }
