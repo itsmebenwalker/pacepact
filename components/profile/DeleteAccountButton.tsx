@@ -55,7 +55,7 @@ export default function DeleteAccountButton() {
   return (
     <button
       onClick={() => setConfirming(true)}
-      className="text-sm text-red-600 dark:text-red-500 hover:underline"
+      className="text-sm border border-red-200 dark:border-red-800 bg-white dark:bg-zinc-900 hover:bg-red-50 dark:hover:bg-red-950 text-red-600 dark:text-red-400 px-3 py-1.5 rounded-md transition-colors"
     >
       Delete account
     </button>
