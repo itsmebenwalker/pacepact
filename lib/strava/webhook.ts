@@ -44,39 +44,56 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
 
   if (!pendingSessions || pendingSessions.length === 0) return
 
-  const matchedSession = matchActivity(activity, pendingSessions as Session[])
-  if (!matchedSession) return
+  // Match one session per group so the same activity credits all relevant groups
+  const sessionsByGroup = new Map<string, Session[]>()
+  for (const session of pendingSessions as Session[]) {
+    const bucket = sessionsByGroup.get(session.group_id) ?? []
+    bucket.push(session)
+    sessionsByGroup.set(session.group_id, bucket)
+  }
+
+  const matchedSessions: Session[] = []
+  for (const [, groupSessions] of sessionsByGroup) {
+    const match = matchActivity(activity, groupSessions)
+    if (match) matchedSessions.push(match)
+  }
+
+  if (matchedSessions.length === 0) return
 
   // Check if user has a streak (7 consecutive days with completed sessions)
   const streakActive = await checkStreak(serviceClient, profile.id)
 
-  const points = calculatePoints(matchedSession, activity, streakActive)
+  const now = new Date().toISOString()
 
-  // Mark session complete
-  await serviceClient
-    .from('sessions')
-    .update({
-      completed: true,
-      completed_at: new Date().toISOString(),
-      strava_activity_id: stravaActivityId,
-      points_awarded: points.total,
-    })
-    .eq('id', matchedSession.id)
+  for (const matchedSession of matchedSessions) {
+    const points = calculatePoints(matchedSession, activity, streakActive)
 
-  // Award points to group member
-  const { data: currentMember } = await serviceClient
-    .from('group_members')
-    .select('points')
-    .eq('group_id', matchedSession.group_id)
-    .eq('user_id', profile.id)
-    .single()
-
-  if (currentMember) {
+    // Mark session complete
     await serviceClient
+      .from('sessions')
+      .update({
+        completed: true,
+        completed_at: now,
+        strava_activity_id: stravaActivityId,
+        points_awarded: points.total,
+      })
+      .eq('id', matchedSession.id)
+
+    // Award points to group member
+    const { data: currentMember } = await serviceClient
       .from('group_members')
-      .update({ points: currentMember.points + points.total })
+      .select('points')
       .eq('group_id', matchedSession.group_id)
       .eq('user_id', profile.id)
+      .single()
+
+    if (currentMember) {
+      await serviceClient
+        .from('group_members')
+        .update({ points: currentMember.points + points.total })
+        .eq('group_id', matchedSession.group_id)
+        .eq('user_id', profile.id)
+    }
   }
 }
 
