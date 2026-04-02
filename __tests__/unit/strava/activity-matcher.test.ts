@@ -38,10 +38,9 @@ function makeActivity(overrides: Partial<StravaActivity> = {}): StravaActivity {
 }
 
 describe('matchActivity — basic matching', () => {
-  it('matches a run activity to a run session on the same date', () => {
+  it('matches a run activity to a run session', () => {
     const session = makeSession()
-    const activity = makeActivity()
-    expect(matchActivity(activity, [session])).toBe(session)
+    expect(matchActivity(makeActivity(), [session])).toBe(session)
   })
 
   it('returns null when there are no sessions', () => {
@@ -49,13 +48,11 @@ describe('matchActivity — basic matching', () => {
   })
 
   it('returns null when the session is already completed', () => {
-    const session = makeSession({ completed: true })
-    expect(matchActivity(makeActivity(), [session])).toBeNull()
+    expect(matchActivity(makeActivity(), [makeSession({ completed: true })])).toBeNull()
   })
 
   it('skips rest sessions', () => {
-    const session = makeSession({ session_type: 'rest' })
-    expect(matchActivity(makeActivity(), [session])).toBeNull()
+    expect(matchActivity(makeActivity(), [makeSession({ session_type: 'rest' })])).toBeNull()
   })
 })
 
@@ -77,38 +74,30 @@ describe('matchActivity — type matching', () => {
   })
 
   it('does not match a run activity to a ride session', () => {
-    const session = makeSession({ session_type: 'ride' })
-    expect(matchActivity(makeActivity({ type: 'Run' }), [session])).toBeNull()
+    expect(matchActivity(makeActivity({ type: 'Run' }), [makeSession({ session_type: 'ride' })])).toBeNull()
   })
 
   it('falls back to sport_type when type is undefined', () => {
     const session = makeSession({ session_type: 'run' })
-    // ?? only coalesces null/undefined — not empty string
     const activity = makeActivity({ type: undefined as any, sport_type: 'Run' })
     expect(matchActivity(activity, [session])).toBe(session)
   })
 })
 
-describe('matchActivity — date window', () => {
-  it('matches when activity is 1 day before the scheduled date', () => {
-    const session = makeSession({ scheduled_date: '2026-03-05' })
+describe('matchActivity — date is ignored', () => {
+  it('matches a session regardless of how far in the past the scheduled date is', () => {
+    const session = makeSession({ scheduled_date: '2026-01-01' })
     const activity = makeActivity({ start_date_local: '2026-03-04T08:00:00' })
     expect(matchActivity(activity, [session])).toBe(session)
   })
 
-  it('matches when activity is 2 days after the scheduled date', () => {
-    const session = makeSession({ scheduled_date: '2026-03-02' })
+  it('matches a session regardless of how far in the future the scheduled date is', () => {
+    const session = makeSession({ scheduled_date: '2026-12-31' })
     const activity = makeActivity({ start_date_local: '2026-03-04T08:00:00' })
     expect(matchActivity(activity, [session])).toBe(session)
   })
 
-  it('does not match when activity is 3 days outside the window', () => {
-    const session = makeSession({ scheduled_date: '2026-03-01' })
-    const activity = makeActivity({ start_date_local: '2026-03-04T08:00:00' })
-    expect(matchActivity(activity, [session])).toBeNull()
-  })
-
-  it('matches session with no scheduled_date regardless of activity date', () => {
+  it('matches session with no scheduled_date', () => {
     const session = makeSession({ scheduled_date: null })
     expect(matchActivity(makeActivity(), [session])).toBe(session)
   })
@@ -116,68 +105,56 @@ describe('matchActivity — date window', () => {
 
 describe('matchActivity — distance threshold (85% rule)', () => {
   it('matches when activity distance is exactly 85% of target', () => {
-    // target 10 km, activity 8.5 km exactly
     const session = makeSession({ target_distance_km: 10 })
-    const activity = makeActivity({ distance: 8500 })
-    expect(matchActivity(activity, [session])).toBe(session)
+    expect(matchActivity(makeActivity({ distance: 8500 }), [session])).toBe(session)
   })
 
   it('matches when activity distance exceeds the target', () => {
     const session = makeSession({ target_distance_km: 10 })
-    const activity = makeActivity({ distance: 12000 })
-    expect(matchActivity(activity, [session])).toBe(session)
+    expect(matchActivity(makeActivity({ distance: 12000 }), [session])).toBe(session)
   })
 
   it('does not match when activity distance is below 85% of target', () => {
-    // target 10 km, activity 8.4 km (84%)
     const session = makeSession({ target_distance_km: 10 })
-    const activity = makeActivity({ distance: 8400 })
-    expect(matchActivity(activity, [session])).toBeNull()
+    expect(matchActivity(makeActivity({ distance: 8400 }), [session])).toBeNull()
   })
 })
 
 describe('matchActivity — duration threshold (85% rule)', () => {
   it('matches when activity duration meets 85% and no distance target', () => {
-    // target 60 min, activity 51 min (85%)
     const session = makeSession({ target_distance_km: null, target_duration_minutes: 60 })
-    const activity = makeActivity({ elapsed_time: 3060 }) // 51 min
-    expect(matchActivity(activity, [session])).toBe(session)
+    expect(matchActivity(makeActivity({ elapsed_time: 3060 }), [session])).toBe(session)
   })
 
   it('does not match when activity duration is below 85% and no distance target', () => {
-    // target 60 min, activity 50 min (83%)
     const session = makeSession({ target_distance_km: null, target_duration_minutes: 60 })
-    const activity = makeActivity({ elapsed_time: 3000 }) // 50 min
-    expect(matchActivity(activity, [session])).toBeNull()
+    expect(matchActivity(makeActivity({ elapsed_time: 3000 }), [session])).toBeNull()
   })
 
   it('ignores duration check when distance target is also set', () => {
-    // Both set — only distance check should run
     const session = makeSession({ target_distance_km: 10, target_duration_minutes: 60 })
-    // Distance OK, duration short — should still match
     const activity = makeActivity({ distance: 10000, elapsed_time: 2000 })
     expect(matchActivity(activity, [session])).toBe(session)
   })
 })
 
 describe('matchActivity — multiple candidates', () => {
-  it('picks the session with the closest scheduled date', () => {
-    const closer = makeSession({
-      id: 'sess-close',
-      scheduled_date: '2026-03-04', // same day as activity
-    })
-    const further = makeSession({
-      id: 'sess-far',
-      scheduled_date: '2026-03-02', // 2 days before activity
-    })
+  it('picks the earliest scheduled session when multiple match', () => {
+    const earlier = makeSession({ id: 'sess-early', scheduled_date: '2026-02-01' })
+    const later = makeSession({ id: 'sess-late', scheduled_date: '2026-03-10' })
     const activity = makeActivity({ start_date_local: '2026-03-04T08:00:00' })
-    expect(matchActivity(activity, [further, closer])?.id).toBe('sess-close')
+    expect(matchActivity(activity, [later, earlier])?.id).toBe('sess-early')
   })
 
   it('prefers sessions with a scheduled date over those without', () => {
     const dated = makeSession({ id: 'dated', scheduled_date: '2026-03-04' })
     const undated = makeSession({ id: 'undated', scheduled_date: null })
-    const activity = makeActivity()
-    expect(matchActivity(activity, [undated, dated])?.id).toBe('dated')
+    expect(matchActivity(makeActivity(), [undated, dated])?.id).toBe('dated')
+  })
+
+  it('matches a session that is weeks overdue', () => {
+    const overdue = makeSession({ scheduled_date: '2026-01-01' })
+    const activity = makeActivity({ start_date_local: '2026-03-04T08:00:00' })
+    expect(matchActivity(activity, [overdue])).toBe(overdue)
   })
 })
