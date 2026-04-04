@@ -6,6 +6,7 @@ import LeaderboardTable from '@/components/leaderboard/LeaderboardTable'
 import WeekView from '@/components/training/WeekView'
 import InviteButton from '@/components/groups/InviteButton'
 import DeleteGroupButton from '@/components/groups/DeleteGroupButton'
+import EditGroupButton from '@/components/groups/EditGroupButton'
 import MessageBoard from '@/components/groups/MessageBoard'
 import Link from 'next/link'
 import { sortWeeks } from '@/lib/utils/week-status'
@@ -101,7 +102,14 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
         </div>
         <div className="flex items-center gap-2">
           {group.created_by === user!.id && (
-            <DeleteGroupButton groupId={group.id} eventName={group.event_name} />
+            <>
+              <EditGroupButton
+                groupId={group.id}
+                initialName={group.name}
+                initialEventName={group.event_name}
+              />
+              <DeleteGroupButton groupId={group.id} eventName={group.event_name} />
+            </>
           )}
           <InviteButton inviteCode={group.invite_code} />
         </div>
