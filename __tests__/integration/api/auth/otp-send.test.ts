@@ -8,12 +8,14 @@ import { POST } from '@/app/api/auth/otp/send/route'
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
 let mockGenerateLink: jest.Mock = jest.fn()
+let mockListUsers: jest.Mock = jest.fn()
 
 jest.mock('@supabase/supabase-js', () => ({
   createClient: jest.fn(() => ({
     auth: {
       admin: {
         generateLink: (...args: any[]) => mockGenerateLink(...args),
+        listUsers: (...args: any[]) => mockListUsers(...args),
       },
     },
   })),
@@ -51,6 +53,17 @@ describe('POST /api/auth/otp/send', () => {
     process.env.NEXT_PUBLIC_APP_URL = 'https://app.com'
     process.env.RESEND_API_KEY = 'resend-key'
 
+    mockListUsers.mockResolvedValue({
+      data: {
+        users: [
+          { email: 'user@example.com' },
+          { email: 'new@example.com' },
+          { email: 'existing@example.com' },
+          { email: 'ghost@example.com' },
+        ],
+      },
+      error: null,
+    })
     mockGenerateLink.mockResolvedValue({
       data: { properties: { action_link: ACTION_LINK } },
       error: null,

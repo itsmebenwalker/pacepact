@@ -45,14 +45,27 @@ export default function AuthCallbackPage() {
           throw new Error('No auth params found')
         }
 
-        // Upsert profile (no-op if it already exists)
+        // Check if this is a first login (no profile yet)
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
+          const { data: existingProfile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', user.id)
+            .single()
+
+          const isFirstLogin = !existingProfile
+
           const displayName = user.user_metadata?.display_name as string | undefined
           await supabase.from('profiles').upsert({
             id: user.id,
-            display_name: displayName ?? user.email?.split('@')[0] ?? 'Athlete',
+            display_name: displayName ?? null,
           }, { onConflict: 'id', ignoreDuplicates: true })
+
+          if (isFirstLogin) {
+            router.replace(`/profile/setup?next=${encodeURIComponent(next)}`)
+            return
+          }
         }
 
         router.replace(next)

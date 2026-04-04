@@ -3,6 +3,7 @@ import { getStravaAuthUrl } from '@/lib/strava/oauth'
 import Link from 'next/link'
 import DeleteAccountButton from '@/components/profile/DeleteAccountButton'
 import DisconnectStravaButton from '@/components/profile/DisconnectStravaButton'
+import EditNameField from '@/components/profile/EditNameField'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -36,10 +37,7 @@ export default async function ProfilePage() {
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-4">
         <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Account</h2>
         <div className="text-sm space-y-3">
-          <div className="flex justify-between">
-            <span className="text-zinc-500 dark:text-zinc-400">Name</span>
-            <span className="text-zinc-900 dark:text-zinc-50 font-medium">{profile?.display_name ?? '—'}</span>
-          </div>
+          <EditNameField initialName={profile?.display_name ?? ''} />
           <div className="flex justify-between">
             <span className="text-zinc-500 dark:text-zinc-400">Email</span>
             <span className="text-zinc-900 dark:text-zinc-50 font-medium">{user!.email}</span>
