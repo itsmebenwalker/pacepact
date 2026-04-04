@@ -3,7 +3,7 @@ import { generateTrainingPlan } from '@/lib/claude/generate-plan'
 import { fanOutSessionsForUser } from '@/lib/groups/fan-out'
 import { NextResponse } from 'next/server'
 import { nanoid } from 'nanoid'
-import type { EventType, Ambition, TrainingSession } from '@/types'
+import type { EventType, Ambition, OtherSport, TrainingSession } from '@/types'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -14,22 +14,28 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json()
-  const { name, event_name, event_type, event_date, ambition } = body as {
+  const { name, event_name, event_type, event_date, ambition, other_sport, other_distance_km } = body as {
     name: string
     event_name: string
     event_type: EventType
     event_date: string
     ambition: Ambition
+    other_sport?: OtherSport
+    other_distance_km?: string
   }
 
   if (!name || !event_name || !event_type || !event_date || !ambition) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
+  if (event_type === 'other' && (!other_sport || !other_distance_km)) {
+    return NextResponse.json({ error: 'Missing sport or distance for other event type' }, { status: 400 })
+  }
+
   // Generate plan via Claude
   let sessions: TrainingSession[], raw: string
   try {
-    ;({ sessions, raw } = await generateTrainingPlan(event_type, event_date, ambition))
+    ;({ sessions, raw } = await generateTrainingPlan(event_type, event_date, ambition, other_sport, other_distance_km ? parseFloat(other_distance_km) : undefined))
   } catch (e) {
     console.error('Plan generation error:', e)
     return NextResponse.json({ error: 'Failed to generate training plan. Please try again.' }, { status: 500 })

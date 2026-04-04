@@ -5,6 +5,9 @@ export type EventType =
   | 'cycling'
   | 'obstacle'
   | 'custom'
+  | 'other'
+
+export type OtherSport = 'running' | 'cycling' | 'swimming' | 'walking'
 
 export type Ambition = 'finish' | 'pb' | 'podium'
 

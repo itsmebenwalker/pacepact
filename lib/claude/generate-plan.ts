@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { TrainingSession, EventType, Ambition } from '@/types'
+import { TrainingSession, EventType, Ambition, OtherSport } from '@/types'
 
 const client = new Anthropic()
 
@@ -9,19 +9,36 @@ const AMBITION_DESCRIPTIONS: Record<Ambition, string> = {
   podium: 'podium = competitive, high volume with structured speed work',
 }
 
+const OTHER_SPORT_SESSION_TYPE: Record<OtherSport, string> = {
+  running: 'run',
+  cycling: 'ride',
+  swimming: 'swim',
+  walking: 'run',
+}
+
 export async function generateTrainingPlan(
   eventType: EventType,
   eventDate: string,
-  ambition: Ambition
+  ambition: Ambition,
+  otherSport?: OtherSport,
+  otherDistanceKm?: number
 ): Promise<{ sessions: TrainingSession[]; raw: string }> {
   const weeksUntil = Math.max(
     1,
     Math.ceil((new Date(eventDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24 * 7))
   )
 
+  const eventDescription = eventType === 'other' && otherSport
+    ? `${otherSport} (target distance: ${otherDistanceKm} km)`
+    : eventType
+
+  const otherSportRule = eventType === 'other' && otherSport
+    ? `- This is a ${otherSport} event with a target distance of ${otherDistanceKm} km — build volume progressively toward that distance, using session_type "${OTHER_SPORT_SESSION_TYPE[otherSport]}" for all active sessions`
+    : ''
+
   const userPrompt = `Generate a training plan for the following:
 
-Event type: ${eventType}
+Event type: ${eventDescription}
 Event date: ${eventDate}
 Weeks until event: ${weeksUntil}
 Training ambition: ${ambition} (${AMBITION_DESCRIPTIONS[ambition]})
@@ -42,6 +59,7 @@ Rules:
 - Scale intensity to ambition: finish = low volume, pb = moderate with intervals, podium = high volume with structured speed work
 - For triathlon include swim, ride, run, and brick sessions each week
 - For marathon/half focus on run volume with one long run per week
+${otherSportRule}
 - Maximum ${weeksUntil * 6} sessions total
 - day_of_week: 1=Mon through 7=Sun`
 

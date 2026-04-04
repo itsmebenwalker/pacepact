@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { EventType, Ambition } from '@/types'
+import type { EventType, Ambition, OtherSport } from '@/types'
 
 const EVENT_TYPES: { value: EventType; label: string }[] = [
   { value: 'marathon', label: 'Marathon' },
@@ -10,7 +10,14 @@ const EVENT_TYPES: { value: EventType; label: string }[] = [
   { value: 'triathlon', label: 'Triathlon' },
   { value: 'cycling', label: 'Cycling Sportive' },
   { value: 'obstacle', label: 'Obstacle Race' },
-  { value: 'custom', label: 'Custom Event' },
+  { value: 'other', label: 'Other' },
+]
+
+const OTHER_SPORTS: { value: OtherSport; label: string }[] = [
+  { value: 'running', label: 'Running' },
+  { value: 'cycling', label: 'Cycling' },
+  { value: 'swimming', label: 'Swimming' },
+  { value: 'walking', label: 'Walking / Hiking' },
 ]
 
 const AMBITIONS: { value: Ambition; label: string; desc: string }[] = [
@@ -37,10 +44,19 @@ export default function CreateGroupForm() {
     event_type: '' as EventType,
     event_date: '',
     ambition: '' as Ambition,
+    other_sport: '' as OtherSport | '',
+    other_distance_km: '',
   })
 
   function update(field: keyof typeof form, value: string) {
-    setForm((prev) => ({ ...prev, [field]: value }))
+    setForm((prev) => {
+      const next = { ...prev, [field]: value }
+      if (field === 'event_type' && value !== 'other') {
+        next.other_sport = ''
+        next.other_distance_km = ''
+      }
+      return next
+    })
   }
 
   async function handleGenerate() {
@@ -123,6 +139,37 @@ export default function CreateGroupForm() {
             </select>
           </div>
 
+          {form.event_type === 'other' && (
+            <>
+              <div>
+                <label className={labelClass}>Sport</label>
+                <select
+                  value={form.other_sport}
+                  onChange={(e) => update('other_sport', e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">Select sport</option>
+                  {OTHER_SPORTS.map((s) => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className={labelClass}>Target distance (km)</label>
+                <input
+                  type="number"
+                  min="1"
+                  step="0.5"
+                  value={form.other_distance_km}
+                  onChange={(e) => update('other_distance_km', e.target.value)}
+                  placeholder="e.g. 10"
+                  className={inputClass}
+                />
+              </div>
+            </>
+          )}
+
           <div>
             <label className={labelClass}>Event date</label>
             <input
@@ -136,7 +183,10 @@ export default function CreateGroupForm() {
 
           <button
             onClick={() => setStep('ambition')}
-            disabled={!form.name || !form.event_name || !form.event_type || !form.event_date}
+            disabled={
+              !form.name || !form.event_name || !form.event_type || !form.event_date ||
+              (form.event_type === 'other' && (!form.other_sport || !form.other_distance_km))
+            }
             className="w-full bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-40 text-white dark:text-zinc-900 font-medium py-2.5 rounded-md text-sm transition-colors"
           >
             Next
@@ -193,7 +243,14 @@ export default function CreateGroupForm() {
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-3 text-sm">
             <Row label="Group" value={form.name} />
             <Row label="Event" value={form.event_name} />
-            <Row label="Type" value={EVENT_TYPES.find(t => t.value === form.event_type)?.label ?? ''} />
+            <Row
+              label="Type"
+              value={
+                form.event_type === 'other' && form.other_sport
+                  ? `${OTHER_SPORTS.find(s => s.value === form.other_sport)?.label ?? ''} · ${form.other_distance_km} km`
+                  : EVENT_TYPES.find(t => t.value === form.event_type)?.label ?? ''
+              }
+            />
             <Row label="Date" value={new Date(form.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} />
             <Row label="Ambition" value={AMBITIONS.find(a => a.value === form.ambition)?.label ?? ''} />
           </div>
