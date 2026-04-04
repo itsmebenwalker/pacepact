@@ -3,19 +3,20 @@ import { exchangeCodeForTokens } from '@/lib/strava/oauth'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL!
   const code = searchParams.get('code')
   const error = searchParams.get('error')
 
   if (error || !code) {
-    return NextResponse.redirect(`${origin}/profile?error=strava_denied`)
+    return NextResponse.redirect(`${appUrl}/profile?error=strava_denied`)
   }
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    return NextResponse.redirect(`${origin}/login`)
+    return NextResponse.redirect(`${appUrl}/login`)
   }
 
   try {
@@ -33,9 +34,9 @@ export async function GET(request: Request) {
       avatar_url: tokens.athlete.profile ?? undefined,
     }).eq('id', user.id)
 
-    return NextResponse.redirect(`${origin}/profile?strava=connected`)
+    return NextResponse.redirect(`${appUrl}/profile?strava=connected`)
   } catch (e) {
     console.error('Strava callback error:', e)
-    return NextResponse.redirect(`${origin}/profile?error=strava_failed`)
+    return NextResponse.redirect(`${appUrl}/profile?error=strava_failed`)
   }
 }
