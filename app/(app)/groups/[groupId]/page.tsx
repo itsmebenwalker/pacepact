@@ -102,16 +102,16 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
         </div>
         <div className="flex items-center gap-2">
           {group.created_by === user!.id && (
-            <>
-              <EditGroupButton
-                groupId={group.id}
-                initialName={group.name}
-                initialEventName={group.event_name}
-              />
-              <DeleteGroupButton groupId={group.id} eventName={group.event_name} />
-            </>
+            <EditGroupButton
+              groupId={group.id}
+              initialName={group.name}
+              initialEventName={group.event_name}
+            />
           )}
           <InviteButton inviteCode={group.invite_code} />
+          {group.created_by === user!.id && (
+            <DeleteGroupButton groupId={group.id} eventName={group.event_name} />
+          )}
         </div>
       </div>
 
