@@ -24,6 +24,14 @@ export async function POST(request: Request) {
   const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
   const isSignup = !!display_name
 
+  // Only allow users who already exist in Supabase auth — no open signups
+  const { data: { users } } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 })
+  const userExists = users.some((u) => u.email === email)
+  if (!userExists) {
+    // Silent rejection — don't reveal which emails are registered
+    return NextResponse.json({ ok: true })
+  }
+
   const { data, error } = await supabaseAdmin.auth.admin.generateLink({
     type: 'magiclink',
     email,

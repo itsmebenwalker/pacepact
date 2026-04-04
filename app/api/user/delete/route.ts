@@ -10,6 +10,11 @@ export async function DELETE() {
   }
 
   const serviceClient = createServiceClient()
+
+  // Delete profile first — cascades to group_members, sessions, messages.
+  // Without this, the FK from profiles.id -> auth.users.id blocks auth user deletion.
+  await serviceClient.from('profiles').delete().eq('id', user.id)
+
   const { error } = await serviceClient.auth.admin.deleteUser(user.id)
 
   if (error) {
