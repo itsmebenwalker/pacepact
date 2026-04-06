@@ -200,12 +200,10 @@ pacepact/
 │   └── layout.tsx
 ├── components/
 │   ├── leaderboard/
-│   │   ├── LeaderboardTable.tsx        # Realtime-subscribed
-│   │   └── PointsBadge.tsx
+│   │   └── LeaderboardTable.tsx        # Realtime-subscribed, top 5 + current user pinned if outside top 5
 │   ├── training/
 │   │   ├── WeekView.tsx                # Weekly session grid + date range + past states
-│   │   ├── SessionCard.tsx             # Single session, completed state
-│   │   └── PlanOverview.tsx            # Full plan timeline
+│   │   └── SessionCard.tsx             # Single session, completed state + completed_at date
 │   ├── groups/
 │   │   ├── GroupCard.tsx               # Dashboard summary card
 │   │   ├── CreateGroupForm.tsx         # Multi-step group setup

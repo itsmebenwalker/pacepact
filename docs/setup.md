@@ -255,8 +255,8 @@ Located in `__tests__/integration/`. Cover API routes with Supabase mocked via `
 
 **Can't sign in**
 - Confirm the user exists in Supabase → Authentication → Users
-- Check that the password was set correctly (Supabase allows resetting it from the dashboard)
-- If using the signup flow, check Supabase logs under Authentication → Logs for magic link delivery issues
+- Check Supabase logs under Authentication → Logs for magic link delivery issues
+- If the magic link opens in a different browser than the one that requested it, it will still work — the OTP send route uses implicit flow (`flowType: 'implicit'`) to avoid PKCE cross-browser failures
 
 **Strava OAuth fails**
 - Confirm `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET` are correct
