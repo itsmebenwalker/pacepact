@@ -27,32 +27,30 @@ export function buildOtpEmail({
 
           <!-- Card -->
           <tr>
-            <td style="background:#ffffff;border:1px solid #e4e4e7;border-radius:8px;padding:32px;">
+            <td>
+              <div style="background:#ffffff;border:1px solid #e4e4e7;border-radius:8px;padding:32px;">
 
-              <p style="margin:0 0 20px 0;font-size:15px;font-weight:600;color:#18181b;letter-spacing:-0.025em;">PacePact</p>
-              <h1 style="margin:0 0 8px 0;font-size:20px;font-weight:600;color:#18181b;letter-spacing:-0.025em;">${heading}</h1>
-              <p style="margin:0 0 28px 0;font-size:14px;line-height:1.6;color:#71717a;">${body}</p>
+                <p style="margin:0 0 20px 0;font-size:15px;font-weight:600;color:#18181b;letter-spacing:-0.025em;">PacePact</p>
+                <h1 style="margin:0 0 8px 0;font-size:20px;font-weight:600;color:#18181b;letter-spacing:-0.025em;">${heading}</h1>
+                <p style="margin:0 0 28px 0;font-size:14px;line-height:1.6;color:#71717a;">${body}</p>
 
-              <!-- CTA button -->
-              <table cellpadding="0" cellspacing="0" role="presentation">
-                <tr>
-                  <td style="border-radius:6px;background:#18181b;">
-                    <a href="${link}" style="display:inline-block;padding:10px 20px;font-size:14px;font-weight:500;color:#ffffff;text-decoration:none;border-radius:6px;">${cta}</a>
-                  </td>
-                </tr>
-              </table>
+                <!-- CTA button -->
+                <table cellpadding="0" cellspacing="0" role="presentation">
+                  <tr>
+                    <td style="border-radius:6px;background:#18181b;">
+                      <a href="${link}" style="display:inline-block;padding:10px 20px;font-size:14px;font-weight:500;color:#ffffff;text-decoration:none;border-radius:6px;">${cta}</a>
+                    </td>
+                  </tr>
+                </table>
 
-              <!-- Divider -->
-              <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:24px 0;">
-                <tr>
-                  <td style="border-top:1px solid #f4f4f5;"></td>
-                </tr>
-              </table>
+                <!-- Divider -->
+                <div style="border-top:1px solid #f4f4f5;margin:24px 0;"></div>
 
-              <!-- Fallback link -->
-              <p style="margin:0 0 4px 0;font-size:12px;color:#a1a1aa;">If the button doesn't work, copy and paste this link:</p>
-              <p style="margin:0;font-size:12px;color:#71717a;word-break:break-all;">${link}</p>
+                <!-- Fallback link -->
+                <p style="margin:0 0 4px 0;font-size:12px;color:#a1a1aa;">If the button doesn't work, copy and paste this link:</p>
+                <p style="margin:0;font-size:12px;color:#71717a;word-break:break-all;">${link}</p>
 
+              </div>
             </td>
           </tr>
 
