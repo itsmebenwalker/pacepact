@@ -239,6 +239,7 @@ Located in `__tests__/unit/`. Cover pure business logic with no external depende
 | `points/calculator.test.ts` | All point bonus combinations |
 | `strava/activity-matcher.test.ts` | Type matching, date window, distance/duration thresholds, multi-candidate selection |
 | `claude/generate-plan.test.ts` | JSON parsing, markdown stripping, validation |
+| `utils/week-in-review.test.ts` | Review week selection, stat aggregation, teaser copy, streak detection, member ranking |
 
 ### Integration tests
 

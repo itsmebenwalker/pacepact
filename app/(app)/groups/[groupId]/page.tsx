@@ -8,6 +8,7 @@ import InviteButton from '@/components/groups/InviteButton'
 import DeleteGroupButton from '@/components/groups/DeleteGroupButton'
 import EditGroupButton from '@/components/groups/EditGroupButton'
 import MessageBoard from '@/components/groups/MessageBoard'
+import WeekInReview from '@/components/groups/WeekInReview'
 import Link from 'next/link'
 import { sortWeeks } from '@/lib/utils/week-status'
 import type { Session } from '@/types'
@@ -114,6 +115,12 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
           )}
         </div>
       </div>
+
+      <WeekInReview
+        groupId={group.id}
+        currentUserId={user!.id}
+        members={members}
+      />
 
       <LeaderboardTable
         groupId={group.id}

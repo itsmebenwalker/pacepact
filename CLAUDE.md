@@ -210,7 +210,9 @@ pacepact/
 │   │   ├── GroupCard.tsx               # Dashboard summary card
 │   │   ├── CreateGroupForm.tsx         # Multi-step group setup
 │   │   ├── InviteButton.tsx            # Copy invite link
-│   │   └── MessageBoard.tsx            # Realtime group chat
+│   │   ├── MessageBoard.tsx            # Realtime group chat
+│   │   ├── WeekInReview.tsx            # Server component — fetches data, delegates to panel
+│   │   └── WeekInReviewPanel.tsx       # Client component — collapsible review UI
 │   ├── profile/
 │   │   ├── DeleteAccountButton.tsx     # Delete account (client component)
 │   │   └── DisconnectStravaButton.tsx  # Strava disconnect (client component)
@@ -231,6 +233,7 @@ pacepact/
 │   │   └── calculator.ts               # Points logic
 │   └── utils/
 │       ├── week-status.ts              # Week state (past-complete/incomplete/active) + sort
+│       ├── week-in-review.ts           # Pure logic for Week in Review stats (testable)
 │       └── format-time.ts              # Message timestamp formatting
 ├── types/
 │   └── index.ts                        # Shared TypeScript types
