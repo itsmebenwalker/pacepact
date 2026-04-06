@@ -37,17 +37,17 @@ export default async function ProfilePage() {
         <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Strava</h2>
 
         {isStravaConnected ? (
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-zinc-900 dark:bg-zinc-50 rounded-md flex items-center justify-center text-white dark:text-zinc-900 text-xs font-bold shrink-0">
-              S
-            </div>
-            <div>
-              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Connected</p>
-              <p className="text-xs text-zinc-400 dark:text-zinc-500">Athlete ID: {profile.strava_athlete_id}</p>
-              <div className="mt-2">
-                <DisconnectStravaButton />
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-zinc-900 dark:bg-zinc-50 rounded-md flex items-center justify-center text-white dark:text-zinc-900 text-xs font-bold shrink-0">
+                S
+              </div>
+              <div>
+                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Connected</p>
+                <p className="text-xs text-zinc-400 dark:text-zinc-500">Athlete ID: {profile.strava_athlete_id}</p>
               </div>
             </div>
+            <DisconnectStravaButton />
           </div>
         ) : (
           <div className="space-y-3">
