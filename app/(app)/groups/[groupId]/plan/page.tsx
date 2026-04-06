@@ -38,14 +38,17 @@ export default async function PlanPage({ params }: { params: Promise<{ groupId: 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href={`/groups/${groupId}`} className="text-gray-400 hover:text-gray-600 text-sm">
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Full training plan</h1>
+          <p className="text-zinc-500 dark:text-zinc-400 mt-0.5 text-sm">{group.event_name}</p>
+        </div>
+        <Link
+          href={`/groups/${groupId}`}
+          className="flex items-center gap-1.5 text-sm border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-3 py-1.5 rounded-md transition-colors"
+        >
           ← Back
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Full training plan</h1>
-          <p className="text-gray-500 text-sm">{group.event_name}</p>
-        </div>
       </div>
 
       <div className="space-y-4">
