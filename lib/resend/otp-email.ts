@@ -25,17 +25,11 @@ export function buildOtpEmail({
       <td align="center">
         <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width:480px;">
 
-          <!-- Logo / wordmark -->
-          <tr>
-            <td style="padding-bottom:24px;">
-              <span style="font-size:16px;font-weight:600;color:#18181b;letter-spacing:-0.025em;">PacePact</span>
-            </td>
-          </tr>
-
           <!-- Card -->
           <tr>
             <td style="background:#ffffff;border:1px solid #e4e4e7;border-radius:8px;padding:32px;">
 
+              <p style="margin:0 0 20px 0;font-size:15px;font-weight:600;color:#18181b;letter-spacing:-0.025em;">PacePact</p>
               <h1 style="margin:0 0 8px 0;font-size:20px;font-weight:600;color:#18181b;letter-spacing:-0.025em;">${heading}</h1>
               <p style="margin:0 0 28px 0;font-size:14px;line-height:1.6;color:#71717a;">${body}</p>
 
