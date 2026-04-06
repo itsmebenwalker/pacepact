@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { getStravaAuthUrl } from '@/lib/strava/oauth'
-import Link from 'next/link'
 import DeleteAccountButton from '@/components/profile/DeleteAccountButton'
 import DisconnectStravaButton from '@/components/profile/DisconnectStravaButton'
 import EditNameField from '@/components/profile/EditNameField'
@@ -21,18 +20,7 @@ export default async function ProfilePage() {
 
   return (
     <div className="max-w-lg space-y-6">
-      <div className="flex items-center gap-4">
-        <Link
-          href="/dashboard"
-          className="text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-          aria-label="Back to dashboard"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 12H5M12 5l-7 7 7 7"/>
-          </svg>
-        </Link>
-        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Profile</h1>
-      </div>
+      <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Profile</h1>
 
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-4">
         <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Account</h2>
