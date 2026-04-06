@@ -327,27 +327,4 @@ describe('buildWeekInReviewData', () => {
     expect(data!.myStats.completed).toBe(1)
   })
 
-  it('includes upcoming sessions from the next active week', () => {
-    const sessions = [
-      // Past week (review)
-      sess({ id: 'p1', week_number: 1, scheduled_date: '2026-04-01', completed: true }),
-      // Current/upcoming week
-      sess({ id: 'u1', week_number: 2, scheduled_date: '2026-04-12', completed: false }),
-      sess({ id: 'u2', week_number: 2, scheduled_date: '2026-04-13', completed: false }),
-    ]
-    const data = buildWeekInReviewData(sessions, USER_A, MEMBERS, TODAY)
-    expect(data!.upcomingSessions).toHaveLength(2)
-    expect(data!.upcomingSessions[0].id).toBe('u1')
-  })
-
-  it('caps upcoming sessions at 3', () => {
-    const sessions = [
-      sess({ id: 'p1', week_number: 1, scheduled_date: '2026-04-01', completed: true }),
-      ...[11, 12, 13, 14, 15].map((d) =>
-        sess({ id: `u${d}`, week_number: 2, scheduled_date: `2026-04-${d}`, completed: false })
-      ),
-    ]
-    const data = buildWeekInReviewData(sessions, USER_A, MEMBERS, TODAY)
-    expect(data!.upcomingSessions).toHaveLength(3)
-  })
 })

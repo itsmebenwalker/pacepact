@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import type { Session } from '@/types'
 
 interface MemberStat {
   user_id: string
@@ -29,7 +28,6 @@ interface Props {
   }
   memberStats: MemberStat[]
   currentUserId: string
-  upcomingSessions: Session[]
 }
 
 function formatDuration(minutes: number): string {
@@ -61,7 +59,6 @@ export default function WeekInReviewPanel({
   priorStats,
   memberStats,
   currentUserId,
-  upcomingSessions,
 }: Props) {
   const [open, setOpen] = useState(false)
 
@@ -192,31 +189,6 @@ export default function WeekInReviewPanel({
             </div>
           </div>
 
-          {/* This week's focus */}
-          {upcomingSessions.length > 0 && (
-            <div className="px-4 py-4 bg-white dark:bg-zinc-900">
-              <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-3">
-                Up next
-              </p>
-              <div className="space-y-1.5">
-                {upcomingSessions.map((s) => (
-                  <div key={s.id} className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
-                    <span className="text-xs text-zinc-400 dark:text-zinc-500 uppercase tracking-wide w-8 shrink-0">
-                      {s.session_type.slice(0, 3)}
-                    </span>
-                    <span className="truncate">{s.target_description}</span>
-                    {(s.target_distance_km || s.target_duration_minutes) && (
-                      <span className="text-xs text-zinc-400 dark:text-zinc-500 shrink-0">
-                        {s.target_distance_km ? `${s.target_distance_km}km` : ''}
-                        {s.target_distance_km && s.target_duration_minutes ? ' · ' : ''}
-                        {s.target_duration_minutes ? formatDuration(s.target_duration_minutes) : ''}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>

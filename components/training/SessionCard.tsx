@@ -46,8 +46,15 @@ export default function SessionCard({ session }: Props) {
           {session.target_duration_minutes ? `${session.target_duration_minutes} min` : ''}
         </p>
       )}
-      {isCompleted && session.points_awarded > 0 && (
-        <p className="text-zinc-500 dark:text-zinc-400 text-xs font-medium mt-1">+{session.points_awarded} pts</p>
+      {isCompleted && (
+        <p className="text-zinc-400 dark:text-zinc-500 text-xs mt-1">
+          {session.completed_at
+            ? new Date(session.completed_at).toLocaleDateString('en', { month: 'short', day: 'numeric' })
+            : 'Completed'}
+          {session.points_awarded > 0 && (
+            <span className="font-medium"> · +{session.points_awarded} pts</span>
+          )}
+        </p>
       )}
     </div>
   )

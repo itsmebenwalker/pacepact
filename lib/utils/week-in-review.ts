@@ -25,7 +25,6 @@ export interface WeekInReviewData {
     points: number
   }
   memberStats: MemberStat[]
-  upcomingSessions: Session[]
 }
 
 export function activeSessions(sessions: Session[]): Session[] {
@@ -147,23 +146,6 @@ export function buildWeekInReviewData(
     })
     .sort((a, b) => b.completed - a.completed || b.points - a.points)
 
-  // Upcoming sessions: earliest active week for the current user
-  const activeWeeks = Array.from(weekMap.entries()).filter(([, sessions]) => {
-    const dates = sessions
-      .map((s) => s.scheduled_date)
-      .filter((d): d is string => d !== null)
-      .sort()
-    return dates.length > 0 && dates[dates.length - 1] >= today
-  })
-  activeWeeks.sort(([a], [b]) => a - b)
-  const [, currentWeekSessions = []] = activeWeeks[0] ?? [undefined, []]
-  const upcomingSessions = (currentWeekSessions as Session[])
-    .filter(
-      (s) => s.user_id === currentUserId && !s.completed && s.session_type !== 'rest'
-    )
-    .sort((a, b) => (a.scheduled_date ?? '').localeCompare(b.scheduled_date ?? ''))
-    .slice(0, 3)
-
   return {
     weekNumber: reviewWeekNum,
     dateRange: getDateRange(myReview),
@@ -178,6 +160,5 @@ export function buildWeekInReviewData(
     },
     priorStats: { completed: priorCompleted, points: priorPoints },
     memberStats,
-    upcomingSessions,
   }
 }

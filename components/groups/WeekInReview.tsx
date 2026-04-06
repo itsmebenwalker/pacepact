@@ -45,7 +45,6 @@ export default async function WeekInReview({ groupId, currentUserId, members }: 
       priorStats={data.priorStats}
       memberStats={data.memberStats}
       currentUserId={currentUserId}
-      upcomingSessions={data.upcomingSessions}
     />
   )
 }
