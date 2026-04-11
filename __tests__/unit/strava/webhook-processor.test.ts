@@ -290,15 +290,14 @@ describe('brick detection coordination', () => {
     expect(brickFound?.id).toBe('brick-1')
   })
 
-  it('matchActivity claims a run session when one exists (no brick partner present)', () => {
+  it('matchActivity returns the run session when called directly (no brick context)', () => {
     const run = makeSession({ id: 'run-1', session_type: 'run', scheduled_date: BRICK_DATE })
     const brick = makeBrickSession()
     const activity = makeActivity({ type: 'run', sport_type: 'run', start_date_local: `${BRICK_DATE}T08:00:00` })
 
-    // matchActivity still returns the run session by type — the brick partner check
-    // that bypasses this happens upstream in processWebhookEvent before matchActivity
-    // is called, so if a complementary leg exists in brick_activity_parts the run leg
-    // will complete the brick instead of this session.
+    // matchActivity itself is unaware of brick logic — it returns the run session.
+    // In processWebhookEvent, a run/ride arriving in a brick week is parked BEFORE
+    // matchActivity is called, so this path is only reached in non-brick weeks.
     const match = matchActivity(activity, [run, brick])
     expect(match?.id).toBe('run-1')
   })

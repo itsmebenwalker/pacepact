@@ -54,13 +54,14 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
 
   const activityType = mapStravaType(activity.type ?? activity.sport_type)
   const activityDate = activity.start_date_local.split('T')[0]
-  const isBrickLeg = (activityType === 'run' || activityType === 'ride') && !!activity.external_id
+  const isRunOrRide = activityType === 'run' || activityType === 'ride'
 
-  // If this is a potential brick leg, fetch ALL stored complementary legs for this
-  // user + external_id (one per group). The partner check runs before regular matching
-  // so a brick's run leg can't be consumed by a scheduled standalone run session.
+  // For Garmin multisport activities both legs share the same external_id.
+  // Look for a stored complementary leg (one per group) so we can confirm the
+  // second leg has arrived and complete the brick. Only possible when the
+  // arriving activity has an external_id to match on.
   let brickPartners: Array<{ id: string; group_id: string; distance_km: number | null; duration_minutes: number | null }> = []
-  if (isBrickLeg) {
+  if (isRunOrRide && activity.external_id) {
     const complementaryType = activityType === 'run' ? 'ride' : 'run'
     const { data: partners } = await serviceClient
       .from('brick_activity_parts')
@@ -128,28 +129,33 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
       continue
     }
 
-    // No brick partner yet — try regular session matching first.
-    // Only park for brick if nothing else matches.
+    // No brick partner yet. If this is a run or ride and a brick session is
+    // pending this week, park it as the first leg. Any run/ride in a brick week
+    // is a potential leg — the user can manually assign it to a standalone
+    // session, or orphan release will credit it automatically when the brick
+    // eventually completes.
+    if (isRunOrRide) {
+      const pendingBrick = findPendingBrickSession(groupSessions, activityDate)
+      if (pendingBrick) {
+        await serviceClient.from('brick_activity_parts').insert({
+          user_id: profile.id,
+          group_id: groupId,
+          external_id: activity.external_id ?? null,
+          activity_type: activityType,
+          strava_activity_id: stravaActivityId,
+          activity_name: activity.name,
+          activity_date: activityDate,
+          distance_km: activity.distance / 1000,
+          duration_minutes: activity.elapsed_time / 60,
+        })
+        continue
+      }
+    }
+
+    // No brick pending — try regular session matching
     const match = matchActivity(activity, groupSessions)
     if (match) {
       matchedSessions.push({ session: match, activity })
-      continue
-    }
-
-    // No regular match — park as potential brick leg if a pending brick exists this week
-    const brickSession = isBrickLeg ? findPendingBrickSession(groupSessions, activityDate) : null
-    if (brickSession) {
-      await serviceClient.from('brick_activity_parts').insert({
-        user_id: profile.id,
-        group_id: groupId,
-        external_id: activity.external_id!,
-        activity_type: activityType,
-        strava_activity_id: stravaActivityId,
-        activity_name: activity.name,
-        activity_date: activityDate,
-        distance_km: activity.distance / 1000,
-        duration_minutes: activity.elapsed_time / 60,
-      })
     }
   }
 

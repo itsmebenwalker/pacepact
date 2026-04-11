@@ -49,12 +49,13 @@ This creates:
 Then apply each migration in `supabase/migrations/` in filename order:
 
 ```
-supabase/migrations/20260402_add_messages.sql                  # Group chat
-supabase/migrations/20260411_add_notifications.sql             # Notification system
-supabase/migrations/20260411_add_brick_activity_parts.sql      # Garmin brick detection (superseded)
-supabase/migrations/20260412_extend_brick_activity_parts.sql   # Brick combined stats (superseded)
-supabase/migrations/20260413_brick_activity_parts_ui.sql       # Brick progress UI + RLS (superseded)
-supabase/migrations/20260414_recreate_brick_activity_parts.sql # Clean rebuild of brick table
+supabase/migrations/20260402_add_messages.sql                       # Group chat
+supabase/migrations/20260411_add_notifications.sql                  # Notification system
+supabase/migrations/20260411_add_brick_activity_parts.sql           # Garmin brick detection (superseded)
+supabase/migrations/20260412_extend_brick_activity_parts.sql        # Brick combined stats (superseded)
+supabase/migrations/20260413_brick_activity_parts_ui.sql            # Brick progress UI + RLS (superseded)
+supabase/migrations/20260414_recreate_brick_activity_parts.sql      # Clean rebuild of brick table
+supabase/migrations/20260415_brick_parts_nullable_external_id.sql   # Allow non-Garmin activities to park
 ```
 
 > **Note**: the three `brick_activity_parts` migrations marked "superseded" are replaced by `20260414_recreate_brick_activity_parts.sql`. On a fresh install you can skip them and run only the final one. On an existing install, run all four in order — the final migration drops and recreates the table cleanly.
@@ -326,7 +327,8 @@ Located in `__tests__/integration/`. Cover API routes with Supabase mocked via `
 
 **Garmin brick workout not completing a brick session**
 - Strava splits Garmin multisport activities into separate run and ride activities, both sharing the same `external_id`
-- Confirm all brick migrations have been applied (in order): `20260411_add_brick_activity_parts.sql`, `20260412_extend_brick_activity_parts.sql`, `20260413_brick_activity_parts_ui.sql`
-- When the first leg arrives (e.g. ride), it is parked in `brick_activity_parts` with its stats and shown as a 50% progress bar on the brick session card. When the second leg arrives with the same `external_id`, combined stats are validated (85% rule) and the brick session is marked complete automatically
-- If only one leg ever arrives, the user sees the 50% bar and can tap **"Count as ride/run session instead"** to manually assign it to the matching standalone session
+- Confirm all brick migrations have been applied in filename order through `20260415_brick_parts_nullable_external_id.sql`
+- In any week containing a brick session, every incoming run or ride is parked in `brick_activity_parts` and shown as a 50% progress bar on the brick session card. The user can tap **"Count as ride/run session instead"** to manually assign it to a matching standalone session at any time
+- For Garmin multisport: when the second leg arrives with the same `external_id`, combined stats are validated (85% rule) and the brick session is marked complete automatically. Any other activities parked earlier that week (orphans) are then automatically matched to remaining standalone sessions
 - If the combined distance/duration doesn't reach 85% of the session target, the brick won't auto-complete — the user will need to manually assign each leg
+- Non-Garmin activities (phone GPS, manual Strava entry) have no `external_id` and cannot auto-complete a brick; they park and must be manually assigned
