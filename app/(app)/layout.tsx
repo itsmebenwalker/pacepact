@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import NavUser from '@/components/ui/NavUser'
+import NotificationBell from '@/components/notifications/NotificationBell'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -18,7 +19,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Link href="/dashboard" className="font-semibold text-zinc-900 dark:text-zinc-50 tracking-tight">
             PacePact
           </Link>
-          <NavUser />
+          <div className="flex items-center gap-1">
+            <NotificationBell userId={user.id} />
+            <NavUser />
+          </div>
         </div>
       </header>
       <main className="max-w-5xl mx-auto px-4 py-4 sm:py-8">{children}</main>

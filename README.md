@@ -8,6 +8,7 @@ Social training platform for groups of friends preparing for the same endurance 
 - **Strava auto-sync** — sessions are marked complete when you log a matching Strava activity; matched by activity type and weekly schedule, not exact date
 - **Live leaderboard** — Supabase Realtime keeps scores updated for everyone in the group simultaneously
 - **Group chat** — per-group message board with real-time updates via Supabase Realtime
+- **In-app notifications** — real-time bell in the nav; activity confirmations are always on, message notifications are opt-in per user
 - **Invite links** — 8-character invite codes let friends join a group in one click
 - **Points system** — base points per session, plus bonuses for completing early, exceeding targets, and maintaining a streak
 - **Week view** — training weeks show date ranges, past weeks are visually locked (green = complete, grey = missed), active week sorted to top
@@ -69,6 +70,8 @@ pacepact/
 │   │   │   └── webhook/      # Strava webhook receiver
 │   │   ├── groups/
 │   │   │   └── generate-plan/# Claude plan generation
+│   │   ├── notifications/
+│   │   │   └── read-all/     # Mark all notifications as read
 │   │   └── user/
 │   │       └── delete/       # Delete authenticated user account
 │   └── auth/callback/        # Auth callback (handles PKCE + implicit flow)
@@ -76,7 +79,8 @@ pacepact/
 │   ├── leaderboard/          # Real-time leaderboard table
 │   ├── training/             # Week view + session cards
 │   ├── groups/               # Group cards, create form, invite button, message board
-│   ├── profile/              # Delete account + disconnect Strava buttons
+│   ├── notifications/        # NotificationBell — real-time bell icon with dropdown
+│   ├── profile/              # Delete account, disconnect Strava, notification settings
 │   └── ui/                   # Shared primitives (nav, theme toggle)
 ├── lib/
 │   ├── supabase/             # Browser + server clients
@@ -105,7 +109,7 @@ npm run test:watch # Watch mode
 
 ## Testing
 
-Unit tests cover core business logic (points calculator, activity matcher, plan parser, week status, date formatting). Integration tests cover the Strava webhook route and auth OTP endpoint.
+Unit tests cover core business logic (points calculator, activity matcher, plan parser, week status, date formatting, webhook notification insertion). Integration tests cover API routes with Supabase mocked — Strava webhook, auth OTP, notification read-all, and profile preference updates.
 
 ```bash
 npm test                                       # Run all tests

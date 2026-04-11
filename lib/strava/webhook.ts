@@ -63,17 +63,23 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
   // Check if user has a streak (7 consecutive days with completed sessions)
   const streakActive = await checkStreak(serviceClient, profile.id)
 
-  const now = new Date().toISOString()
+  // Pre-fetch group names for activity notifications
+  const { data: groupsData } = await serviceClient
+    .from('groups')
+    .select('id, name')
+    .in('id', matchedSessions.map((s) => s.group_id))
+  const groupNameById = new Map(groupsData?.map((g) => [g.id, g.name]) ?? [])
 
   for (const matchedSession of matchedSessions) {
     const points = calculatePoints(matchedSession, activity, streakActive)
 
-    // Mark session complete
+    // Mark session complete, using the activity's local timestamp so the displayed
+    // date matches the user's local date rather than the server's UTC date
     await serviceClient
       .from('sessions')
       .update({
         completed: true,
-        completed_at: now,
+        completed_at: activity.start_date_local,
         strava_activity_id: stravaActivityId,
         points_awarded: points.total,
       })
@@ -94,6 +100,19 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
         .eq('group_id', matchedSession.group_id)
         .eq('user_id', profile.id)
     }
+
+    // Always notify the user their activity was received and matched
+    await serviceClient.from('notifications').insert({
+      user_id: profile.id,
+      type: 'activity_matched',
+      group_id: matchedSession.group_id,
+      data: {
+        activity_name: activity.name,
+        session_description: matchedSession.target_description,
+        points_awarded: points.total,
+        group_name: groupNameById.get(matchedSession.group_id) ?? '',
+      },
+    })
   }
 }
 

@@ -46,6 +46,18 @@ This creates:
 - All RLS policies
 - A trigger that auto-creates a profile row on signup
 
+Then apply each migration in `supabase/migrations/` in filename order:
+
+```
+supabase/migrations/20260402_add_messages.sql       # Group chat
+supabase/migrations/20260411_add_notifications.sql  # Notification system
+```
+
+The notifications migration adds:
+- `notify_admin_message` / `notify_any_message` columns to `profiles`
+- `notifications` table with RLS
+- A Postgres trigger that fans out message notifications to opted-in members
+
 > **Existing installs**: if you applied the schema before this was fixed, run the following to add the missing cascade:
 > ```sql
 > ALTER TABLE profiles
@@ -56,7 +68,15 @@ This creates:
 
 ### 2.3 Enable Realtime
 
-Go to **Database → Replication** in your Supabase dashboard and enable replication for the `group_members` table. This powers the live leaderboard.
+Go to **Database → Replication** in your Supabase dashboard and enable replication for the following tables:
+
+| Table | Powers |
+|---|---|
+| `group_members` | Live leaderboard |
+| `messages` | Live group chat |
+| `notifications` | Real-time notification bell |
+
+The migrations add these tables to `supabase_realtime` automatically via `ALTER PUBLICATION`, but you can verify in the dashboard under Database → Replication.
 
 ### 2.4 Create user accounts
 
@@ -248,6 +268,10 @@ Located in `__tests__/integration/`. Cover API routes with Supabase mocked via `
 | File | What's tested |
 |---|---|
 | `api/strava/webhook.test.ts` | GET challenge verification, POST event processing, non-activity events ignored |
+| `api/strava/disconnect.test.ts` | Strava deauthorize, token clearing, error handling |
+| `api/auth/otp-send.test.ts` | Magic link generation and email delivery |
+| `api/notifications/read-all.test.ts` | Auth guard, marks all unread as read |
+| `api/user/profile-notifications.test.ts` | Notification preference updates, field validation |
 
 ---
 
@@ -274,3 +298,9 @@ Located in `__tests__/integration/`. Cover API routes with Supabase mocked via `
 **Leaderboard not updating in real time**
 - Confirm Realtime replication is enabled for `group_members` in Supabase → Database → Replication
 - Check the browser console for Supabase channel subscription errors
+
+**Notifications not appearing**
+- Confirm Realtime replication is enabled for the `notifications` table in Supabase → Database → Replication
+- Confirm the `20260411_add_notifications.sql` migration has been applied
+- Activity confirmation notifications are always on — if those aren't appearing, check that `processWebhookEvent` is completing successfully (see webhook troubleshooting above)
+- Message notifications only fire if the recipient has opted in via Profile → Notifications; the opt-in is `false` by default

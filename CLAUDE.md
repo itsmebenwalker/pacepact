@@ -12,7 +12,7 @@ MVP is fully free — no payments, no plans. Get users in, get the core loop wor
 
 | Layer | Choice |
 |---|---|
-| Framework | Next.js 14 (App Router) |
+| Framework | Next.js 15 (App Router) |
 | Database | Supabase (Postgres + Auth + Realtime) |
 | Hosting | Railway |
 | AI | Anthropic Claude API (claude-sonnet-4-20250514) |
@@ -76,6 +76,8 @@ profiles (
   strava_access_token text,
   strava_refresh_token text,
   strava_token_expires_at timestamptz,
+  notify_admin_message boolean not null default false,
+  notify_any_message boolean not null default false,
   created_at timestamptz default now()
 )
 ```
@@ -151,6 +153,33 @@ RLS policies required:
 
 Supabase Realtime must be enabled on this table for live chat to work.
 
+### `notifications`
+In-app notification rows per user. Created by a Postgres trigger (messages) or the webhook handler (activity matched).
+
+```sql
+notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references profiles(id) on delete cascade,
+  type text not null check (type in ('message_admin', 'message_any', 'activity_matched')),
+  group_id uuid references groups(id) on delete cascade,
+  data jsonb not null default '{}',
+  read boolean not null default false,
+  created_at timestamptz not null default now()
+)
+```
+
+Index: `(user_id, read, created_at DESC)`
+
+RLS policies:
+- **Select / Update**: `user_id = auth.uid()`
+- **Insert**: service role only (trigger + webhook handler)
+
+Supabase Realtime must be enabled so the bell badge updates live.
+
+`data` payload by type:
+- `message_admin` / `message_any`: `{ content, group_name, sender_name }`
+- `activity_matched`: `{ activity_name, session_description, points_awarded, group_name }`
+
 ### `strava_webhook_events`
 Raw log of incoming Strava webhook payloads for debugging and replay.
 
@@ -193,6 +222,8 @@ pacepact/
 │   │   │   └── webhook/route.ts        # Strava webhook receiver
 │   │   ├── groups/
 │   │   │   └── generate-plan/route.ts  # Claude plan generation
+│   │   ├── notifications/
+│   │   │   └── read-all/route.ts       # Mark all notifications read (POST)
 │   │   └── user/
 │   │       └── delete/route.ts         # Delete authenticated user account
 │   ├── auth/
@@ -211,9 +242,12 @@ pacepact/
 │   │   ├── MessageBoard.tsx            # Realtime group chat
 │   │   ├── WeekInReview.tsx            # Server component — fetches data, delegates to panel
 │   │   └── WeekInReviewPanel.tsx       # Client component — collapsible review UI
+│   ├── notifications/
+│   │   └── NotificationBell.tsx        # Bell icon + dropdown; Realtime-subscribed, marks all read on open
 │   ├── profile/
 │   │   ├── DeleteAccountButton.tsx     # Delete account (client component)
-│   │   └── DisconnectStravaButton.tsx  # Strava disconnect (client component)
+│   │   ├── DisconnectStravaButton.tsx  # Strava disconnect (client component)
+│   │   └── NotificationSettings.tsx   # Opt-in toggles for message notifications
 │   └── ui/                             # Shared primitives
 ├── lib/
 │   ├── supabase/
@@ -334,6 +368,27 @@ const channel = supabase
   })
   .subscribe()
 ```
+
+### Notification System
+
+Notifications are stored in the `notifications` table. There are three types:
+
+| Type | Trigger | Always on? |
+|---|---|---|
+| `activity_matched` | `processWebhookEvent` after a session is marked complete | Yes |
+| `message_admin` | Postgres trigger on `messages` INSERT, if sender = group creator | No (opt-in) |
+| `message_any` | Postgres trigger on `messages` INSERT, for all members | No (opt-in) |
+
+**Message fan-out** happens entirely in the DB via a `SECURITY DEFINER` trigger (`create_message_notifications`) that fires after each `messages` INSERT. It reads each member's `notify_admin_message` and `notify_any_message` preferences and inserts a notification row where appropriate. No application code change is needed in `MessageBoard.tsx`.
+
+**Activity notifications** are inserted in `processWebhookEvent` (`lib/strava/webhook.ts`) after points are awarded. Group names are pre-fetched in a single `IN` query before the per-session loop.
+
+**`NotificationBell`** (`components/notifications/NotificationBell.tsx`) is a client component rendered in the app layout. It:
+- Fetches the last 20 notifications on mount
+- Subscribes to Supabase Realtime `INSERT` events on the `notifications` table filtered by `user_id`
+- Marks all as read (optimistic + `POST /api/notifications/read-all`) when the panel is opened
+
+**Preferences** are two boolean columns on `profiles` (`notify_admin_message`, `notify_any_message`, both default `false`). The `NotificationSettings` client component in the profile page toggles them via `PATCH /api/user/profile`.
 
 ### Strava OAuth Flow
 

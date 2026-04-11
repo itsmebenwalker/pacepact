@@ -3,6 +3,7 @@ import { getStravaAuthUrl } from '@/lib/strava/oauth'
 import DeleteAccountButton from '@/components/profile/DeleteAccountButton'
 import DisconnectStravaButton from '@/components/profile/DisconnectStravaButton'
 import EditNameField from '@/components/profile/EditNameField'
+import NotificationSettings from '@/components/profile/NotificationSettings'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -62,6 +63,14 @@ export default async function ProfilePage() {
             </a>
           </div>
         )}
+      </div>
+
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-4">
+        <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Notifications</h2>
+        <NotificationSettings
+          initialAdminMessage={profile?.notify_admin_message ?? false}
+          initialAnyMessage={profile?.notify_any_message ?? false}
+        />
       </div>
 
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-4">

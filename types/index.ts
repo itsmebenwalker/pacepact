@@ -21,6 +21,20 @@ export interface Profile {
   strava_access_token: string | null
   strava_refresh_token: string | null
   strava_token_expires_at: string | null
+  notify_admin_message: boolean
+  notify_any_message: boolean
+  created_at: string
+}
+
+export type NotificationType = 'message_admin' | 'message_any' | 'activity_matched'
+
+export interface AppNotification {
+  id: string
+  user_id: string
+  type: NotificationType
+  group_id: string | null
+  data: Record<string, string | number>
+  read: boolean
   created_at: string
 }
 
