@@ -180,6 +180,27 @@ Supabase Realtime must be enabled so the bell badge updates live.
 - `message_admin` / `message_any`: `{ content, group_name, sender_name }`
 - `activity_matched`: `{ activity_name, session_description, points_awarded, group_name }`
 
+### `brick_activity_parts`
+Staging area for the first leg of a brick workout. In any week that contains a pending brick session, every incoming run or ride is parked here until either manually assigned by the user or auto-released when the brick completes.
+
+```sql
+brick_activity_parts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references profiles(id) on delete cascade not null,
+  group_id uuid references groups(id) on delete cascade not null,
+  external_id text,                        -- Garmin multisport legs share this; null for phone/manual
+  activity_type text not null,             -- 'run' | 'ride'
+  strava_activity_id bigint,
+  activity_name text,
+  activity_date text,                      -- YYYY-MM-DD local date
+  distance_km numeric,
+  duration_minutes numeric,
+  created_at timestamptz default now()
+)
+```
+
+RLS: SELECT for `user_id = auth.uid()`. INSERT/DELETE via service role only (webhook handler + assign API).
+
 ### `strava_webhook_events`
 Raw log of incoming Strava webhook payloads for debugging and replay.
 
@@ -221,10 +242,14 @@ pacepact/
 │   │   │   ├── disconnect/route.ts     # Deauthorize Strava + clear tokens
 │   │   │   └── webhook/route.ts        # Strava webhook receiver
 │   │   ├── groups/
-│   │   │   └── generate-plan/route.ts  # Claude plan generation
+│   │   │   ├── generate-plan/route.ts  # Claude plan generation
+│   │   │   └── [groupId]/route.ts      # PATCH edit name/event; DELETE group (creator only)
+│   │   ├── activities/
+│   │   │   └── assign/route.ts         # POST: assign parked brick leg to standalone session
 │   │   ├── notifications/
 │   │   │   └── read-all/route.ts       # Mark all notifications read (POST)
 │   │   └── user/
+│   │       ├── profile/route.ts        # PATCH: update display_name + notification prefs
 │   │       └── delete/route.ts         # Delete authenticated user account
 │   ├── auth/
 │   │   └── callback/page.tsx           # Auth callback (PKCE + implicit flow)
@@ -234,7 +259,8 @@ pacepact/
 │   │   └── LeaderboardTable.tsx        # Realtime-subscribed, top 5 + current user pinned if outside top 5
 │   ├── training/
 │   │   ├── WeekView.tsx                # Weekly session grid + date range + past states
-│   │   └── SessionCard.tsx             # Single session, completed state + completed_at date
+│   │   ├── SessionCard.tsx             # Single session, completed state + completed_at date
+│   │   └── BrickProgress.tsx           # Progress bar for parked brick legs; manual assign button
 │   ├── groups/
 │   │   ├── GroupCard.tsx               # Dashboard summary card
 │   │   ├── CreateGroupForm.tsx         # Multi-step group setup
@@ -335,7 +361,10 @@ The webhook endpoint handles two things:
 3. Look up the user by `owner_id` (Strava athlete ID) in `profiles`
 4. Fetch full activity from Strava API (need distance, type, elapsed time)
 5. Bucket all pending sessions by `group_id`
-6. Call `matchActivity` once per group — awards the activity to the matching session in **each** group independently
+6. Per group, in order:
+   - **Brick partner check** (run/ride with `external_id` only): if a complementary leg with the same `external_id` is already stored in `brick_activity_parts`, combine both legs' stats, validate against the brick session target (85% threshold), mark the brick complete, delete the partner row, then run an **orphan release** — any other parts parked for this group/week are matched to remaining standalone sessions
+   - **First-leg park**: if a brick session is pending this week and the activity is a run or ride, store it in `brick_activity_parts` and show a 50% progress bar in the UI
+   - **Regular match**: if no brick is pending, call `matchActivity` and award points to the matching session
 7. Mark matched sessions complete and award points per group
 8. Leaderboard updates via Supabase Realtime
 
@@ -343,13 +372,27 @@ Always return HTTP 200 immediately — Strava will retry on non-200.
 
 ### Activity Matching (`lib/strava/activity-matcher.ts`)
 
-Matching an incoming Strava activity to a planned session:
+`matchActivity` matches a Strava activity to a planned standalone session:
 
-1. Find all incomplete sessions for this user across all active groups where the scheduled date is within ±2 days of the activity date
-2. Filter by activity type match (Strava `Run` → session type `run`, etc.)
-3. If `target_distance_km` is set, the activity distance must be ≥ 85% of target to count as complete
+1. Find all incomplete sessions where the scheduled date is within ±2 days of the activity date
+2. Filter by activity type match (Strava `Run` → session type `run`, etc.) — brick sessions are excluded here; they are handled separately via `findPendingBrickSession`
+3. If `target_distance_km` is set, the activity distance must be ≥ 85% of target
 4. If `target_duration_minutes` is set, elapsed time must be ≥ 85% of target
-5. Match to the closest session. If no match found, the activity is ignored (user may have done an unscheduled workout — that's fine, no points)
+5. Match to the earliest qualifying session. If no match, the activity is ignored (no points)
+
+`findPendingBrickSession` finds an incomplete brick-type session within the same calendar week. Optionally accepts combined distance/duration to validate against the brick target (used when the second Garmin leg arrives).
+
+`getWeekBounds(date)` returns `{ start, end }` for the Monday–Sunday week containing a given date. Used by the webhook handler for orphan release queries and by `WeekView` to scope brick parts to the displayed week.
+
+### Brick Workout Flow
+
+Brick sessions (e.g. ride + run) are completed via a two-phase process:
+
+1. **Any run or ride arriving in a brick week** is parked in `brick_activity_parts` (first-leg park). The session card shows a 50% progress bar. The user can tap "Count as ride/run session instead" to manually assign it to a matching standalone session via `POST /api/activities/assign`.
+
+2. **For Garmin multisport activities**, both legs share the same `external_id`. When the second leg arrives, the webhook handler finds the stored first leg by `external_id` + complementary type, combines stats, validates against the brick target, and marks the brick complete automatically.
+
+3. **Orphan release**: when a brick completes, the handler queries `brick_activity_parts` for any remaining parts in the same user/group/week and runs them through `matchActivity` against remaining pending sessions. This handles the case where a Monday run was parked (brick was pending), then Tuesday's brick completes — the Monday run is retroactively credited to the standalone run session without user action.
 
 ### Leaderboard Realtime
 

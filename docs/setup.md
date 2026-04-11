@@ -66,9 +66,10 @@ The notifications migration adds:
 - A Postgres trigger that fans out message notifications to opted-in members
 
 The brick activity parts migrations add:
-- `brick_activity_parts` table — stores the first leg of a split Garmin brick workout until the second leg arrives via webhook, at which point the brick session is marked complete
-- `distance_km` / `duration_minutes` columns — the first leg's stats are stored so both legs can be combined and validated against the brick session target (85% threshold) when the second leg arrives
+- `brick_activity_parts` table — in any week with a pending brick session, any incoming run or ride is stored here until it is either manually assigned by the user or auto-released when the brick completes
+- `distance_km` / `duration_minutes` columns — stored so both Garmin legs can be combined and validated against the brick session target (85% threshold) when the second leg arrives
 - `group_id`, `strava_activity_id`, `activity_name`, `activity_date` columns — context needed for the progress bar UI and manual assignment
+- `external_id` made nullable — Garmin activities have an `external_id` (used to match both legs of a multisport activity); non-Garmin activities do not and park without one
 - RLS SELECT policy so the client can read its own pending parts
 
 > **Existing installs**: if you applied the schema before this was fixed, run the following to add the missing cascade:

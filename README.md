@@ -6,6 +6,7 @@ Social training platform for groups of friends preparing for the same endurance 
 
 - **Group training plans** — Claude generates a structured plan based on event type, date, and training ambition (`finish` / `pb` / `podium`)
 - **Strava auto-sync** — sessions are marked complete when you log a matching Strava activity; matched by activity type and weekly schedule, not exact date
+- **Garmin brick support** — Garmin multisport activities (ride + run) are detected by shared `external_id` and auto-complete brick sessions; a 50% progress bar shows while the first leg is pending, with a manual assign fallback
 - **Live leaderboard** — Supabase Realtime keeps scores updated for everyone in the group simultaneously
 - **Group chat** — per-group message board with real-time updates via Supabase Realtime
 - **In-app notifications** — real-time bell in the nav; activity confirmations are always on, message notifications are opt-in per user
@@ -69,10 +70,14 @@ pacepact/
 │   │   │   ├── disconnect/   # Deauthorize Strava + clear tokens
 │   │   │   └── webhook/      # Strava webhook receiver
 │   │   ├── groups/
-│   │   │   └── generate-plan/# Claude plan generation
+│   │   │   ├── generate-plan/# Claude plan generation
+│   │   │   └── [groupId]/    # PATCH edit name/event; DELETE group
+│   │   ├── activities/
+│   │   │   └── assign/       # Assign parked brick leg to standalone session
 │   │   ├── notifications/
 │   │   │   └── read-all/     # Mark all notifications as read
 │   │   └── user/
+│   │       ├── profile/      # PATCH update display name + notification prefs
 │   │       └── delete/       # Delete authenticated user account
 │   └── auth/callback/        # Auth callback (handles PKCE + implicit flow)
 ├── components/
@@ -113,7 +118,7 @@ Unit tests cover core business logic (points calculator, activity matcher, plan 
 
 ```bash
 npm test                                       # Run all tests
-npm test -- --testPathPattern=calculator       # Run specific file
+npm test -- --testPathPatterns=calculator      # Run specific file
 npm test -- --coverage                         # With coverage report
 ```
 
@@ -152,6 +157,13 @@ When a Strava webhook arrives, PacePact matches the activity to a planned sessio
 4. Matching to the earliest qualifying session in the week
 
 Multiple activities in the same week can each match a different session — completing two runs on the same day will mark off two run sessions if both are scheduled that week.
+
+### Brick sessions
+
+In any week that contains a pending brick session, every incoming run or ride is held in `brick_activity_parts` and shown as a 50% progress bar on the brick session card. There are two resolution paths:
+
+- **Garmin multisport**: both legs (ride + run) share the same `external_id`. When the second leg arrives, stats are combined and validated against the brick target. The brick is marked complete automatically, and any other activities parked earlier that week are released and matched to remaining standalone sessions.
+- **Manual assign**: the user taps "Count as ride/run session instead" to credit a parked leg to a standalone session instead.
 
 ## Environment variables
 
