@@ -11,7 +11,7 @@ import MessageBoard from '@/components/groups/MessageBoard'
 import WeekInReview from '@/components/groups/WeekInReview'
 import Link from 'next/link'
 import { sortWeeks } from '@/lib/utils/week-status'
-import type { Session } from '@/types'
+import type { BrickActivityPart, Session } from '@/types'
 
 export default async function GroupPage({ params }: { params: Promise<{ groupId: string }> }) {
   const { groupId } = await params
@@ -71,12 +71,21 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
     memberNames[m.user_id] = m.display_name
   }
 
-  const { data: sessions } = await supabase
-    .from('sessions')
-    .select('*')
-    .eq('group_id', groupId)
-    .eq('user_id', user!.id)
-    .order('scheduled_date', { ascending: true })
+  const [{ data: sessions }, { data: brickPartsRaw }] = await Promise.all([
+    supabase
+      .from('sessions')
+      .select('*')
+      .eq('group_id', groupId)
+      .eq('user_id', user!.id)
+      .order('scheduled_date', { ascending: true }),
+    supabase
+      .from('brick_activity_parts')
+      .select('*')
+      .eq('group_id', groupId)
+      .eq('user_id', user!.id),
+  ])
+
+  const brickParts = (brickPartsRaw ?? []) as BrickActivityPart[]
 
   const sessionsByWeek = new Map<number, Session[]>()
   for (const session of sessions ?? []) {
@@ -151,7 +160,7 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
         ) : (
           <div className="space-y-3">
             {weeks.slice(0, 4).map(([weekNum, weekSessions]) => (
-              <WeekView key={weekNum} weekNumber={weekNum} sessions={weekSessions} today={today} />
+              <WeekView key={weekNum} weekNumber={weekNum} sessions={weekSessions} today={today} brickParts={brickParts} />
             ))}
           </div>
         )}

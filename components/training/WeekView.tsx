@@ -1,11 +1,13 @@
-import type { Session } from '@/types'
+import type { BrickActivityPart, Session } from '@/types'
 import SessionCard from './SessionCard'
 import { getWeekStatus } from '@/lib/utils/week-status'
+import { getWeekBounds } from '@/lib/strava/activity-matcher'
 
 interface Props {
   weekNumber: number
   sessions: Session[]
   today: string // YYYY-MM-DD — passed from the server-rendered page
+  brickParts?: BrickActivityPart[]
 }
 
 /**
@@ -35,12 +37,23 @@ export function weekDateRange(sessions: Session[]): string | null {
   return `${start.getDate()} ${startMonth} – ${end.getDate()} ${endMonth}`
 }
 
-export default function WeekView({ weekNumber, sessions, today }: Props) {
+export default function WeekView({ weekNumber, sessions, today, brickParts = [] }: Props) {
   const status = getWeekStatus(sessions, today)
   const restCount = sessions.filter((s) => s.session_type === 'rest').length
   const activeSessions = sessions.filter((s) => s.session_type !== 'rest')
   const completed = activeSessions.filter((s) => s.completed).length
   const dateRange = weekDateRange(sessions)
+
+  // Find the brick parts that fall within this week so we can show the progress
+  // bar on the right session card. Match by the part's activity_date against the
+  // week's calendar bounds derived from the sessions' scheduled dates.
+  const firstDate = sessions.find((s) => s.scheduled_date)?.scheduled_date
+  const weekBounds = firstDate ? getWeekBounds(firstDate) : null
+  const weekBrickParts = weekBounds
+    ? brickParts.filter(
+        (p) => p.activity_date && p.activity_date >= weekBounds.start && p.activity_date <= weekBounds.end
+      )
+    : []
 
   const restNote = restCount === 1
     ? 'Recommended: 1 rest day this week'
@@ -97,7 +110,15 @@ export default function WeekView({ weekNumber, sessions, today }: Props) {
               return a.scheduled_date.localeCompare(b.scheduled_date)
             })
             .map((session) => (
-              <SessionCard key={session.id} session={session} />
+              <SessionCard
+                key={session.id}
+                session={session}
+                pendingPart={
+                  session.session_type === 'brick'
+                    ? weekBrickParts[0]
+                    : undefined
+                }
+              />
             ))}
         </div>
         {restCount > 0 && (

@@ -56,65 +56,65 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
   const activityDate = activity.start_date_local.split('T')[0]
   const isBrickLeg = (activityType === 'run' || activityType === 'ride') && !!activity.external_id
 
-  // If this is a potential brick leg, check for a stored complementary leg before
-  // attempting regular matching. This prevents a run leg from being consumed by a
-  // scheduled run session when it should instead complete a pending brick.
-  let brickPartner: { id: string; distance_km: number | null; duration_minutes: number | null } | null = null
+  // If this is a potential brick leg, fetch ALL stored complementary legs for this
+  // user + external_id (one per group). The partner check runs before regular matching
+  // so a brick's run leg can't be consumed by a scheduled standalone run session.
+  let brickPartners: Array<{ id: string; group_id: string; distance_km: number | null; duration_minutes: number | null }> = []
   if (isBrickLeg) {
     const complementaryType = activityType === 'run' ? 'ride' : 'run'
-    const { data: partner } = await serviceClient
+    const { data: partners } = await serviceClient
       .from('brick_activity_parts')
-      .select('id, distance_km, duration_minutes')
+      .select('id, group_id, distance_km, duration_minutes')
       .eq('user_id', profile.id)
       .eq('external_id', activity.external_id)
       .eq('activity_type', complementaryType)
-      .maybeSingle()
-    brickPartner = partner
+    brickPartners = partners ?? []
   }
 
   const matchedSessions: Session[] = []
-  let brickPartnerDeleted = false
-  let shouldStoreBrickLeg = false
 
-  for (const [, groupSessions] of sessionsByGroup) {
+  for (const [groupId, groupSessions] of sessionsByGroup) {
+    const brickPartner = brickPartners.find((p) => p.group_id === groupId) ?? null
+
     if (brickPartner) {
-      // Second leg confirmed — combine both legs' stats and validate against the brick target
+      // Second leg confirmed — combine both legs' stats and validate against brick target
       const combinedDistanceKm = (brickPartner.distance_km ?? 0) + activity.distance / 1000
       const combinedDurationMin = (brickPartner.duration_minutes ?? 0) + activity.elapsed_time / 60
       const brickSession = findPendingBrickSession(groupSessions, activityDate, combinedDistanceKm, combinedDurationMin)
       if (brickSession) {
         matchedSessions.push(brickSession)
-        if (!brickPartnerDeleted) {
-          await serviceClient.from('brick_activity_parts').delete().eq('id', brickPartner.id)
-          brickPartnerDeleted = true
-        }
+        await serviceClient.from('brick_activity_parts').delete().eq('id', brickPartner.id)
       }
       continue
     }
 
-    // No brick partner yet — try regular session matching
-    const match = matchActivity(activity, groupSessions)
-    if (match) {
-      matchedSessions.push(match)
+    // Check for a pending brick session in this group for this week
+    const brickSession = isBrickLeg ? findPendingBrickSession(groupSessions, activityDate) : null
+
+    if (brickSession) {
+      // First leg of a brick — park it so the user can see it in the UI.
+      // Do NOT complete any regular session: the user will either wait for the
+      // second leg (auto-completes the brick) or manually assign this leg to a
+      // standalone session via the progress bar UI.
+      await serviceClient.from('brick_activity_parts').insert({
+        user_id: profile.id,
+        group_id: groupId,
+        external_id: activity.external_id!,
+        activity_type: activityType,
+        strava_activity_id: stravaActivityId,
+        activity_name: activity.name,
+        activity_date: activityDate,
+        distance_km: activity.distance / 1000,
+        duration_minutes: activity.elapsed_time / 60,
+      })
       continue
     }
 
-    // No regular match — flag for brick leg storage if a pending brick exists this week
-    if (isBrickLeg && findPendingBrickSession(groupSessions, activityDate)) {
-      shouldStoreBrickLeg = true
+    // No brick involvement — match against regular sessions
+    const match = matchActivity(activity, groupSessions)
+    if (match) {
+      matchedSessions.push(match)
     }
-  }
-
-  // Store the first brick leg once, outside the loop, to avoid duplicate inserts
-  // across multiple groups that each have a pending brick session this week.
-  if (isBrickLeg && !brickPartner && shouldStoreBrickLeg) {
-    await serviceClient.from('brick_activity_parts').insert({
-      user_id: profile.id,
-      external_id: activity.external_id!,
-      activity_type: activityType,
-      distance_km: activity.distance / 1000,
-      duration_minutes: activity.elapsed_time / 60,
-    })
   }
 
   if (matchedSessions.length === 0) return
@@ -175,7 +175,7 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
   }
 }
 
-async function checkStreak(serviceClient: SupabaseClient, userId: string): Promise<boolean> {
+export async function checkStreak(serviceClient: SupabaseClient, userId: string): Promise<boolean> {
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 

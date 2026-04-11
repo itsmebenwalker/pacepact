@@ -87,6 +87,20 @@ export interface Session {
   created_at: string
 }
 
+export interface BrickActivityPart {
+  id: string
+  user_id: string
+  group_id: string
+  external_id: string
+  activity_type: 'run' | 'ride'
+  strava_activity_id: number | null
+  activity_name: string | null
+  activity_date: string | null // YYYY-MM-DD
+  distance_km: number | null
+  duration_minutes: number | null
+  created_at: string
+}
+
 export interface StravaWebhookEvent {
   id: string
   payload: Record<string, unknown>

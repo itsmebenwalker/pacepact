@@ -280,6 +280,16 @@ describe('brick detection coordination', () => {
     expect(findPendingBrickSession([brick], BRICK_DATE)).toBeNull()
   })
 
+  it('findPendingBrickSession returns brick even when a run session also exists in the week', () => {
+    const run = makeSession({ id: 'run-1', session_type: 'run', scheduled_date: BRICK_DATE })
+    const brick = makeBrickSession()
+
+    // processWebhookEvent calls findPendingBrickSession before matchActivity when a
+    // pending brick exists. A leg is parked rather than consumed by the run session.
+    const brickFound = findPendingBrickSession([run, brick], BRICK_DATE)
+    expect(brickFound?.id).toBe('brick-1')
+  })
+
   it('matchActivity claims a run session when one exists (no brick partner present)', () => {
     const run = makeSession({ id: 'run-1', session_type: 'run', scheduled_date: BRICK_DATE })
     const brick = makeBrickSession()

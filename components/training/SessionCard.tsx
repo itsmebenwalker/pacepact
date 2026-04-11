@@ -1,4 +1,5 @@
-import type { Session } from '@/types'
+import type { BrickActivityPart, Session } from '@/types'
+import BrickProgress from './BrickProgress'
 
 const SESSION_LABEL: Record<string, string> = {
   run: 'Run',
@@ -10,9 +11,10 @@ const SESSION_LABEL: Record<string, string> = {
 
 interface Props {
   session: Session
+  pendingPart?: BrickActivityPart
 }
 
-export default function SessionCard({ session }: Props) {
+export default function SessionCard({ session, pendingPart }: Props) {
   const isCompleted = session.completed
   const label = SESSION_LABEL[session.session_type] ?? session.session_type.toUpperCase()
 
@@ -55,6 +57,9 @@ export default function SessionCard({ session }: Props) {
             <span className="font-medium"> · +{session.points_awarded} pts</span>
           )}
         </p>
+      )}
+      {pendingPart && !isCompleted && (
+        <BrickProgress part={pendingPart} />
       )}
     </div>
   )
