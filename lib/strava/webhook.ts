@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
-import { findPendingBrickSession, matchActivity } from './activity-matcher'
+import { findPendingBrickSession, getWeekBounds, matchActivity } from './activity-matcher'
 import { calculatePoints, mapStravaType } from '@/lib/points/calculator'
 import { ensureFreshToken, getStravaActivity } from './oauth'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -71,7 +71,9 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
     brickPartners = partners ?? []
   }
 
-  const matchedSessions: Session[] = []
+  // Each entry pairs a session with the activity whose stats should drive points.
+  // Orphan releases use stored stats rather than the current arriving activity.
+  const matchedSessions: Array<{ session: Session; activity: StravaActivity }> = []
 
   for (const [groupId, groupSessions] of sessionsByGroup) {
     const brickPartner = brickPartners.find((p) => p.group_id === groupId) ?? null
@@ -82,20 +84,61 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
       const combinedDurationMin = (brickPartner.duration_minutes ?? 0) + activity.elapsed_time / 60
       const brickSession = findPendingBrickSession(groupSessions, activityDate, combinedDistanceKm, combinedDurationMin)
       if (brickSession) {
-        matchedSessions.push(brickSession)
+        matchedSessions.push({ session: brickSession, activity })
         await serviceClient.from('brick_activity_parts').delete().eq('id', brickPartner.id)
+
+        // Brick completed — release any orphaned parts that were parked for this
+        // group during the same week and try to match them to regular sessions.
+        // This handles the case where a standalone activity (e.g. a Monday run)
+        // was parked because a brick was pending, and is now free to be credited.
+        const { start: weekStart, end: weekEnd } = getWeekBounds(activityDate)
+        const { data: orphans } = await serviceClient
+          .from('brick_activity_parts')
+          .select('*')
+          .eq('user_id', profile.id)
+          .eq('group_id', groupId)
+          .gte('activity_date', weekStart)
+          .lte('activity_date', weekEnd)
+
+        const alreadyMatchedIds = new Set(matchedSessions.map((m) => m.session.id))
+
+        for (const orphan of orphans ?? []) {
+          const orphanActivity: StravaActivity = {
+            id: orphan.strava_activity_id ?? 0,
+            name: orphan.activity_name ?? '',
+            type: orphan.activity_type,
+            sport_type: orphan.activity_type,
+            distance: (orphan.distance_km ?? 0) * 1000,
+            moving_time: Math.round((orphan.duration_minutes ?? 0) * 60),
+            elapsed_time: Math.round((orphan.duration_minutes ?? 0) * 60),
+            start_date: orphan.created_at,
+            start_date_local: (orphan.activity_date ?? activityDate) + 'T00:00:00',
+            athlete: { id: 0 },
+          }
+
+          const remainingSessions = groupSessions.filter((s) => !alreadyMatchedIds.has(s.id))
+          const orphanMatch = matchActivity(orphanActivity, remainingSessions)
+          if (orphanMatch) {
+            matchedSessions.push({ session: orphanMatch, activity: orphanActivity })
+            alreadyMatchedIds.add(orphanMatch.id)
+            await serviceClient.from('brick_activity_parts').delete().eq('id', orphan.id)
+          }
+        }
       }
       continue
     }
 
-    // Check for a pending brick session in this group for this week
-    const brickSession = isBrickLeg ? findPendingBrickSession(groupSessions, activityDate) : null
+    // No brick partner yet — try regular session matching first.
+    // Only park for brick if nothing else matches.
+    const match = matchActivity(activity, groupSessions)
+    if (match) {
+      matchedSessions.push({ session: match, activity })
+      continue
+    }
 
+    // No regular match — park as potential brick leg if a pending brick exists this week
+    const brickSession = isBrickLeg ? findPendingBrickSession(groupSessions, activityDate) : null
     if (brickSession) {
-      // First leg of a brick — park it so the user can see it in the UI.
-      // Do NOT complete any regular session: the user will either wait for the
-      // second leg (auto-completes the brick) or manually assign this leg to a
-      // standalone session via the progress bar UI.
       await serviceClient.from('brick_activity_parts').insert({
         user_id: profile.id,
         group_id: groupId,
@@ -107,13 +150,6 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
         distance_km: activity.distance / 1000,
         duration_minutes: activity.elapsed_time / 60,
       })
-      continue
-    }
-
-    // No brick involvement — match against regular sessions
-    const match = matchActivity(activity, groupSessions)
-    if (match) {
-      matchedSessions.push(match)
     }
   }
 
@@ -126,11 +162,11 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
   const { data: groupsData } = await serviceClient
     .from('groups')
     .select('id, name')
-    .in('id', matchedSessions.map((s) => s.group_id))
+    .in('id', matchedSessions.map(({ session }) => session.group_id))
   const groupNameById = new Map(groupsData?.map((g) => [g.id, g.name]) ?? [])
 
-  for (const matchedSession of matchedSessions) {
-    const points = calculatePoints(matchedSession, activity, streakActive)
+  for (const { session: matchedSession, activity: matchedActivity } of matchedSessions) {
+    const points = calculatePoints(matchedSession, matchedActivity, streakActive)
 
     // Mark session complete, using the activity's local timestamp so the displayed
     // date matches the user's local date rather than the server's UTC date
@@ -138,8 +174,8 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
       .from('sessions')
       .update({
         completed: true,
-        completed_at: activity.start_date_local,
-        strava_activity_id: stravaActivityId,
+        completed_at: matchedActivity.start_date_local,
+        strava_activity_id: matchedActivity.id,
         points_awarded: points.total,
       })
       .eq('id', matchedSession.id)
@@ -166,7 +202,7 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
       type: 'activity_matched',
       group_id: matchedSession.group_id,
       data: {
-        activity_name: activity.name,
+        activity_name: matchedActivity.name,
         session_description: matchedSession.target_description,
         points_awarded: points.total,
         group_name: groupNameById.get(matchedSession.group_id) ?? '',

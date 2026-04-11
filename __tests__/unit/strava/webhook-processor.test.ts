@@ -304,3 +304,127 @@ describe('brick detection coordination', () => {
   })
 
 })
+
+// ── Orphan release after brick completion ─────────────────────────────────────
+//
+// When the second brick leg arrives and completes the brick session, any
+// activities that were previously parked in brick_activity_parts for the same
+// user/group/week (orphans) should be released and matched to remaining pending
+// sessions. This models the case where a Monday standalone run was parked
+// (because a brick was pending), then Tuesday's brick completes — the Monday
+// run should be retroactively credited to the run session.
+
+describe('orphan release after brick completion', () => {
+  const MONDAY = '2026-03-30' // Monday — week: Mon 30 Mar – Sun 5 Apr
+  const TUESDAY = '2026-03-31'
+
+  it('matchActivity matches an orphaned run activity reconstructed from stored stats', () => {
+    // Simulate the orphan activity object reconstructed in processWebhookEvent
+    const orphanActivity = makeActivity({
+      id: 0,
+      type: 'run',
+      sport_type: 'run',
+      distance: 10_000,            // 10 km stored as metres
+      moving_time: 3_600,
+      elapsed_time: 3_600,
+      start_date: '2026-03-30T09:00:00Z',
+      start_date_local: MONDAY + 'T00:00:00',
+    })
+
+    // The pending run session that was not yet claimed
+    const runSession = makeSession({
+      id: 'run-monday',
+      session_type: 'run',
+      target_distance_km: 10,
+      scheduled_date: MONDAY,
+      completed: false,
+    })
+
+    // Orphan should match the run session
+    const match = matchActivity(orphanActivity, [runSession])
+    expect(match?.id).toBe('run-monday')
+  })
+
+  it('orphan does not match a session that has already been claimed in the same pass', () => {
+    const orphanActivity = makeActivity({
+      id: 0,
+      type: 'run',
+      sport_type: 'run',
+      distance: 10_000,
+      moving_time: 3_600,
+      elapsed_time: 3_600,
+      start_date_local: MONDAY + 'T00:00:00',
+    })
+
+    // If 'run-monday' was already claimed, it won't be in the remaining list
+    const remaining: Session[] = [] // empty — already matched
+    expect(matchActivity(orphanActivity, remaining)).toBeNull()
+  })
+
+  it('orphan activity reconstructed from stored stats passes the 85% distance threshold', () => {
+    // Stored as 9 km — should still match a 10 km target (90% ≥ 85%)
+    const orphanActivity = makeActivity({
+      id: 0,
+      type: 'run',
+      sport_type: 'run',
+      distance: 9_000,
+      moving_time: 3_240,
+      elapsed_time: 3_240,
+      start_date_local: MONDAY + 'T00:00:00',
+    })
+
+    const runSession = makeSession({
+      id: 'run-monday',
+      session_type: 'run',
+      target_distance_km: 10,
+      scheduled_date: MONDAY,
+    })
+
+    expect(matchActivity(orphanActivity, [runSession])?.id).toBe('run-monday')
+  })
+
+  it('orphan activity with insufficient distance does not match', () => {
+    // Stored as 7 km — 70% of 10 km target, below 85% threshold
+    const orphanActivity = makeActivity({
+      id: 0,
+      type: 'run',
+      sport_type: 'run',
+      distance: 7_000,
+      moving_time: 2_520,
+      elapsed_time: 2_520,
+      start_date_local: MONDAY + 'T00:00:00',
+    })
+
+    const runSession = makeSession({
+      id: 'run-monday',
+      session_type: 'run',
+      target_distance_km: 10,
+      scheduled_date: MONDAY,
+    })
+
+    expect(matchActivity(orphanActivity, [runSession])).toBeNull()
+  })
+
+  it('orphan from different week is outside the ±2 day window and does not match', () => {
+    // Tuesday of previous week — 7 days before TUESDAY brick date
+    const oldOrphanActivity = makeActivity({
+      id: 0,
+      type: 'run',
+      sport_type: 'run',
+      distance: 10_000,
+      moving_time: 3_600,
+      elapsed_time: 3_600,
+      start_date_local: '2026-03-24T00:00:00', // 7 days before TUESDAY
+    })
+
+    // Session scheduled on TUESDAY — 7 days away from orphan, outside ±2 day window
+    const runSession = makeSession({
+      id: 'run-tuesday',
+      session_type: 'run',
+      target_distance_km: 10,
+      scheduled_date: TUESDAY,
+    })
+
+    expect(matchActivity(oldOrphanActivity, [runSession])).toBeNull()
+  })
+})
