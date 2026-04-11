@@ -51,10 +51,13 @@ Then apply each migration in `supabase/migrations/` in filename order:
 ```
 supabase/migrations/20260402_add_messages.sql                  # Group chat
 supabase/migrations/20260411_add_notifications.sql             # Notification system
-supabase/migrations/20260411_add_brick_activity_parts.sql      # Garmin brick detection
-supabase/migrations/20260412_extend_brick_activity_parts.sql   # Brick combined stats
-supabase/migrations/20260413_brick_activity_parts_ui.sql       # Brick progress UI + RLS
+supabase/migrations/20260411_add_brick_activity_parts.sql      # Garmin brick detection (superseded)
+supabase/migrations/20260412_extend_brick_activity_parts.sql   # Brick combined stats (superseded)
+supabase/migrations/20260413_brick_activity_parts_ui.sql       # Brick progress UI + RLS (superseded)
+supabase/migrations/20260414_recreate_brick_activity_parts.sql # Clean rebuild of brick table
 ```
+
+> **Note**: the three `brick_activity_parts` migrations marked "superseded" are replaced by `20260414_recreate_brick_activity_parts.sql`. On a fresh install you can skip them and run only the final one. On an existing install, run all four in order — the final migration drops and recreates the table cleanly.
 
 The notifications migration adds:
 - `notify_admin_message` / `notify_any_message` columns to `profiles`
