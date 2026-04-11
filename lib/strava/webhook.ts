@@ -1,6 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server'
-import { matchActivity } from './activity-matcher'
-import { calculatePoints } from '@/lib/points/calculator'
+import { findPendingBrickSession, matchActivity } from './activity-matcher'
+import { calculatePoints, mapStravaType } from '@/lib/points/calculator'
 import { ensureFreshToken, getStravaActivity } from './oauth'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Session, StravaActivity, StravaWebhookPayload } from '@/types'
@@ -52,10 +52,45 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
     sessionsByGroup.set(session.group_id, bucket)
   }
 
+  const activityType = mapStravaType(activity.type ?? activity.sport_type)
+  const activityDate = activity.start_date_local.split('T')[0]
+
   const matchedSessions: Session[] = []
   for (const [, groupSessions] of sessionsByGroup) {
     const match = matchActivity(activity, groupSessions)
-    if (match) matchedSessions.push(match)
+    if (match) {
+      matchedSessions.push(match)
+      continue
+    }
+
+    // No direct match — check if this run/ride is one leg of a split Garmin brick.
+    // Strava splits multisport activities but preserves the same external_id across all parts.
+    if ((activityType === 'run' || activityType === 'ride') && activity.external_id) {
+      const brickSession = findPendingBrickSession(groupSessions, activityDate)
+      if (brickSession) {
+        const complementaryType = activityType === 'run' ? 'ride' : 'run'
+        const { data: partner } = await serviceClient
+          .from('brick_activity_parts')
+          .select('id')
+          .eq('user_id', profile.id)
+          .eq('external_id', activity.external_id)
+          .eq('activity_type', complementaryType)
+          .maybeSingle()
+
+        if (partner) {
+          // Both legs are in — complete the brick and clean up the stored part
+          matchedSessions.push(brickSession)
+          await serviceClient.from('brick_activity_parts').delete().eq('id', partner.id)
+        } else {
+          // First leg — store it and wait for the other to arrive
+          await serviceClient.from('brick_activity_parts').insert({
+            user_id: profile.id,
+            external_id: activity.external_id,
+            activity_type: activityType,
+          })
+        }
+      }
+    }
   }
 
   if (matchedSessions.length === 0) return

@@ -1,4 +1,4 @@
-import { matchActivity, getWeekBounds } from '@/lib/strava/activity-matcher'
+import { matchActivity, getWeekBounds, findPendingBrickSession } from '@/lib/strava/activity-matcher'
 import type { Session, StravaActivity } from '@/types'
 
 function makeSession(overrides: Partial<Session> = {}): Session {
@@ -192,5 +192,52 @@ describe('matchActivity — multiple candidates in same week', () => {
     const later = makeSession({ id: 'sess-late', scheduled_date: '2026-04-02' })    // Thu
     const activity = makeActivity({ start_date_local: '2026-04-01T08:00:00' })      // Wed
     expect(matchActivity(activity, [later, earlier])?.id).toBe('sess-early')
+  })
+})
+
+// ── findPendingBrickSession ────────────────────────────────────────────────────
+
+describe('findPendingBrickSession', () => {
+  const ACTIVITY_DATE = '2026-04-01' // Wednesday — week: Mon 30 Mar – Sun 5 Apr
+
+  it('returns a brick session scheduled in the same week', () => {
+    const brick = makeSession({ session_type: 'brick', scheduled_date: '2026-04-02' })
+    expect(findPendingBrickSession([brick], ACTIVITY_DATE)).toBe(brick)
+  })
+
+  it('returns null when there are no sessions', () => {
+    expect(findPendingBrickSession([], ACTIVITY_DATE)).toBeNull()
+  })
+
+  it('returns null when the only brick session is already completed', () => {
+    const brick = makeSession({ session_type: 'brick', scheduled_date: '2026-04-02', completed: true })
+    expect(findPendingBrickSession([brick], ACTIVITY_DATE)).toBeNull()
+  })
+
+  it('returns null when the brick session is in a different week', () => {
+    const brick = makeSession({ session_type: 'brick', scheduled_date: '2026-04-08' }) // next week
+    expect(findPendingBrickSession([brick], ACTIVITY_DATE)).toBeNull()
+  })
+
+  it('returns null when the only session in the week is not a brick', () => {
+    const run = makeSession({ session_type: 'run', scheduled_date: '2026-04-02' })
+    expect(findPendingBrickSession([run], ACTIVITY_DATE)).toBeNull()
+  })
+
+  it('returns null when brick session has no scheduled_date', () => {
+    const brick = makeSession({ session_type: 'brick', scheduled_date: null })
+    expect(findPendingBrickSession([brick], ACTIVITY_DATE)).toBeNull()
+  })
+
+  it('returns the earliest brick session when multiple are in the same week', () => {
+    const later = makeSession({ id: 'brick-late', session_type: 'brick', scheduled_date: '2026-04-03' })
+    const earlier = makeSession({ id: 'brick-early', session_type: 'brick', scheduled_date: '2026-03-30' })
+    expect(findPendingBrickSession([later, earlier], ACTIVITY_DATE)?.id).toBe('brick-early')
+  })
+
+  it('ignores non-brick sessions alongside a valid brick session', () => {
+    const run = makeSession({ id: 'run', session_type: 'run', scheduled_date: '2026-04-01' })
+    const brick = makeSession({ id: 'brick', session_type: 'brick', scheduled_date: '2026-04-02' })
+    expect(findPendingBrickSession([run, brick], ACTIVITY_DATE)?.id).toBe('brick')
   })
 })

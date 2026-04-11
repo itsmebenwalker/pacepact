@@ -140,7 +140,7 @@ function makePayload(): StravaWebhookPayload {
 // since the service client mock is hard to parameterise from outside.
 // Instead, test the behaviour by importing and inspecting matchActivity calls.
 
-import { matchActivity } from '@/lib/strava/activity-matcher'
+import { matchActivity, findPendingBrickSession } from '@/lib/strava/activity-matcher'
 
 describe('multi-group activity matching logic', () => {
   it('matches one session per group when the user is in multiple groups', () => {
@@ -218,4 +218,77 @@ describe('multi-group activity matching logic', () => {
     // group-1 picks the earliest
     expect(matches.find((m) => m.group_id === 'group-1')?.id).toBe('g1-a')
   })
+})
+
+// ── Brick detection coordination ──────────────────────────────────────────────
+//
+// Tests the two-phase brick logic: first leg stores a pending part, second leg
+// finds it and completes the brick session. Uses findPendingBrickSession and
+// matchActivity directly, matching the pattern of the tests above.
+
+describe('brick detection coordination', () => {
+  const BRICK_DATE = '2026-04-02' // Thursday — week: Mon 30 Mar – Sun 5 Apr
+
+  function makeBrickSession(overrides: Partial<Session> = {}): Session {
+    return {
+      id: 'brick-1',
+      group_id: 'group-1',
+      user_id: 'user-1',
+      week_number: 1,
+      session_type: 'brick',
+      target_distance_km: null,
+      target_duration_minutes: 90,
+      target_description: 'Brick: 40km ride + 5km run',
+      scheduled_date: BRICK_DATE,
+      completed: false,
+      completed_at: null,
+      strava_activity_id: null,
+      points_awarded: 0,
+      created_at: '2026-01-01T00:00:00Z',
+      ...overrides,
+    }
+  }
+
+  it('does not directly match a brick session to a run activity via matchActivity', () => {
+    const brick = makeBrickSession()
+    const run = makeActivity({ type: 'run', sport_type: 'run', start_date_local: `${BRICK_DATE}T08:00:00` })
+    // matchActivity should not match a brick session — brick detection is handled separately
+    expect(matchActivity(run, [brick])).toBeNull()
+  })
+
+  it('does not directly match a brick session to a ride activity via matchActivity', () => {
+    const brick = makeBrickSession()
+    const ride = makeActivity({ type: 'Ride', sport_type: 'Ride', start_date_local: `${BRICK_DATE}T08:00:00` })
+    expect(matchActivity(ride, [brick])).toBeNull()
+  })
+
+  it('findPendingBrickSession returns the brick when a run arrives with no run session', () => {
+    const brick = makeBrickSession()
+    // The group has only a brick session — no run session to match directly
+    const result = findPendingBrickSession([brick], BRICK_DATE)
+    expect(result).toBe(brick)
+  })
+
+  it('findPendingBrickSession returns the brick when a ride arrives with no ride session', () => {
+    const brick = makeBrickSession()
+    const result = findPendingBrickSession([brick], BRICK_DATE)
+    expect(result).toBe(brick)
+  })
+
+  it('findPendingBrickSession returns null when the brick is already completed', () => {
+    const brick = makeBrickSession({ completed: true })
+    expect(findPendingBrickSession([brick], BRICK_DATE)).toBeNull()
+  })
+
+  it('matchActivity still claims a run session when one exists, leaving brick intact', () => {
+    const run = makeSession({ id: 'run-1', session_type: 'run', scheduled_date: BRICK_DATE })
+    const brick = makeBrickSession()
+    const activity = makeActivity({ type: 'run', sport_type: 'run', start_date_local: `${BRICK_DATE}T08:00:00` })
+
+    // Direct run match takes priority — brick stays unclaimed
+    const match = matchActivity(activity, [run, brick])
+    expect(match?.id).toBe('run-1')
+    // findPendingBrickSession is never reached for this activity
+  })
+
 })

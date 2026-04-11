@@ -24,6 +24,32 @@ export function getWeekBounds(dateStr: string): { start: string; end: string } {
   }
 }
 
+/**
+ * Returns the earliest pending brick session scheduled in the same calendar week
+ * as the given activity date. Used when a run/ride arrives that may be one leg
+ * of a split Garmin multisport (brick) workout.
+ */
+export function findPendingBrickSession(
+  pendingSessions: Session[],
+  activityDate: string
+): Session | null {
+  const { start: weekStart, end: weekEnd } = getWeekBounds(activityDate)
+
+  const brickSessions = pendingSessions.filter(
+    (s) =>
+      !s.completed &&
+      s.session_type === 'brick' &&
+      s.scheduled_date !== null &&
+      s.scheduled_date >= weekStart &&
+      s.scheduled_date <= weekEnd
+  )
+
+  if (brickSessions.length === 0) return null
+
+  brickSessions.sort((a, b) => a.scheduled_date!.localeCompare(b.scheduled_date!))
+  return brickSessions[0]
+}
+
 export function matchActivity(
   activity: StravaActivity,
   pendingSessions: Session[]

@@ -49,14 +49,18 @@ This creates:
 Then apply each migration in `supabase/migrations/` in filename order:
 
 ```
-supabase/migrations/20260402_add_messages.sql       # Group chat
-supabase/migrations/20260411_add_notifications.sql  # Notification system
+supabase/migrations/20260402_add_messages.sql           # Group chat
+supabase/migrations/20260411_add_notifications.sql      # Notification system
+supabase/migrations/20260411_add_brick_activity_parts.sql  # Garmin brick detection
 ```
 
 The notifications migration adds:
 - `notify_admin_message` / `notify_any_message` columns to `profiles`
 - `notifications` table with RLS
 - A Postgres trigger that fans out message notifications to opted-in members
+
+The brick activity parts migration adds:
+- `brick_activity_parts` table — stores the first leg of a split Garmin brick workout until the second leg arrives via webhook, at which point the brick session is marked complete
 
 > **Existing installs**: if you applied the schema before this was fixed, run the following to add the missing cascade:
 > ```sql
@@ -257,7 +261,7 @@ Located in `__tests__/unit/`. Cover pure business logic with no external depende
 | File | What's tested |
 |---|---|
 | `points/calculator.test.ts` | All point bonus combinations |
-| `strava/activity-matcher.test.ts` | Type matching, date window, distance/duration thresholds, multi-candidate selection |
+| `strava/activity-matcher.test.ts` | Type matching, date window, distance/duration thresholds, multi-candidate selection, brick session detection |
 | `claude/generate-plan.test.ts` | JSON parsing, markdown stripping, validation |
 | `utils/week-in-review.test.ts` | Review week selection, stat aggregation, teaser copy, streak detection, member ranking |
 
@@ -304,3 +308,9 @@ Located in `__tests__/integration/`. Cover API routes with Supabase mocked via `
 - Confirm the `20260411_add_notifications.sql` migration has been applied
 - Activity confirmation notifications are always on — if those aren't appearing, check that `processWebhookEvent` is completing successfully (see webhook troubleshooting above)
 - Message notifications only fire if the recipient has opted in via Profile → Notifications; the opt-in is `false` by default
+
+**Garmin brick workout not completing a brick session**
+- Strava splits Garmin multisport activities into separate run and ride activities, both sharing the same `external_id`
+- Confirm the `20260411_add_brick_activity_parts.sql` migration has been applied — the `brick_activity_parts` table is required for this feature
+- When the first leg arrives (e.g. ride), a row is inserted into `brick_activity_parts`. When the second leg arrives (e.g. run) with the same `external_id`, the brick session is marked complete
+- If only one leg arrives (e.g. Strava only synced the ride), the brick will not be completed — check `strava_webhook_events` to confirm both activities were received
