@@ -49,9 +49,9 @@ This creates:
 Then apply each migration in `supabase/migrations/` in filename order:
 
 ```
-supabase/migrations/20260402_add_messages.sql           # Group chat
-supabase/migrations/20260411_add_notifications.sql      # Notification system
-supabase/migrations/20260411_add_brick_activity_parts.sql  # Garmin brick detection
+supabase/migrations/20260402_add_messages.sql               # Group chat
+supabase/migrations/20260411_add_notifications.sql          # Notification system
+supabase/migrations/20260412_add_deferred_webhook_processing.sql  # Brick detection + deferred processing
 ```
 
 The notifications migration adds:
@@ -59,8 +59,10 @@ The notifications migration adds:
 - `notifications` table with RLS
 - A Postgres trigger that fans out message notifications to opted-in members
 
-The brick activity parts migration adds:
-- `brick_activity_parts` table — stores the first leg of a split Garmin brick workout until the second leg arrives via webhook, at which point the brick session is marked complete
+The deferred webhook processing migration adds:
+- `process_after` column on `strava_webhook_events` — events are not processed until this timestamp elapses (default: 30 seconds after arrival)
+- A partial index on `(process_after) where processed = false` for fast cron queries
+- Cron setup instructions in the migration file comments (see below)
 
 > **Existing installs**: if you applied the schema before this was fixed, run the following to add the missing cascade:
 > ```sql
@@ -70,7 +72,33 @@ The brick activity parts migration adds:
 >   FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
 > ```
 
-### 2.3 Enable Realtime
+### 2.3 Set up the webhook processing cron
+
+Strava webhook events are stored immediately but processed 30 seconds later, so all legs of a Garmin multisport (brick) activity arrive before matching runs. A cron job must call `POST /api/strava/process-webhooks` every minute.
+
+**Option A — Supabase pg_cron + pg_net** (requires the `pg_net` extension, available on paid Supabase plans):
+
+Open the SQL editor and run:
+
+```sql
+select cron.schedule(
+  'process-strava-webhooks',
+  '* * * * *',
+  $$
+    select net.http_post(
+      url     := 'https://your-app.railway.app/api/strava/process-webhooks',
+      body    := '{}'::jsonb,
+      headers := jsonb_build_object('Authorization', 'Bearer YOUR_CRON_SECRET')
+    )
+  $$
+);
+```
+
+**Option B — Railway cron service**: Add a cron service in the Railway dashboard that sends `POST https://your-app.railway.app/api/strava/process-webhooks` with header `Authorization: Bearer YOUR_CRON_SECRET` every minute (`* * * * *`).
+
+Set `CRON_SECRET` to any strong random string in your Railway environment variables. The same value must be used in both places.
+
+### 2.4 Enable Realtime
 
 Go to **Database → Replication** in your Supabase dashboard and enable replication for the following tables:
 
@@ -82,13 +110,13 @@ Go to **Database → Replication** in your Supabase dashboard and enable replica
 
 The migrations add these tables to `supabase_realtime` automatically via `ALTER PUBLICATION`, but you can verify in the dashboard under Database → Replication.
 
-### 2.4 Create user accounts
+### 2.5 Create user accounts
 
 Signup is disabled by default (`NEXT_PUBLIC_SIGNUP_ENABLED=false`). Create user accounts manually in the Supabase dashboard under **Authentication → Users → Add user**. Set an email and password — users sign in with email and password directly.
 
 To allow self-signup (e.g. during testing), set `NEXT_PUBLIC_SIGNUP_ENABLED=true` in your environment. Signup uses a magic link flow.
 
-### 2.5 Configure Auth redirect URLs
+### 2.6 Configure Auth redirect URLs
 
 Go to **Authentication → URL Configuration** and set:
 
@@ -191,6 +219,7 @@ RESEND_API_KEY=re_...
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+CRON_SECRET=any-strong-random-string   # Must match the value used in your cron job
 NEXT_PUBLIC_SIGNUP_ENABLED=false   # Set to 'true' to allow self-signup
 ```
 
@@ -262,6 +291,7 @@ Located in `__tests__/unit/`. Cover pure business logic with no external depende
 |---|---|
 | `points/calculator.test.ts` | All point bonus combinations |
 | `strava/activity-matcher.test.ts` | Type matching, date window, distance/duration thresholds, multi-candidate selection, brick session detection |
+| `strava/webhook-processor.test.ts` | Multi-group matching, `isRealRide`/`isRealRun` helpers, brick batch classification |
 | `claude/generate-plan.test.ts` | JSON parsing, markdown stripping, validation |
 | `utils/week-in-review.test.ts` | Review week selection, stat aggregation, teaser copy, streak detection, member ranking |
 
@@ -271,7 +301,8 @@ Located in `__tests__/integration/`. Cover API routes with Supabase mocked via `
 
 | File | What's tested |
 |---|---|
-| `api/strava/webhook.test.ts` | GET challenge verification, POST event processing, non-activity events ignored |
+| `api/strava/webhook.test.ts` | GET challenge verification, POST stores event with process_after, deferred processing confirmed |
+| `api/strava/process-webhooks.test.ts` | Auth enforcement, batch grouping by (owner_id, event_time), error resilience |
 | `api/strava/disconnect.test.ts` | Strava deauthorize, token clearing, error handling |
 | `api/auth/otp-send.test.ts` | Magic link generation and email delivery |
 | `api/notifications/read-all.test.ts` | Auth guard, marks all unread as read |
@@ -310,7 +341,8 @@ Located in `__tests__/integration/`. Cover API routes with Supabase mocked via `
 - Message notifications only fire if the recipient has opted in via Profile → Notifications; the opt-in is `false` by default
 
 **Garmin brick workout not completing a brick session**
-- Strava splits Garmin multisport activities into separate run and ride activities, both sharing the same `external_id`
-- Confirm the `20260411_add_brick_activity_parts.sql` migration has been applied — the `brick_activity_parts` table is required for this feature
-- When the first leg arrives (e.g. ride), a row is inserted into `brick_activity_parts`. When the second leg arrives (e.g. run) with the same `external_id`, the brick session is marked complete
-- If only one leg arrives (e.g. Strava only synced the ride), the brick will not be completed — check `strava_webhook_events` to confirm both activities were received
+- Strava splits Garmin multisport activities into separate ride, transition, and run activities that all share the same `owner_id` and `event_time`
+- Confirm the `20260412_add_deferred_webhook_processing.sql` migration has been applied
+- Confirm the cron job is running: check Railway logs or Supabase pg_cron history for `POST /api/strava/process-webhooks` calls every minute
+- The ride + run batch is detected automatically; the Workout/Transition segment is intentionally ignored
+- Check `strava_webhook_events` to confirm all three activities arrived (`processed = false` rows with the same `event_time`). If only one leg is present, the cron will still run but no brick session will be matched

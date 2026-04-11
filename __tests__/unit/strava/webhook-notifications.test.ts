@@ -1,38 +1,51 @@
 /**
- * Unit tests for the activity_matched notification inserted by processWebhookEvent.
+ * Unit tests for activity_matched notifications inserted by processBatch.
  *
- * Tests that after a Strava activity is matched to a session the correct
- * notification row is inserted, including the group name looked up from the
- * pre-fetched groups query.
+ * Verifies that after a Strava activity is matched to a session, the correct
+ * notification row is inserted — including the group name from the pre-fetched
+ * groups query — for both single-activity and multi-group scenarios.
  */
 
-import { processWebhookEvent } from '@/lib/strava/webhook'
+import { processBatch } from '@/lib/strava/webhook'
 import type { Session, StravaActivity, StravaWebhookPayload } from '@/types'
 
-// ── Configurable test data ────────────────────────────────────────────────────
+// ── Configurable test state ───────────────────────────────────────────────────
 
 let mockPendingSessions: Session[] = []
 let mockGroupsResult: { id: string; name: string }[] = []
 
-// ── Mock state ────────────────────────────────────────────────────────────────
+// ── Mock functions ────────────────────────────────────────────────────────────
 
-const mockGetUser = jest.fn()
 const mockGetActivity = jest.fn()
 const mockCalculatePoints = jest.fn()
 const mockNotificationsInsert = jest.fn()
-const mockSessionsUpdateEq = jest.fn()
 const mockSessionsUpdate = jest.fn()
+const mockSessionsUpdateEq = jest.fn()
 
-// ── Supabase service client mock ──────────────────────────────────────────────
-// sessions.select('*')            → pending query: ends at .eq().eq()
-// sessions.select('completed_at') → streak query:  ends at .eq().eq().gte()
+jest.mock('@/lib/strava/oauth', () => ({
+  ensureFreshToken: jest.fn().mockResolvedValue('access-token'),
+  getStravaActivity: (...args: unknown[]) => mockGetActivity(...args),
+}))
 
-jest.mock('@/lib/supabase/server', () => ({
-  createServiceClient: jest.fn(() => ({
+jest.mock('@/lib/points/calculator', () => ({
+  calculatePoints: (...args: unknown[]) => mockCalculatePoints(...args),
+  mapStravaType: (type: string) => type.toLowerCase(),
+}))
+
+// ── Mock service client ───────────────────────────────────────────────────────
+// processBatch takes serviceClient as a parameter, so we build a mock object
+// directly rather than mocking the supabase/server module.
+
+function makeMockClient() {
+  return {
     from: (table: string) => {
       if (table === 'profiles') {
         return {
-          select: () => ({ eq: () => ({ single: () => mockGetUser() }) }),
+          select: () => ({
+            eq: () => ({
+              single: () => Promise.resolve({ data: makeProfile(), error: null }),
+            }),
+          }),
         }
       }
 
@@ -40,14 +53,14 @@ jest.mock('@/lib/supabase/server', () => ({
         return {
           select: (fields: string) => {
             if (fields === '*') {
-              // Pending sessions: .select('*').eq().eq() → awaitable
+              // Pending sessions query
               return {
                 eq: () => ({
                   eq: () => Promise.resolve({ data: mockPendingSessions, error: null }),
                 }),
               }
             }
-            // Streak check: .select('completed_at').eq().eq().gte() → awaitable
+            // Streak check: .select('completed_at').eq().eq().gte()
             return {
               eq: () => ({
                 eq: () => ({
@@ -91,19 +104,8 @@ jest.mock('@/lib/supabase/server', () => ({
 
       return {}
     },
-  })),
-  createClient: jest.fn(),
-}))
-
-jest.mock('@/lib/strava/oauth', () => ({
-  ensureFreshToken: jest.fn().mockResolvedValue('access-token'),
-  getStravaActivity: (...args: unknown[]) => mockGetActivity(...args),
-}))
-
-jest.mock('@/lib/points/calculator', () => ({
-  calculatePoints: (...args: unknown[]) => mockCalculatePoints(...args),
-  mapStravaType: (type: string) => type.toLowerCase(),
-}))
+  }
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -126,7 +128,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     target_distance_km: 10,
     target_duration_minutes: null,
     target_description: 'Easy 10km run',
-    scheduled_date: '2026-04-01', // Wednesday — same week as activity
+    scheduled_date: '2026-04-01',
     completed: false,
     completed_at: null,
     strava_activity_id: null,
@@ -152,8 +154,8 @@ function makeActivity(overrides: Partial<StravaActivity> = {}): StravaActivity {
   }
 }
 
-function makePayload(overrides: Partial<StravaWebhookPayload> = {}): StravaWebhookPayload {
-  return {
+function makeEvent(overrides: Partial<StravaWebhookPayload> = {}) {
+  const payload: StravaWebhookPayload = {
     object_type: 'activity',
     aspect_type: 'create',
     object_id: 99999,
@@ -163,18 +165,18 @@ function makePayload(overrides: Partial<StravaWebhookPayload> = {}): StravaWebho
     updates: {},
     ...overrides,
   }
+  return { id: 'evt-1', payload }
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-describe('processWebhookEvent — activity_matched notification', () => {
+describe('processBatch — activity_matched notification', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
     mockPendingSessions = [makeSession()]
     mockGroupsResult = [{ id: 'group-1', name: 'Team Alpha' }]
 
-    mockGetUser.mockResolvedValue({ data: makeProfile(), error: null })
     mockGetActivity.mockResolvedValue(makeActivity())
     mockCalculatePoints.mockReturnValue({ total: 12 })
     mockNotificationsInsert.mockResolvedValue({ error: null })
@@ -183,7 +185,7 @@ describe('processWebhookEvent — activity_matched notification', () => {
   })
 
   it('inserts an activity_matched notification when a session is matched', async () => {
-    await processWebhookEvent(makePayload())
+    await processBatch(makeMockClient() as any, [makeEvent()])
 
     expect(mockNotificationsInsert).toHaveBeenCalledTimes(1)
     expect(mockNotificationsInsert).toHaveBeenCalledWith(
@@ -196,7 +198,7 @@ describe('processWebhookEvent — activity_matched notification', () => {
   })
 
   it('includes the activity name and session description in the notification data', async () => {
-    await processWebhookEvent(makePayload())
+    await processBatch(makeMockClient() as any, [makeEvent()])
 
     const inserted = mockNotificationsInsert.mock.calls[0][0]
     expect(inserted.data.activity_name).toBe('Morning Run')
@@ -205,8 +207,7 @@ describe('processWebhookEvent — activity_matched notification', () => {
 
   it('includes the points awarded in the notification data', async () => {
     mockCalculatePoints.mockReturnValue({ total: 15 })
-
-    await processWebhookEvent(makePayload())
+    await processBatch(makeMockClient() as any, [makeEvent()])
 
     const inserted = mockNotificationsInsert.mock.calls[0][0]
     expect(inserted.data.points_awarded).toBe(15)
@@ -214,8 +215,7 @@ describe('processWebhookEvent — activity_matched notification', () => {
 
   it('includes the group name from the pre-fetched groups query', async () => {
     mockGroupsResult = [{ id: 'group-1', name: 'Sunday Runners' }]
-
-    await processWebhookEvent(makePayload())
+    await processBatch(makeMockClient() as any, [makeEvent()])
 
     const inserted = mockNotificationsInsert.mock.calls[0][0]
     expect(inserted.data.group_name).toBe('Sunday Runners')
@@ -230,8 +230,7 @@ describe('processWebhookEvent — activity_matched notification', () => {
       { id: 'group-1', name: 'Team Alpha' },
       { id: 'group-2', name: 'Team Beta' },
     ]
-
-    await processWebhookEvent(makePayload())
+    await processBatch(makeMockClient() as any, [makeEvent()])
 
     expect(mockNotificationsInsert).toHaveBeenCalledTimes(2)
     const groupIds = mockNotificationsInsert.mock.calls.map((c) => c[0].group_id)
@@ -240,25 +239,36 @@ describe('processWebhookEvent — activity_matched notification', () => {
   })
 
   it('does not insert a notification when no sessions match', async () => {
-    // No pending sessions → processWebhookEvent returns early
     mockPendingSessions = []
-
-    await processWebhookEvent(makePayload())
+    await processBatch(makeMockClient() as any, [makeEvent()])
 
     expect(mockNotificationsInsert).not.toHaveBeenCalled()
   })
 
   it('does not insert a notification for non-create webhook events', async () => {
-    await processWebhookEvent(makePayload({ aspect_type: 'update' }))
+    await processBatch(makeMockClient() as any, [makeEvent({ aspect_type: 'update' })])
 
     expect(mockNotificationsInsert).not.toHaveBeenCalled()
   })
 
   it('does not insert a notification when no user is found for the athlete', async () => {
-    mockGetUser.mockResolvedValueOnce({ data: null, error: null })
+    const clientWithNoProfile = {
+      ...makeMockClient(),
+      from: (table: string) => {
+        if (table === 'profiles') {
+          return {
+            select: () => ({
+              eq: () => ({
+                single: () => Promise.resolve({ data: null, error: null }),
+              }),
+            }),
+          }
+        }
+        return (makeMockClient() as any).from(table)
+      },
+    }
 
-    await processWebhookEvent(makePayload())
-
+    await processBatch(clientWithNoProfile as any, [makeEvent()])
     expect(mockNotificationsInsert).not.toHaveBeenCalled()
   })
 })

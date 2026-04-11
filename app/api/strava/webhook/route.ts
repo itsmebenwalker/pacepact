@@ -1,5 +1,4 @@
 import { createServiceClient } from '@/lib/supabase/server'
-import { processWebhookEvent } from '@/lib/strava/webhook'
 import { NextResponse } from 'next/server'
 import type { StravaWebhookPayload } from '@/types'
 
@@ -17,32 +16,21 @@ export async function GET(request: Request) {
   return new NextResponse('Forbidden', { status: 403 })
 }
 
-// Strava webhook event receiver
+// Strava webhook event receiver — stores the event and returns 200 immediately.
+// Processing is deferred: a cron job calls /api/strava/process-webhooks every
+// minute and handles events in batches grouped by (owner_id, event_time).
+// This ensures all legs of a Garmin multisport (brick) activity arrive before
+// any matching logic runs.
 export async function POST(request: Request) {
-  // Always respond 200 immediately — Strava retries on non-200
   const payload = await request.json() as StravaWebhookPayload
 
   const serviceClient = createServiceClient()
 
-  // Log raw payload
   await serviceClient.from('strava_webhook_events').insert({
     payload,
     processed: false,
+    process_after: new Date(Date.now() + 30_000).toISOString(),
   })
-
-  // Process async (fire and forget — we already returned 200)
-  processWebhookEvent(payload)
-    .then(async () => {
-      // Mark as processed
-      await serviceClient
-        .from('strava_webhook_events')
-        .update({ processed: true, processed_at: new Date().toISOString() })
-        .eq('payload->>object_id', payload.object_id.toString())
-        .eq('processed', false)
-    })
-    .catch((e) => {
-      console.error('Webhook processing error:', e)
-    })
 
   return NextResponse.json({ ok: true })
 }
