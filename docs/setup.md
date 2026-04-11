@@ -263,9 +263,15 @@ Located in `__tests__/unit/`. Cover pure business logic with no external depende
 | File | What's tested |
 |---|---|
 | `points/calculator.test.ts` | All point bonus combinations |
-| `strava/activity-matcher.test.ts` | Type matching, date window, distance/duration thresholds, multi-candidate selection, brick session detection |
+| `strava/activity-matcher.test.ts` | Type matching, date window, distance/duration thresholds, multi-candidate selection, brick session detection, combined stats validation |
+| `strava/webhook-processor.test.ts` | Multi-group matching logic, brick detection coordination |
+| `strava/webhook-notifications.test.ts` | Activity matched notification insertion |
 | `claude/generate-plan.test.ts` | JSON parsing, markdown stripping, validation |
+| `resend/otp-email.test.ts` | Magic link email rendering |
 | `utils/week-in-review.test.ts` | Review week selection, stat aggregation, teaser copy, streak detection, member ranking |
+| `utils/week-status.test.ts` | Week state classification (past-complete, past-incomplete, active) |
+| `utils/format-time.test.ts` | Message timestamp formatting |
+| `training/week-date-range.test.ts` | Week date range calculation |
 
 ### Integration tests
 
