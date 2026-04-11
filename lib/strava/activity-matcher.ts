@@ -28,21 +28,39 @@ export function getWeekBounds(dateStr: string): { start: string; end: string } {
  * Returns the earliest pending brick session scheduled in the same calendar week
  * as the given activity date. Used when a run/ride arrives that may be one leg
  * of a split Garmin multisport (brick) workout.
+ *
+ * When combinedDistanceKm / combinedDurationMin are supplied (second leg arrival),
+ * the session target is validated against the same 85% threshold used for regular
+ * sessions. Omit both when checking for a pending brick on first leg arrival.
  */
 export function findPendingBrickSession(
   pendingSessions: Session[],
-  activityDate: string
+  activityDate: string,
+  combinedDistanceKm?: number,
+  combinedDurationMin?: number
 ): Session | null {
   const { start: weekStart, end: weekEnd } = getWeekBounds(activityDate)
 
-  const brickSessions = pendingSessions.filter(
-    (s) =>
-      !s.completed &&
-      s.session_type === 'brick' &&
-      s.scheduled_date !== null &&
-      s.scheduled_date >= weekStart &&
-      s.scheduled_date <= weekEnd
-  )
+  const brickSessions = pendingSessions.filter((s) => {
+    if (s.completed) return false
+    if (s.session_type !== 'brick') return false
+    if (!s.scheduled_date) return false
+    if (s.scheduled_date < weekStart || s.scheduled_date > weekEnd) return false
+
+    // When combined stats are provided, validate against the session target
+    if (combinedDistanceKm !== undefined && s.target_distance_km !== null) {
+      if (combinedDistanceKm < s.target_distance_km * MIN_COMPLETION_RATIO) return false
+    }
+    if (
+      combinedDurationMin !== undefined &&
+      s.target_duration_minutes !== null &&
+      s.target_distance_km === null
+    ) {
+      if (combinedDurationMin < s.target_duration_minutes * MIN_COMPLETION_RATIO) return false
+    }
+
+    return true
+  })
 
   if (brickSessions.length === 0) return null
 

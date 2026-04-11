@@ -241,3 +241,63 @@ describe('findPendingBrickSession', () => {
     expect(findPendingBrickSession([run, brick], ACTIVITY_DATE)?.id).toBe('brick')
   })
 })
+
+// ── findPendingBrickSession — combined stats validation ───────────────────────
+
+describe('findPendingBrickSession — combined stats validation', () => {
+  const ACTIVITY_DATE = '2026-04-02' // Thursday
+
+  function makeBrick(overrides: Partial<Session> = {}): Session {
+    return makeSession({
+      id: 'brick-1',
+      session_type: 'brick',
+      scheduled_date: ACTIVITY_DATE,
+      target_distance_km: 50,
+      target_duration_minutes: null,
+      ...overrides,
+    })
+  }
+
+  it('does not apply threshold when no combined stats are provided', () => {
+    // First leg arrival — just checks a brick session exists, no stats check
+    const brick = makeBrick({ target_distance_km: 50 })
+    expect(findPendingBrickSession([brick], ACTIVITY_DATE)).toBe(brick)
+  })
+
+  it('matches when combined distance meets exactly 85% of target', () => {
+    const brick = makeBrick({ target_distance_km: 50 })
+    expect(findPendingBrickSession([brick], ACTIVITY_DATE, 42.5)).toBe(brick)
+  })
+
+  it('matches when combined distance exceeds the target', () => {
+    const brick = makeBrick({ target_distance_km: 50 })
+    expect(findPendingBrickSession([brick], ACTIVITY_DATE, 55)).toBe(brick)
+  })
+
+  it('returns null when combined distance is below 85% of target', () => {
+    const brick = makeBrick({ target_distance_km: 50 })
+    expect(findPendingBrickSession([brick], ACTIVITY_DATE, 42)).toBeNull()
+  })
+
+  it('matches when combined duration meets exactly 85% of target (no distance target)', () => {
+    const brick = makeBrick({ target_distance_km: null, target_duration_minutes: 90 })
+    expect(findPendingBrickSession([brick], ACTIVITY_DATE, undefined, 76.5)).toBe(brick)
+  })
+
+  it('returns null when combined duration is below 85% of target (no distance target)', () => {
+    const brick = makeBrick({ target_distance_km: null, target_duration_minutes: 90 })
+    expect(findPendingBrickSession([brick], ACTIVITY_DATE, undefined, 76)).toBeNull()
+  })
+
+  it('ignores duration threshold when distance target is also set', () => {
+    // When both targets are set, only distance is checked
+    const brick = makeBrick({ target_distance_km: 50, target_duration_minutes: 90 })
+    expect(findPendingBrickSession([brick], ACTIVITY_DATE, 43, 10)).toBe(brick)
+  })
+
+  it('skips the threshold check for sessions with no distance or duration target', () => {
+    // A brick with only a description target (no numeric thresholds) should always match
+    const brick = makeBrick({ target_distance_km: null, target_duration_minutes: null })
+    expect(findPendingBrickSession([brick], ACTIVITY_DATE, 5, 20)).toBe(brick)
+  })
+})

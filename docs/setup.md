@@ -49,9 +49,10 @@ This creates:
 Then apply each migration in `supabase/migrations/` in filename order:
 
 ```
-supabase/migrations/20260402_add_messages.sql           # Group chat
-supabase/migrations/20260411_add_notifications.sql      # Notification system
-supabase/migrations/20260411_add_brick_activity_parts.sql  # Garmin brick detection
+supabase/migrations/20260402_add_messages.sql                  # Group chat
+supabase/migrations/20260411_add_notifications.sql             # Notification system
+supabase/migrations/20260411_add_brick_activity_parts.sql      # Garmin brick detection
+supabase/migrations/20260412_extend_brick_activity_parts.sql   # Brick combined stats
 ```
 
 The notifications migration adds:
@@ -59,8 +60,9 @@ The notifications migration adds:
 - `notifications` table with RLS
 - A Postgres trigger that fans out message notifications to opted-in members
 
-The brick activity parts migration adds:
+The brick activity parts migrations add:
 - `brick_activity_parts` table — stores the first leg of a split Garmin brick workout until the second leg arrives via webhook, at which point the brick session is marked complete
+- `distance_km` / `duration_minutes` columns — the first leg's stats are stored so both legs can be combined and validated against the brick session target (85% threshold) when the second leg arrives
 
 > **Existing installs**: if you applied the schema before this was fixed, run the following to add the missing cascade:
 > ```sql
@@ -311,6 +313,8 @@ Located in `__tests__/integration/`. Cover API routes with Supabase mocked via `
 
 **Garmin brick workout not completing a brick session**
 - Strava splits Garmin multisport activities into separate run and ride activities, both sharing the same `external_id`
-- Confirm the `20260411_add_brick_activity_parts.sql` migration has been applied — the `brick_activity_parts` table is required for this feature
-- When the first leg arrives (e.g. ride), a row is inserted into `brick_activity_parts`. When the second leg arrives (e.g. run) with the same `external_id`, the brick session is marked complete
+- Confirm both brick migrations have been applied: `20260411_add_brick_activity_parts.sql` and `20260412_extend_brick_activity_parts.sql`
+- When the first leg arrives (e.g. ride), a row is inserted into `brick_activity_parts` with its distance and duration. When the second leg arrives (e.g. run) with the same `external_id`, the combined stats are validated against the brick session target (85% rule) and the session is marked complete
+- The brick partner check runs before regular session matching, so the run leg won't be accidentally consumed by a scheduled standalone run session
 - If only one leg arrives (e.g. Strava only synced the ride), the brick will not be completed — check `strava_webhook_events` to confirm both activities were received
+- If the combined distance/duration doesn't reach 85% of the session target, the brick won't be marked complete — check the target set in the training plan

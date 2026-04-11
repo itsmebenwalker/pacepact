@@ -54,43 +54,67 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
 
   const activityType = mapStravaType(activity.type ?? activity.sport_type)
   const activityDate = activity.start_date_local.split('T')[0]
+  const isBrickLeg = (activityType === 'run' || activityType === 'ride') && !!activity.external_id
+
+  // If this is a potential brick leg, check for a stored complementary leg before
+  // attempting regular matching. This prevents a run leg from being consumed by a
+  // scheduled run session when it should instead complete a pending brick.
+  let brickPartner: { id: string; distance_km: number | null; duration_minutes: number | null } | null = null
+  if (isBrickLeg) {
+    const complementaryType = activityType === 'run' ? 'ride' : 'run'
+    const { data: partner } = await serviceClient
+      .from('brick_activity_parts')
+      .select('id, distance_km, duration_minutes')
+      .eq('user_id', profile.id)
+      .eq('external_id', activity.external_id)
+      .eq('activity_type', complementaryType)
+      .maybeSingle()
+    brickPartner = partner
+  }
 
   const matchedSessions: Session[] = []
+  let brickPartnerDeleted = false
+  let shouldStoreBrickLeg = false
+
   for (const [, groupSessions] of sessionsByGroup) {
+    if (brickPartner) {
+      // Second leg confirmed — combine both legs' stats and validate against the brick target
+      const combinedDistanceKm = (brickPartner.distance_km ?? 0) + activity.distance / 1000
+      const combinedDurationMin = (brickPartner.duration_minutes ?? 0) + activity.elapsed_time / 60
+      const brickSession = findPendingBrickSession(groupSessions, activityDate, combinedDistanceKm, combinedDurationMin)
+      if (brickSession) {
+        matchedSessions.push(brickSession)
+        if (!brickPartnerDeleted) {
+          await serviceClient.from('brick_activity_parts').delete().eq('id', brickPartner.id)
+          brickPartnerDeleted = true
+        }
+      }
+      continue
+    }
+
+    // No brick partner yet — try regular session matching
     const match = matchActivity(activity, groupSessions)
     if (match) {
       matchedSessions.push(match)
       continue
     }
 
-    // No direct match — check if this run/ride is one leg of a split Garmin brick.
-    // Strava splits multisport activities but preserves the same external_id across all parts.
-    if ((activityType === 'run' || activityType === 'ride') && activity.external_id) {
-      const brickSession = findPendingBrickSession(groupSessions, activityDate)
-      if (brickSession) {
-        const complementaryType = activityType === 'run' ? 'ride' : 'run'
-        const { data: partner } = await serviceClient
-          .from('brick_activity_parts')
-          .select('id')
-          .eq('user_id', profile.id)
-          .eq('external_id', activity.external_id)
-          .eq('activity_type', complementaryType)
-          .maybeSingle()
-
-        if (partner) {
-          // Both legs are in — complete the brick and clean up the stored part
-          matchedSessions.push(brickSession)
-          await serviceClient.from('brick_activity_parts').delete().eq('id', partner.id)
-        } else {
-          // First leg — store it and wait for the other to arrive
-          await serviceClient.from('brick_activity_parts').insert({
-            user_id: profile.id,
-            external_id: activity.external_id,
-            activity_type: activityType,
-          })
-        }
-      }
+    // No regular match — flag for brick leg storage if a pending brick exists this week
+    if (isBrickLeg && findPendingBrickSession(groupSessions, activityDate)) {
+      shouldStoreBrickLeg = true
     }
+  }
+
+  // Store the first brick leg once, outside the loop, to avoid duplicate inserts
+  // across multiple groups that each have a pending brick session this week.
+  if (isBrickLeg && !brickPartner && shouldStoreBrickLeg) {
+    await serviceClient.from('brick_activity_parts').insert({
+      user_id: profile.id,
+      external_id: activity.external_id!,
+      activity_type: activityType,
+      distance_km: activity.distance / 1000,
+      duration_minutes: activity.elapsed_time / 60,
+    })
   }
 
   if (matchedSessions.length === 0) return

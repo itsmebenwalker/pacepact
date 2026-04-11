@@ -280,15 +280,17 @@ describe('brick detection coordination', () => {
     expect(findPendingBrickSession([brick], BRICK_DATE)).toBeNull()
   })
 
-  it('matchActivity still claims a run session when one exists, leaving brick intact', () => {
+  it('matchActivity claims a run session when one exists (no brick partner present)', () => {
     const run = makeSession({ id: 'run-1', session_type: 'run', scheduled_date: BRICK_DATE })
     const brick = makeBrickSession()
     const activity = makeActivity({ type: 'run', sport_type: 'run', start_date_local: `${BRICK_DATE}T08:00:00` })
 
-    // Direct run match takes priority — brick stays unclaimed
+    // matchActivity still returns the run session by type — the brick partner check
+    // that bypasses this happens upstream in processWebhookEvent before matchActivity
+    // is called, so if a complementary leg exists in brick_activity_parts the run leg
+    // will complete the brick instead of this session.
     const match = matchActivity(activity, [run, brick])
     expect(match?.id).toBe('run-1')
-    // findPendingBrickSession is never reached for this activity
   })
 
 })
