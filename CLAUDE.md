@@ -217,10 +217,9 @@ pacepact/
 │   │   ├── auth/
 │   │   │   └── otp/send/route.ts       # Send magic link email via Resend
 │   │   ├── strava/
-│   │   │   ├── callback/route.ts           # OAuth token exchange
-│   │   │   ├── disconnect/route.ts         # Deauthorize Strava + clear tokens
-│   │   │   ├── webhook/route.ts            # Strava webhook receiver — stores event with process_after, returns 200 immediately
-│   │   │   └── process-webhooks/route.ts   # Cron endpoint — groups events by (owner_id, event_time), calls processBatch
+│   │   │   ├── callback/route.ts       # OAuth token exchange
+│   │   │   ├── disconnect/route.ts     # Deauthorize Strava + clear tokens
+│   │   │   └── webhook/route.ts        # Strava webhook receiver
 │   │   ├── groups/
 │   │   │   └── generate-plan/route.ts  # Claude plan generation
 │   │   ├── notifications/
@@ -330,30 +329,17 @@ The webhook endpoint handles two things:
 
 **GET** — Strava's subscription verification challenge. Respond with the `hub.challenge` value.
 
-**POST** — Stores the raw payload to `strava_webhook_events` with `process_after = now() + 30 seconds`, then returns 200 immediately. No processing happens inline. Strava will retry on non-200, so returning quickly is critical.
+**POST** — Incoming activity event. Flow:
+1. Log raw payload to `strava_webhook_events`
+2. If `object_type !== 'activity'` or `aspect_type !== 'create'`, return 200 and stop
+3. Look up the user by `owner_id` (Strava athlete ID) in `profiles`
+4. Fetch full activity from Strava API (need distance, type, elapsed time)
+5. Bucket all pending sessions by `group_id`
+6. Call `matchActivity` once per group — awards the activity to the matching session in **each** group independently
+7. Mark matched sessions complete and award points per group
+8. Leaderboard updates via Supabase Realtime
 
-### Deferred Webhook Processing (`app/api/strava/process-webhooks/route.ts`)
-
-Called every minute by a cron job (protected by `CRON_SECRET`). Flow:
-
-1. Fetch all `strava_webhook_events` rows where `processed = false` and `process_after <= now()`
-2. Group events by `(owner_id, event_time)` — all legs of a Garmin multisport activity share the same values
-3. For each batch, call `processBatch(serviceClient, events)`
-4. Mark all events in the batch as `processed = true`
-
-The 30-second delay ensures all legs of a brick workout (ride + transition + run) have arrived before any matching logic runs.
-
-### `processBatch` (`lib/strava/webhook.ts`)
-
-Handles one `(owner_id, event_time)` group:
-
-1. Filter to `activity create` events only
-2. Look up the user by `owner_id` in `profiles`
-3. Fetch full activity details from Strava for every event in the batch
-4. Classify the batch: if it contains ≥1 real ride (`Ride`/`VirtualRide`) **and** ≥1 real run (`Run`/`VirtualRun`), treat as a brick. `Workout` and `Transition` activities are ignored for classification.
-5. **Brick batch**: find the pending brick session for the week, check combined elapsed time ≥ 85% of `target_duration_minutes`, mark complete
-6. **Non-brick batch**: run `matchActivity` on each activity independently against the user's pending sessions per group
-7. Award points and insert `activity_matched` notifications
+Always return HTTP 200 immediately — Strava will retry on non-200.
 
 ### Activity Matching (`lib/strava/activity-matcher.ts`)
 
@@ -439,7 +425,6 @@ RESEND_API_KEY=
 
 # App
 NEXT_PUBLIC_APP_URL=             # e.g. https://pacepact.com
-CRON_SECRET=                     # Any strong random string — must match the value sent by your cron job to /api/strava/process-webhooks
 ```
 
 ---

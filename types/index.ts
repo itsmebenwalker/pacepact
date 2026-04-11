@@ -92,7 +92,6 @@ export interface StravaWebhookEvent {
   payload: Record<string, unknown>
   processed: boolean
   processed_at: string | null
-  process_after: string // ISO timestamp — event is not processed until this time has elapsed
   created_at: string
 }
 

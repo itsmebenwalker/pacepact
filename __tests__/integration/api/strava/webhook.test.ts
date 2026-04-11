@@ -1,22 +1,32 @@
 /**
  * Integration tests for the Strava webhook API route.
- *
- * The route now only stores events — processing is deferred to the
- * /api/strava/process-webhooks cron endpoint. Tests verify that events
- * are logged with process_after set, and that 200 is always returned.
+ * Supabase service client and processWebhookEvent are mocked.
  */
 
 import { GET, POST } from '@/app/api/strava/webhook/route'
 import type { StravaWebhookPayload } from '@/types'
 
-// ── Mocks ─────────────────────────────────────────────────────────────────────
+// ── Mocks ────────────────────────────────────────────────────────────────────
 
 const mockInsert = jest.fn().mockResolvedValue({ error: null })
-const mockFrom = jest.fn(() => ({ insert: mockInsert }))
+const mockUpdate = jest.fn().mockReturnThis()
+const mockEq = jest.fn().mockResolvedValue({ error: null })
+const mockFrom = jest.fn(() => ({
+  insert: mockInsert,
+  update: mockUpdate,
+  eq: mockEq,
+}))
+mockUpdate.mockReturnValue({ eq: mockEq })
+mockEq.mockReturnValue({ eq: mockEq })
 
 jest.mock('@/lib/supabase/server', () => ({
   createServiceClient: jest.fn(() => ({ from: mockFrom })),
   createClient: jest.fn(),
+}))
+
+const mockProcessWebhookEvent = jest.fn().mockResolvedValue(undefined)
+jest.mock('@/lib/strava/webhook', () => ({
+  processWebhookEvent: (...args: any[]) => mockProcessWebhookEvent(...args),
 }))
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -99,12 +109,14 @@ describe('POST /api/strava/webhook', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockInsert.mockResolvedValue({ error: null })
+    mockProcessWebhookEvent.mockResolvedValue(undefined)
   })
 
   it('always returns 200 with { ok: true }', async () => {
+    const payload = makeActivityPayload()
     const req = makeRequest('https://app.com/api/strava/webhook', {
       method: 'POST',
-      body: JSON.stringify(makeActivityPayload()),
+      body: JSON.stringify(payload),
       headers: { 'Content-Type': 'application/json' },
     })
 
@@ -115,7 +127,7 @@ describe('POST /api/strava/webhook', () => {
     expect(body.ok).toBe(true)
   })
 
-  it('logs the raw payload to strava_webhook_events with processed: false', async () => {
+  it('logs the raw payload to strava_webhook_events', async () => {
     const payload = makeActivityPayload()
     const req = makeRequest('https://app.com/api/strava/webhook', {
       method: 'POST',
@@ -131,37 +143,34 @@ describe('POST /api/strava/webhook', () => {
     )
   })
 
-  it('stores a process_after timestamp approximately 30 seconds in the future', async () => {
-    const before = Date.now()
+  it('calls processWebhookEvent with the payload', async () => {
+    const payload = makeActivityPayload()
     const req = makeRequest('https://app.com/api/strava/webhook', {
       method: 'POST',
-      body: JSON.stringify(makeActivityPayload()),
+      body: JSON.stringify(payload),
       headers: { 'Content-Type': 'application/json' },
     })
 
     await POST(req)
 
-    const inserted = mockInsert.mock.calls[0][0]
-    const processAfterMs = new Date(inserted.process_after).getTime()
-    const after = Date.now()
+    // processWebhookEvent is called async — give the micro-task queue a tick
+    await new Promise((r) => setImmediate(r))
 
-    expect(processAfterMs).toBeGreaterThanOrEqual(before + 29_000)
-    expect(processAfterMs).toBeLessThanOrEqual(after + 31_000)
+    expect(mockProcessWebhookEvent).toHaveBeenCalledWith(payload)
   })
 
-  it('does not call processBatch inline — processing is fully deferred', async () => {
-    const stravaFetchSpy = jest.spyOn(global, 'fetch')
+  it('still returns 200 when processWebhookEvent rejects', async () => {
+    mockProcessWebhookEvent.mockRejectedValueOnce(new Error('Strava API down'))
 
+    const payload = makeActivityPayload()
     const req = makeRequest('https://app.com/api/strava/webhook', {
       method: 'POST',
-      body: JSON.stringify(makeActivityPayload()),
+      body: JSON.stringify(payload),
       headers: { 'Content-Type': 'application/json' },
     })
 
-    await POST(req)
-
-    expect(stravaFetchSpy).not.toHaveBeenCalled()
-    stravaFetchSpy.mockRestore()
+    const res = await POST(req)
+    expect(res.status).toBe(200)
   })
 
   it('handles non-activity events without error', async () => {
