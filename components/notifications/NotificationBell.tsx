@@ -84,7 +84,7 @@ export default function NotificationBell({ userId }: Props) {
   }
 
   return (
-    <div className="relative" ref={panelRef}>
+    <div ref={panelRef}>
       <button
         onClick={handleOpen}
         className="relative p-2 rounded-md text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"

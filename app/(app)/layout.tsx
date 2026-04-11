@@ -19,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Link href="/dashboard" className="font-semibold text-zinc-900 dark:text-zinc-50 tracking-tight">
             PacePact
           </Link>
-          <div className="flex items-center gap-1">
+          <div className="relative flex items-center gap-1">
             <NotificationBell userId={user.id} />
             <NavUser />
           </div>
