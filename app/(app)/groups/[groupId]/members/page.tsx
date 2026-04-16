@@ -30,18 +30,21 @@ export default async function MembersPage({ params }: { params: Promise<{ groupI
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href={`/groups/${groupId}`} className="text-gray-400 hover:text-gray-600 text-sm">
-          ← Back
-        </Link>
+      <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Members</h1>
-          <p className="text-gray-500 text-sm">{group.name}</p>
+          <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Members</h1>
+          <p className="text-zinc-500 dark:text-zinc-400 mt-0.5 text-sm">{group.name}</p>
         </div>
+        <Link
+          href={`/groups/${groupId}`}
+          className="flex items-center gap-1.5 text-sm border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-3 py-1.5 rounded-md transition-colors"
+        >
+          Back
+        </Link>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="divide-y divide-gray-100">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
+        <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
           {(members ?? []).map((m, i) => {
             const profile = m.profiles as unknown as ProfileResult
             const isConnected = !!profile?.strava_athlete_id
@@ -50,19 +53,30 @@ export default async function MembersPage({ params }: { params: Promise<{ groupI
             const displayName = profile?.display_name ?? 'Athlete'
 
             return (
-              <div key={m.user_id} className={`flex items-center gap-4 px-5 py-4 ${isCurrentUser ? 'bg-orange-50' : ''}`}>
-                <span className="w-6 text-center font-bold text-sm text-gray-300">{i + 1}</span>
-                <div className="flex-1">
-                  <p className="font-medium text-gray-900">
+              <div
+                key={m.user_id}
+                className={`flex items-center gap-4 px-4 py-3 sm:px-5 sm:py-4 ${isCurrentUser ? 'bg-zinc-50 dark:bg-zinc-800/50' : ''}`}
+              >
+                <span className="w-5 text-center font-medium text-xs tabular-nums text-zinc-300 dark:text-zinc-600">
+                  {i + 1}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
                     {displayName}
-                    {isCurrentUser && <span className="ml-2 text-xs text-orange-500">(you)</span>}
-                    {isGroupCreator && <span className="ml-2 text-xs text-zinc-400">admin</span>}
+                    {isCurrentUser && (
+                      <span className="ml-2 text-xs text-zinc-400 dark:text-zinc-500 font-normal">you</span>
+                    )}
+                    {isGroupCreator && (
+                      <span className="ml-2 text-xs text-zinc-400 dark:text-zinc-500 font-normal">admin</span>
+                    )}
                   </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {isConnected ? '🟢 Strava connected' : '⚪ Strava not connected'}
+                  <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
+                    {isConnected ? 'Strava connected' : 'Strava not connected'}
                   </p>
                 </div>
-                <span className="font-bold text-orange-500">{m.points} pts</span>
+                <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 tabular-nums">
+                  {m.points} pts
+                </span>
                 {isCreator && !isCurrentUser && (
                   <div className="flex items-center gap-2">
                     <KickMemberButton

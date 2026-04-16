@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import type { GroupMember } from '@/types'
 
@@ -75,9 +76,12 @@ export default function LeaderboardTable({ groupId, initialMembers, currentUserI
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
       <div className="px-4 py-3 sm:px-5 sm:py-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
         <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Leaderboard</h2>
-        {members.length > LIMIT && (
-          <span className="text-xs text-zinc-400 dark:text-zinc-500">{members.length} members</span>
-        )}
+        <Link
+          href={`/groups/${groupId}/members`}
+          className="text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+        >
+          View all
+        </Link>
       </div>
       <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
         {visibleMembers.map((member, i) => (
