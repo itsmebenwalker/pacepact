@@ -11,6 +11,7 @@ Social training platform for groups of friends preparing for the same endurance 
 - **Group chat** — per-group message board with real-time updates via Supabase Realtime
 - **In-app notifications** — real-time bell in the nav; activity confirmations are always on, message notifications are opt-in per user
 - **Invite links** — 8-character invite codes let friends join a group in one click
+- **Group admin controls** — group creator can kick + ban members, rotate the invite link, lock invites to freeze membership, and transfer admin rights to another member
 - **Points system** — base points per session, plus bonuses for completing early, exceeding targets, and maintaining a streak
 - **Week view** — training weeks show date ranges, past weeks are visually locked (green = complete, grey = missed), active week sorted to top
 - **Rest day handling** — rest sessions are excluded from the session grid; a note shows how many rest days are recommended for the week
@@ -71,7 +72,8 @@ pacepact/
 │   │   │   └── webhook/      # Strava webhook receiver
 │   │   ├── groups/
 │   │   │   ├── generate-plan/# Claude plan generation
-│   │   │   └── [groupId]/    # PATCH edit name/event; DELETE group
+│   │   │   └── [groupId]/    # PATCH edit/rotate invite/lock; DELETE group
+│   │   │       └── members/[userId]/ # DELETE kick+ban; PATCH transfer creator
 │   │   ├── activities/
 │   │   │   └── assign/       # Assign parked brick leg to standalone session
 │   │   ├── notifications/
@@ -114,7 +116,7 @@ npm run test:watch # Watch mode
 
 ## Testing
 
-Unit tests cover core business logic (points calculator, activity matcher, plan parser, week status, date formatting, webhook notification insertion). Integration tests cover API routes with Supabase mocked — Strava webhook, auth OTP, notification read-all, and profile preference updates.
+Unit tests cover core business logic (points calculator, activity matcher, plan parser, week status, date formatting, webhook notification insertion, join-gate evaluation). Integration tests cover API routes with Supabase mocked — Strava webhook, auth OTP, notification read-all, profile preference updates, brick leg assignment, and group admin actions (kick, transfer creator, rotate invite, lock invites).
 
 ```bash
 npm test                                       # Run all tests

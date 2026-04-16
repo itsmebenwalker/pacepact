@@ -3,6 +3,8 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import KickMemberButton from '@/components/groups/KickMemberButton'
+import TransferCreatorButton from '@/components/groups/TransferCreatorButton'
 
 interface ProfileResult { display_name: string | null; strava_athlete_id: number | null }
 
@@ -12,11 +14,13 @@ export default async function MembersPage({ params }: { params: Promise<{ groupI
   const { data: { user } } = await supabase.auth.getUser()
 
   const [{ data: group }, { data: membership }] = await Promise.all([
-    supabase.from('groups').select('id, name, event_name').eq('id', groupId).single(),
+    supabase.from('groups').select('id, name, event_name, created_by').eq('id', groupId).single(),
     supabase.from('group_members').select('id').eq('group_id', groupId).eq('user_id', user!.id).maybeSingle(),
   ])
 
   if (!group || !membership) notFound()
+
+  const isCreator = group.created_by === user!.id
 
   const { data: members } = await supabase
     .from('group_members')
@@ -41,19 +45,38 @@ export default async function MembersPage({ params }: { params: Promise<{ groupI
           {(members ?? []).map((m, i) => {
             const profile = m.profiles as unknown as ProfileResult
             const isConnected = !!profile?.strava_athlete_id
+            const isCurrentUser = m.user_id === user!.id
+            const isGroupCreator = m.user_id === group.created_by
+            const displayName = profile?.display_name ?? 'Athlete'
+
             return (
-              <div key={m.user_id} className={`flex items-center gap-4 px-5 py-4 ${m.user_id === user!.id ? 'bg-orange-50' : ''}`}>
+              <div key={m.user_id} className={`flex items-center gap-4 px-5 py-4 ${isCurrentUser ? 'bg-orange-50' : ''}`}>
                 <span className="w-6 text-center font-bold text-sm text-gray-300">{i + 1}</span>
                 <div className="flex-1">
                   <p className="font-medium text-gray-900">
-                    {profile?.display_name ?? 'Athlete'}
-                    {m.user_id === user!.id && <span className="ml-2 text-xs text-orange-500">(you)</span>}
+                    {displayName}
+                    {isCurrentUser && <span className="ml-2 text-xs text-orange-500">(you)</span>}
+                    {isGroupCreator && <span className="ml-2 text-xs text-zinc-400">admin</span>}
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {isConnected ? '🟢 Strava connected' : '⚪ Strava not connected'}
                   </p>
                 </div>
                 <span className="font-bold text-orange-500">{m.points} pts</span>
+                {isCreator && !isCurrentUser && (
+                  <div className="flex items-center gap-2">
+                    <KickMemberButton
+                      groupId={groupId}
+                      userId={m.user_id}
+                      displayName={displayName}
+                    />
+                    <TransferCreatorButton
+                      groupId={groupId}
+                      userId={m.user_id}
+                      displayName={displayName}
+                    />
+                  </div>
+                )}
               </div>
             )
           })}

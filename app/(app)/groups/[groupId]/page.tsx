@@ -7,6 +7,8 @@ import WeekView from '@/components/training/WeekView'
 import InviteButton from '@/components/groups/InviteButton'
 import DeleteGroupButton from '@/components/groups/DeleteGroupButton'
 import EditGroupButton from '@/components/groups/EditGroupButton'
+import RotateInviteButton from '@/components/groups/RotateInviteButton'
+import LockInviteToggle from '@/components/groups/LockInviteToggle'
 import MessageBoard from '@/components/groups/MessageBoard'
 import WeekInReview from '@/components/groups/WeekInReview'
 import Link from 'next/link'
@@ -110,17 +112,19 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
             {group.event_name} · {daysUntil > 0 ? `${daysUntil} days to go` : 'Race day'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {group.created_by === user!.id && (
-            <EditGroupButton
-              groupId={group.id}
-              initialName={group.name}
-              initialEventName={group.event_name}
-            />
-          )}
+        <div className="flex flex-wrap items-center gap-2">
           <InviteButton inviteCode={group.invite_code} />
           {group.created_by === user!.id && (
-            <DeleteGroupButton groupId={group.id} eventName={group.event_name} />
+            <>
+              <RotateInviteButton groupId={group.id} />
+              <LockInviteToggle groupId={group.id} inviteLocked={group.invite_locked} />
+              <EditGroupButton
+                groupId={group.id}
+                initialName={group.name}
+                initialEventName={group.event_name}
+              />
+              <DeleteGroupButton groupId={group.id} eventName={group.event_name} />
+            </>
           )}
         </div>
       </div>

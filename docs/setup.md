@@ -56,6 +56,7 @@ supabase/migrations/20260412_extend_brick_activity_parts.sql        # Brick comb
 supabase/migrations/20260413_brick_activity_parts_ui.sql            # Brick progress UI + RLS (superseded)
 supabase/migrations/20260414_recreate_brick_activity_parts.sql      # Clean rebuild of brick table
 supabase/migrations/20260415_brick_parts_nullable_external_id.sql   # Allow non-Garmin activities to park
+supabase/migrations/20260416_group_admin_features.sql               # invite_locked + group_member_bans
 ```
 
 > **Note**: the three `brick_activity_parts` migrations marked "superseded" are replaced by `20260414_recreate_brick_activity_parts.sql`. On a fresh install you can skip them and run only the final one. On an existing install, run all four in order — the final migration drops and recreates the table cleanly.
@@ -64,6 +65,10 @@ The notifications migration adds:
 - `notify_admin_message` / `notify_any_message` columns to `profiles`
 - `notifications` table with RLS
 - A Postgres trigger that fans out message notifications to opted-in members
+
+The group admin migration adds:
+- `invite_locked boolean DEFAULT false` column to `groups` — when true, the join page rejects new members with an "Invites closed" message
+- `group_member_bans` table — records users kicked by the creator, preventing rejoin via any invite link; RLS allows users to read their own ban rows (needed for the join-gate check)
 
 The brick activity parts migrations add:
 - `brick_activity_parts` table — in any week with a pending brick session, any incoming run or ride is stored here until it is either manually assigned by the user or auto-released when the brick completes
@@ -280,6 +285,7 @@ Located in `__tests__/unit/`. Cover pure business logic with no external depende
 | `utils/week-status.test.ts` | Week state classification (past-complete, past-incomplete, active) |
 | `utils/format-time.test.ts` | Message timestamp formatting |
 | `training/week-date-range.test.ts` | Week date range calculation |
+| `groups/join-gate.test.ts` | Join gate evaluation: locked, banned, both, neither |
 
 ### Integration tests
 
@@ -293,6 +299,8 @@ Located in `__tests__/integration/`. Cover API routes with Supabase mocked via `
 | `api/notifications/read-all.test.ts` | Auth guard, marks all unread as read |
 | `api/user/profile-notifications.test.ts` | Notification preference updates, field validation |
 | `api/activities/assign.test.ts` | Auth guard, part ownership, session lookup, completion flow |
+| `api/groups/members.test.ts` | Kick+ban member, transfer creator — auth guards, self-action prevention, DB mutations |
+| `api/groups/group-admin.test.ts` | Rotate invite code, lock/unlock invites — auth guards, toggle direction, DB mutations |
 
 ---
 

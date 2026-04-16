@@ -57,8 +57,16 @@ export interface Group {
   training_plan: TrainingSession[]
   training_plan_raw?: string
   invite_code: string
+  invite_locked: boolean
   created_by: string
   created_at: string
+}
+
+export interface GroupMemberBan {
+  group_id: string
+  user_id: string
+  banned_by: string
+  banned_at: string
 }
 
 export interface GroupMember {

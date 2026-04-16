@@ -1,5 +1,6 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { nanoid } from 'nanoid'
 
 export async function PATCH(
   request: Request,
@@ -15,7 +16,7 @@ export async function PATCH(
 
   const { data: group } = await supabase
     .from('groups')
-    .select('created_by')
+    .select('created_by, invite_locked')
     .eq('id', groupId)
     .single()
 
@@ -27,13 +28,43 @@ export async function PATCH(
     return NextResponse.json({ error: 'Only the group creator can edit this group' }, { status: 403 })
   }
 
-  const { name, event_name } = await request.json() as { name: string; event_name: string }
+  const body = await request.json() as Record<string, unknown>
+  const serviceClient = createServiceClient()
+
+  if (body.action === 'rotate_invite') {
+    const newCode = nanoid(8)
+    const { error } = await serviceClient
+      .from('groups')
+      .update({ invite_code: newCode })
+      .eq('id', groupId)
+
+    if (error) {
+      return NextResponse.json({ error: 'Failed to rotate invite code' }, { status: 500 })
+    }
+
+    return NextResponse.json({ ok: true, invite_code: newCode })
+  }
+
+  if (body.action === 'toggle_invite_lock') {
+    const { error } = await serviceClient
+      .from('groups')
+      .update({ invite_locked: !group.invite_locked })
+      .eq('id', groupId)
+
+    if (error) {
+      return NextResponse.json({ error: 'Failed to update invite lock' }, { status: 500 })
+    }
+
+    return NextResponse.json({ ok: true, invite_locked: !group.invite_locked })
+  }
+
+  // Default action: edit group name + event name
+  const { name, event_name } = body as { name: string; event_name: string }
 
   if (!name?.trim() || !event_name?.trim()) {
     return NextResponse.json({ error: 'Name and event name are required' }, { status: 400 })
   }
 
-  const serviceClient = createServiceClient()
   const { error } = await serviceClient
     .from('groups')
     .update({ name: name.trim(), event_name: event_name.trim() })
