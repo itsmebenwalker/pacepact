@@ -301,6 +301,7 @@ Located in `__tests__/integration/`. Cover API routes with Supabase mocked via `
 | `api/activities/assign.test.ts` | Auth guard, part ownership, session lookup, completion flow |
 | `api/groups/members.test.ts` | Kick+ban member, transfer creator — auth guards, self-action prevention, DB mutations |
 | `api/groups/group-admin.test.ts` | Rotate invite code, lock/unlock invites — auth guards, toggle direction, DB mutations |
+| `api/groups/leave.test.ts` | Leave group — auth guard, creator blocked, non-member guard, success path |
 
 ---
 

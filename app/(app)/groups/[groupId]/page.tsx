@@ -9,6 +9,7 @@ import DeleteGroupButton from '@/components/groups/DeleteGroupButton'
 import EditGroupButton from '@/components/groups/EditGroupButton'
 import RotateInviteButton from '@/components/groups/RotateInviteButton'
 import LockInviteToggle from '@/components/groups/LockInviteToggle'
+import LeaveGroupButton from '@/components/groups/LeaveGroupButton'
 import MessageBoard from '@/components/groups/MessageBoard'
 import WeekInReview from '@/components/groups/WeekInReview'
 import Link from 'next/link'
@@ -114,7 +115,7 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <InviteButton inviteCode={group.invite_code} />
-          {group.created_by === user!.id && (
+          {group.created_by === user!.id ? (
             <>
               <RotateInviteButton groupId={group.id} />
               <LockInviteToggle groupId={group.id} inviteLocked={group.invite_locked} />
@@ -125,6 +126,8 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
               />
               <DeleteGroupButton groupId={group.id} eventName={group.event_name} />
             </>
+          ) : (
+            <LeaveGroupButton groupId={group.id} groupName={group.name} />
           )}
         </div>
       </div>

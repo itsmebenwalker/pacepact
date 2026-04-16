@@ -262,6 +262,7 @@ pacepact/
 │   │   │   └── [groupId]/
 │   │   │       ├── route.ts            # PATCH edit name/event/invite; DELETE group (creator only)
 │   │   │       └── members/
+│   │   │           ├── me/route.ts       # DELETE leave group (any non-creator member)
 │   │   │           └── [userId]/route.ts # DELETE kick+ban; PATCH transfer creator (creator only)
 │   │   ├── activities/
 │   │   │   └── assign/route.ts         # POST: assign parked brick leg to standalone session
@@ -288,6 +289,7 @@ pacepact/
 │   │   ├── LockInviteToggle.tsx        # Lock/unlock new members (creator only)
 │   │   ├── KickMemberButton.tsx        # Remove + ban a member (creator only)
 │   │   ├── TransferCreatorButton.tsx   # Hand off admin rights (creator only)
+│   │   ├── LeaveGroupButton.tsx        # Self-leave with confirmation (non-creator members)
 │   │   ├── MessageBoard.tsx            # Realtime group chat
 │   │   ├── WeekInReview.tsx            # Server component — fetches data, delegates to panel
 │   │   └── WeekInReviewPanel.tsx       # Client component — collapsible review UI
@@ -343,7 +345,9 @@ The group creator has four admin-only actions, all enforced by a creator-only ch
 
 **Kicking always bans**: there is no "remove without banning" — the DELETE route always inserts into `group_member_bans`. This prevents a kicked user from immediately rejoining via the same invite link.
 
-**UI components**: all four actions are client components in `components/groups/`. Admin controls on the group home page (`RotateInviteButton`, `LockInviteToggle`) and members page (`KickMemberButton`, `TransferCreatorButton`) are only rendered when `group.created_by === user.id`. Admins cannot kick themselves or transfer to themselves.
+**UI components**: all four admin actions are client components in `components/groups/`. Admin controls on the group home page (`RotateInviteButton`, `LockInviteToggle`) and members page (`KickMemberButton`, `TransferCreatorButton`) are only rendered when `group.created_by === user.id`. Admins cannot kick themselves or transfer to themselves.
+
+**Leaving a group**: non-creator members see a `LeaveGroupButton` on the group home page in place of the admin controls. It calls `DELETE /api/groups/[groupId]/members/me` and redirects to `/dashboard` on success. Creators must transfer admin rights before they can leave.
 
 ### Group Creation Flow
 

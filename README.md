@@ -12,6 +12,7 @@ Social training platform for groups of friends preparing for the same endurance 
 - **In-app notifications** — real-time bell in the nav; activity confirmations are always on, message notifications are opt-in per user
 - **Invite links** — 8-character invite codes let friends join a group in one click
 - **Group admin controls** — group creator can kick + ban members, rotate the invite link, lock invites to freeze membership, and transfer admin rights to another member
+- **Leave group** — non-creator members can leave a group at any time; creators must transfer admin rights first
 - **Points system** — base points per session, plus bonuses for completing early, exceeding targets, and maintaining a streak
 - **Week view** — training weeks show date ranges, past weeks are visually locked (green = complete, grey = missed), active week sorted to top
 - **Rest day handling** — rest sessions are excluded from the session grid; a note shows how many rest days are recommended for the week
@@ -73,7 +74,9 @@ pacepact/
 │   │   ├── groups/
 │   │   │   ├── generate-plan/# Claude plan generation
 │   │   │   └── [groupId]/    # PATCH edit/rotate invite/lock; DELETE group
-│   │   │       └── members/[userId]/ # DELETE kick+ban; PATCH transfer creator
+│   │   │       └── members/
+│   │   │           ├── me/          # DELETE leave group (non-creator members)
+│   │   │           └── [userId]/    # DELETE kick+ban; PATCH transfer creator
 │   │   ├── activities/
 │   │   │   └── assign/       # Assign parked brick leg to standalone session
 │   │   ├── notifications/

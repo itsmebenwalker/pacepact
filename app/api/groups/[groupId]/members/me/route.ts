@@ -1,0 +1,57 @@
+import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ groupId: string }> }
+) {
+  const { groupId } = await params
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { data: group } = await supabase
+    .from('groups')
+    .select('created_by')
+    .eq('id', groupId)
+    .single()
+
+  if (!group) {
+    return NextResponse.json({ error: 'Group not found' }, { status: 404 })
+  }
+
+  if (group.created_by === user.id) {
+    return NextResponse.json(
+      { error: 'Group admins cannot leave — transfer admin rights to another member first' },
+      { status: 403 }
+    )
+  }
+
+  const serviceClient = createServiceClient()
+
+  const { data: member } = await serviceClient
+    .from('group_members')
+    .select('id')
+    .eq('group_id', groupId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (!member) {
+    return NextResponse.json({ error: 'You are not a member of this group' }, { status: 404 })
+  }
+
+  const { error } = await serviceClient
+    .from('group_members')
+    .delete()
+    .eq('group_id', groupId)
+    .eq('user_id', user.id)
+
+  if (error) {
+    return NextResponse.json({ error: 'Failed to leave group' }, { status: 500 })
+  }
+
+  return NextResponse.json({ ok: true })
+}
