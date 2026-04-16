@@ -31,6 +31,8 @@ jest.mock('@/lib/supabase/server', () => ({
 
 let mockMemberCheck: jest.Mock
 let mockMemberDelete: jest.Mock
+let mockSessionsDelete: jest.Mock
+let mockBrickPartsDelete: jest.Mock
 
 function mockServiceFrom(table: string) {
   if (table === 'group_members') {
@@ -38,6 +40,12 @@ function mockServiceFrom(table: string) {
       select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: mockMemberCheck }) }) }),
       delete: () => ({ eq: () => ({ eq: () => mockMemberDelete() }) }),
     }
+  }
+  if (table === 'sessions') {
+    return { delete: () => ({ eq: () => ({ eq: () => mockSessionsDelete() }) }) }
+  }
+  if (table === 'brick_activity_parts') {
+    return { delete: () => ({ eq: () => ({ eq: () => mockBrickPartsDelete() }) }) }
   }
   return {}
 }
@@ -62,6 +70,8 @@ beforeEach(() => {
   jest.clearAllMocks()
   mockMemberCheck = jest.fn().mockResolvedValue({ data: MEMBER_ROW, error: null })
   mockMemberDelete = jest.fn().mockResolvedValue({ error: null })
+  mockSessionsDelete = jest.fn().mockResolvedValue({ error: null })
+  mockBrickPartsDelete = jest.fn().mockResolvedValue({ error: null })
   mockGetUser.mockResolvedValue({ data: { user: MEMBER } })
   mockGroupSelect.single.mockResolvedValue({ data: NON_CREATOR_GROUP })
 })
@@ -99,6 +109,16 @@ describe('DELETE /api/groups/[groupId]/members/me', () => {
   it('deletes the group_members row for the current user', async () => {
     await DELETE(...makeRequest())
     expect(mockMemberDelete).toHaveBeenCalled()
+  })
+
+  it('deletes sessions for the leaving user in the group', async () => {
+    await DELETE(...makeRequest())
+    expect(mockSessionsDelete).toHaveBeenCalled()
+  })
+
+  it('deletes brick_activity_parts for the leaving user in the group', async () => {
+    await DELETE(...makeRequest())
+    expect(mockBrickPartsDelete).toHaveBeenCalled()
   })
 
   it('returns 200 with { ok: true } on success', async () => {

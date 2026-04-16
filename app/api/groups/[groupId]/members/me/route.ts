@@ -53,5 +53,11 @@ export async function DELETE(
     return NextResponse.json({ error: 'Failed to leave group' }, { status: 500 })
   }
 
+  // Clean up all group-scoped data for the departing user
+  await Promise.all([
+    serviceClient.from('sessions').delete().eq('group_id', groupId).eq('user_id', user.id),
+    serviceClient.from('brick_activity_parts').delete().eq('group_id', groupId).eq('user_id', user.id),
+  ])
+
   return NextResponse.json({ ok: true })
 }

@@ -55,10 +55,12 @@ export async function DELETE(_request: Request, { params }: Params) {
     return NextResponse.json({ error: 'Failed to remove member' }, { status: 500 })
   }
 
-  // Ban to prevent rejoin
-  await serviceClient
-    .from('group_member_bans')
-    .insert({ group_id: groupId, user_id: userId, banned_by: user.id })
+  // Clean up all group-scoped data for the removed user, and ban in parallel
+  await Promise.all([
+    serviceClient.from('sessions').delete().eq('group_id', groupId).eq('user_id', userId),
+    serviceClient.from('brick_activity_parts').delete().eq('group_id', groupId).eq('user_id', userId),
+    serviceClient.from('group_member_bans').insert({ group_id: groupId, user_id: userId, banned_by: user.id }),
+  ])
 
   return NextResponse.json({ ok: true })
 }
