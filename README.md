@@ -11,7 +11,7 @@ Social training platform for groups of friends preparing for the same endurance 
 - **Group chat** — per-group message board with real-time updates via Supabase Realtime
 - **In-app notifications** — real-time bell in the nav; activity confirmations are always on, message notifications are opt-in per user
 - **Invite links** — 8-character invite codes let friends join a group in one click
-- **Group admin controls** — group creator can kick + ban members, rotate the invite link, lock invites to freeze membership, and transfer admin rights to another member
+- **Group admin controls** — group creator can kick + ban members, rotate the invite link, lock invites to freeze membership, and transfer admin rights to another member; all surfaced via a `•••` dropdown on the group page
 - **Leave group** — non-creator members can leave a group at any time; creators must transfer admin rights first
 - **Points system** — base points per session, plus bonuses for completing early, exceeding targets, and maintaining a streak
 - **Week view** — training weeks show date ranges, past weeks are visually locked (green = complete, grey = missed), active week sorted to top
