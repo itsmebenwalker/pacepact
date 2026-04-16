@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 interface Props {
@@ -193,6 +194,10 @@ export default function GroupActionsMenu({
         {/* ── Dropdown ─────────────────────────────────────────────────────── */}
         {open && (
           <div className="absolute right-0 top-full mt-1 w-52 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg overflow-hidden z-40">
+            <Link href={`/groups/${groupId}/members`} className={itemDefault}>
+              Members
+            </Link>
+            <div className="border-t border-zinc-100 dark:border-zinc-800 my-1" />
             <button onClick={copyInvite} className={itemDefault}>
               Copy invite link
             </button>
