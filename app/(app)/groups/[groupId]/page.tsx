@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import LeaderboardTable from '@/components/leaderboard/LeaderboardTable'
 import WeekView from '@/components/training/WeekView'
 import GroupActionsMenu from '@/components/groups/GroupActionsMenu'
@@ -15,6 +15,7 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
   const { groupId } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   const [{ data: group }, { data: membership }] = await Promise.all([
     supabase
@@ -26,7 +27,7 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
       .from('group_members')
       .select('*')
       .eq('group_id', groupId)
-      .eq('user_id', user!.id)
+      .eq('user_id', user.id)
       .maybeSingle(),
   ])
 
@@ -77,13 +78,13 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
       .from('sessions')
       .select('*')
       .eq('group_id', groupId)
-      .eq('user_id', user!.id)
+      .eq('user_id', user.id)
       .order('scheduled_date', { ascending: true }),
     supabase
       .from('brick_activity_parts')
       .select('*')
       .eq('group_id', groupId)
-      .eq('user_id', user!.id),
+      .eq('user_id', user.id),
   ])
 
   const brickParts = (brickPartsRaw ?? []) as BrickActivityPart[]
@@ -117,25 +118,25 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
           eventName={group.event_name}
           inviteCode={group.invite_code}
           inviteLocked={group.invite_locked}
-          isCreator={group.created_by === user!.id}
+          isCreator={group.created_by === user.id}
         />
       </div>
 
       <WeekInReview
         groupId={group.id}
-        currentUserId={user!.id}
+        currentUserId={user.id}
         members={members}
       />
 
       <LeaderboardTable
         groupId={group.id}
         initialMembers={members}
-        currentUserId={user!.id}
+        currentUserId={user.id}
       />
 
       <MessageBoard
         groupId={group.id}
-        currentUserId={user!.id}
+        currentUserId={user.id}
         initialMessages={initialMessages}
         memberNames={memberNames}
         memberAvatars={memberAvatars}

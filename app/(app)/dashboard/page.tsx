@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import GroupCard from '@/components/groups/GroupCard'
@@ -24,6 +25,8 @@ export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  if (!user) redirect('/login')
+
   const { data: memberships } = await supabase
     .from('group_members')
     .select(`
@@ -33,7 +36,7 @@ export default async function DashboardPage() {
         id, name, event_name, event_type, event_date, ambition, invite_code, invite_locked
       )
     `)
-    .eq('user_id', user!.id)
+    .eq('user_id', user.id)
     .order('joined_at', { ascending: false })
 
   const groups: GroupWithPoints[] = memberships

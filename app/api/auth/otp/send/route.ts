@@ -22,14 +22,18 @@ export async function POST(request: Request) {
   const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
   const isSignup = !!display_name
 
-  // For login, verify the email exists with a single targeted query rather than
-  // loading all users. GoTrue's filter param searches by email, so we use perPage:1
-  // and confirm the returned user is an exact match.
+  // For login, verify the email exists before generating a magic link.
+  // generateLink with type:'magiclink' creates the user if they don't exist,
+  // so this check is required to gate sign-in to existing accounts only.
   if (!isSignup) {
-    const { data: { users } } = await supabaseAdmin.auth.admin.listUsers(
+    const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers(
       { perPage: 1, filter: email } as { perPage: number }
     )
-    const userExists = users.some((u) => u.email === email)
+    if (listError || !listData) {
+      console.error('listUsers error:', listError)
+      return NextResponse.json({ error: 'Unable to verify account. Please try again.' }, { status: 500 })
+    }
+    const userExists = listData.users.some((u) => u.email === email)
     if (!userExists) {
       return NextResponse.json(
         { error: 'No account found for this email address. You need an invite to join PacePact.' },

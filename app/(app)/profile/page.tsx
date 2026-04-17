@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getStravaAuthUrl } from '@/lib/strava/oauth'
 import DeleteAccountButton from '@/components/profile/DeleteAccountButton'
@@ -8,11 +9,12 @@ import NotificationSettings from '@/components/profile/NotificationSettings'
 export default async function ProfilePage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', user!.id)
+    .eq('id', user.id)
     .single()
 
   const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/strava/callback`
@@ -47,7 +49,7 @@ export default async function ProfilePage() {
           <EditNameField initialName={profile?.display_name ?? ''} />
           <div className="flex justify-between">
             <span className="text-zinc-500 dark:text-zinc-400">Email</span>
-            <span className="text-zinc-900 dark:text-zinc-50 font-medium">{user!.email}</span>
+            <span className="text-zinc-900 dark:text-zinc-50 font-medium">{user.email}</span>
           </div>
         </div>
       </div>

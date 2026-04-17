@@ -248,8 +248,10 @@ pacepact/
 │   │   │       ├── page.tsx            # Group home: leaderboard + plan
 │   │   │       ├── plan/page.tsx       # Full training plan view
 │   │   │       └── members/page.tsx    # Member list + stats
-│   │   ├── profile/page.tsx            # Strava connect, settings
+│   │   ├── profile/page.tsx            # Strava connect, settings, avatar display
 │   │   └── join/[inviteCode]/page.tsx  # Invite link landing
+│   ├── support/page.tsx                # Public support page + FAQ (no auth required)
+│   ├── privacy/page.tsx                # Public GDPR privacy policy (no auth required)
 │   ├── api/
 │   │   ├── auth/
 │   │   │   └── otp/send/route.ts       # Send magic link email via Resend
@@ -279,7 +281,7 @@ pacepact/
 │   │   └── LeaderboardTable.tsx        # Realtime-subscribed, top 5 + current user pinned if outside top 5
 │   ├── training/
 │   │   ├── WeekView.tsx                # Weekly session grid + date range + past states
-│   │   ├── SessionCard.tsx             # Single session, completed state + completed_at date
+│   │   ├── SessionCard.tsx             # Single session, completed state + "View on Strava" link
 │   │   └── BrickProgress.tsx           # Progress bar for parked brick legs; manual assign button
 │   ├── groups/
 │   │   ├── GroupCard.tsx               # Dashboard summary card
@@ -291,7 +293,7 @@ pacepact/
 │   │   ├── KickMemberButton.tsx        # Remove + ban a member (used on members page)
 │   │   ├── TransferCreatorButton.tsx   # Hand off admin rights (used on members page)
 │   │   ├── LeaveGroupButton.tsx        # Self-leave (standalone, kept for reuse)
-│   │   ├── MessageBoard.tsx            # Realtime group chat
+│   │   ├── MessageBoard.tsx            # Realtime group chat; shows member avatars
 │   │   ├── WeekInReview.tsx            # Server component — fetches data, delegates to panel
 │   │   └── WeekInReviewPanel.tsx       # Client component — collapsible review UI
 │   ├── notifications/

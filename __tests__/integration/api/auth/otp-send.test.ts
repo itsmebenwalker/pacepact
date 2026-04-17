@@ -161,6 +161,17 @@ describe('POST /api/auth/otp/send', () => {
     expect(emailArg.html).toContain(ACTION_LINK)
   })
 
+  it('returns 500 when listUsers returns an error', async () => {
+    mockListUsers.mockResolvedValueOnce({ data: null, error: new Error('Supabase error') })
+
+    const res = await POST(makeRequest({ email: 'user@example.com' }))
+    const body = await res.json()
+
+    expect(res.status).toBe(500)
+    expect(body.error).toBeDefined()
+    expect(mockGenerateLink).not.toHaveBeenCalled()
+  })
+
   it('returns 500 when Supabase generateLink fails', async () => {
     mockGenerateLink.mockResolvedValueOnce({
       data: { properties: null },

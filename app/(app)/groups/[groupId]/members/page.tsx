@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import KickMemberButton from '@/components/groups/KickMemberButton'
 import TransferCreatorButton from '@/components/groups/TransferCreatorButton'
@@ -12,15 +12,16 @@ export default async function MembersPage({ params }: { params: Promise<{ groupI
   const { groupId } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   const [{ data: group }, { data: membership }] = await Promise.all([
     supabase.from('groups').select('id, name, event_name, created_by').eq('id', groupId).single(),
-    supabase.from('group_members').select('id').eq('group_id', groupId).eq('user_id', user!.id).maybeSingle(),
+    supabase.from('group_members').select('id').eq('group_id', groupId).eq('user_id', user.id).maybeSingle(),
   ])
 
   if (!group || !membership) notFound()
 
-  const isCreator = group.created_by === user!.id
+  const isCreator = group.created_by === user.id
 
   const { data: members } = await supabase
     .from('group_members')
@@ -48,7 +49,7 @@ export default async function MembersPage({ params }: { params: Promise<{ groupI
           {(members ?? []).map((m, i) => {
             const profile = m.profiles as unknown as ProfileResult
             const isConnected = !!profile?.strava_athlete_id
-            const isCurrentUser = m.user_id === user!.id
+            const isCurrentUser = m.user_id === user.id
             const isGroupCreator = m.user_id === group.created_by
             const displayName = profile?.display_name ?? 'Athlete'
 
