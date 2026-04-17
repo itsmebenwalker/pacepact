@@ -24,6 +24,7 @@ export async function fanOutSessionsForUser(
       target_duration_minutes: s.target_duration_minutes,
       target_description: s.target_description,
       scheduled_date: scheduledDate,
+      tip: s.tip ?? null,
       completed: false,
     }
   })

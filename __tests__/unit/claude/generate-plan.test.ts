@@ -32,6 +32,7 @@ const VALID_SESSIONS: TrainingSession[] = [
     target_duration_minutes: null,
     target_description: 'Easy 5km run',
     day_of_week: 1,
+    tip: 'Keep a conversational pace throughout.',
   },
   {
     week_number: 1,
@@ -40,6 +41,7 @@ const VALID_SESSIONS: TrainingSession[] = [
     target_duration_minutes: null,
     target_description: 'Rest day',
     day_of_week: 7,
+    tip: 'Rest is training. Prioritize sleep today.',
   },
 ]
 
@@ -131,5 +133,23 @@ describe('generateTrainingPlan — JSON parsing', () => {
     const userMessage = callArgs.messages[0].content as string
     expect(userMessage).toContain('triathlon')
     expect(userMessage).toContain('podium')
+  })
+
+  it('preserves the tip field from the parsed session', async () => {
+    mockCreate.mockResolvedValue(makeApiResponse(JSON.stringify(VALID_SESSIONS)))
+
+    const { sessions } = await generateTrainingPlan('marathon', '2026-10-01', 'finish')
+
+    expect(sessions[0].tip).toBe('Keep a conversational pace throughout.')
+  })
+
+  it('includes tip in the prompt schema', async () => {
+    mockCreate.mockResolvedValue(makeApiResponse(JSON.stringify(VALID_SESSIONS)))
+
+    await generateTrainingPlan('marathon', '2026-10-01', 'finish')
+
+    const callArgs = mockCreate.mock.calls[0][0]
+    const userMessage = callArgs.messages[0].content as string
+    expect(userMessage).toContain('"tip"')
   })
 })

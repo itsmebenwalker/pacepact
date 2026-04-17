@@ -129,6 +129,7 @@ sessions (
   completed_at timestamptz,
   strava_activity_id bigint,
   points_awarded integer default 0,
+  tip text,                    -- AI-generated coaching tip (≤12 words); null for pre-feature sessions
   created_at timestamptz default now()
 )
 ```
@@ -281,7 +282,7 @@ pacepact/
 │   │   └── LeaderboardTable.tsx        # Realtime-subscribed, top 5 + current user pinned if outside top 5
 │   ├── training/
 │   │   ├── WeekView.tsx                # Weekly session grid + date range + past states
-│   │   ├── SessionCard.tsx             # Single session, completed state + "View on Strava" link
+│   │   ├── SessionCard.tsx             # Single session, completed state + "View on Strava" link + tip tooltip
 │   │   └── BrickProgress.tsx           # Progress bar for parked brick legs; manual assign button
 │   ├── groups/
 │   │   ├── GroupCard.tsx               # Dashboard summary card
@@ -384,7 +385,8 @@ Return a JSON array of sessions. Each session:
   "target_distance_km": number | null,
   "target_duration_minutes": number | null,
   "target_description": string,   // human-readable e.g. "Easy 5km recovery run"
-  "day_of_week": number           // 1=Mon, 7=Sun — suggested day
+  "day_of_week": number,          // 1=Mon, 7=Sun — suggested day
+  "tip": string                   // one short practical coaching tip (max 12 words)
 }
 
 Rules:

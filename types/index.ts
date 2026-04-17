@@ -45,6 +45,7 @@ export interface TrainingSession {
   target_duration_minutes: number | null
   target_description: string
   day_of_week: number // 1=Mon, 7=Sun
+  tip?: string | null
 }
 
 export interface Group {
@@ -92,6 +93,7 @@ export interface Session {
   completed_at: string | null
   strava_activity_id: number | null
   points_awarded: number
+  tip: string | null
   created_at: string
 }
 

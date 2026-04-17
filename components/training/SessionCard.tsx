@@ -9,6 +9,14 @@ const SESSION_LABEL: Record<string, string> = {
   rest: 'Rest',
 }
 
+const DEFAULT_TIPS: Record<string, string> = {
+  run: 'Keep a conversational pace. Consistency beats intensity.',
+  ride: 'Stay seated on climbs and focus on a smooth cadence.',
+  swim: 'Long, efficient strokes — relax and glide between pulls.',
+  brick: 'Move quickly through transition and settle into your run rhythm.',
+  rest: 'Rest is training. Prioritize sleep and hydration today.',
+}
+
 interface Props {
   session: Session
   pendingPart?: BrickActivityPart
@@ -17,6 +25,7 @@ interface Props {
 export default function SessionCard({ session, pendingPart }: Props) {
   const isCompleted = session.completed
   const label = SESSION_LABEL[session.session_type] ?? session.session_type.toUpperCase()
+  const tip = session.tip ?? DEFAULT_TIPS[session.session_type] ?? null
 
   return (
     <div className={`relative border rounded-md p-3 text-sm transition-colors ${
@@ -28,11 +37,34 @@ export default function SessionCard({ session, pendingPart }: Props) {
         <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
           {label}
         </span>
-        {isCompleted && (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400 dark:text-zinc-500 shrink-0 mt-0.5">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-        )}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {tip && (
+            <div className="relative group">
+              <button
+                type="button"
+                aria-label="Training tip"
+                className="text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 focus:outline-none focus:text-zinc-500 transition-colors mt-0.5"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="16" x2="12" y2="12"/>
+                  <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+              </button>
+              <div
+                role="tooltip"
+                className="absolute right-0 top-6 z-20 w-48 p-2 rounded bg-zinc-800 dark:bg-zinc-200 text-zinc-50 dark:text-zinc-900 text-xs leading-relaxed opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-opacity pointer-events-none shadow-md"
+              >
+                {tip}
+              </div>
+            </div>
+          )}
+          {isCompleted && (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400 dark:text-zinc-500 mt-0.5">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          )}
+        </div>
       </div>
       <p className={`font-medium leading-snug ${
         isCompleted

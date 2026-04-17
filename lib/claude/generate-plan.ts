@@ -50,8 +50,11 @@ Return a JSON array of sessions. Each session:
   "target_distance_km": number | null,
   "target_duration_minutes": number | null,
   "target_description": string,
-  "day_of_week": number
+  "day_of_week": number,
+  "tip": string
 }
+
+tip: one short, practical coaching tip specific to this session (max 12 words).
 
 Rules:
 - Include a rest day each week
