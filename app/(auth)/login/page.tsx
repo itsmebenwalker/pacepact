@@ -21,7 +21,8 @@ export default function LoginPage() {
     })
 
     if (!res.ok) {
-      setError('Something went wrong. Please try again.')
+      const data = await res.json().catch(() => ({}))
+      setError(data.error ?? 'Something went wrong. Please try again.')
       setLoading(false)
       return
     }
