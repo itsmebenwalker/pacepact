@@ -43,7 +43,7 @@ export default function DisconnectStravaButton() {
           <button
             onClick={handleDisconnect}
             disabled={loading}
-            className="flex-1 text-sm bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-50 text-white dark:text-zinc-900 font-medium py-2 rounded-md transition-colors"
+            className="flex-1 text-sm bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-medium py-2 rounded-md transition-colors"
           >
             {loading ? 'Disconnecting...' : 'Disconnect'}
           </button>
