@@ -93,7 +93,7 @@ export interface Session {
   completed_at: string | null
   strava_activity_id: number | null
   points_awarded: number
-  tip: string | null
+  tip?: string | null
   created_at: string
 }
 
