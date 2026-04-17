@@ -26,6 +26,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
       <main className="max-w-5xl mx-auto px-4 py-4 sm:py-8">{children}</main>
+      <footer className="border-t border-zinc-200 dark:border-zinc-800 mt-8">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-4 text-xs text-zinc-400 dark:text-zinc-500">
+            <a href="/support" className="hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">Support</a>
+            <a href="/privacy" className="hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">Privacy</a>
+          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/powered-by-strava.svg" alt="Powered by Strava" width={150} height={28} className="h-5 w-auto opacity-70" />
+        </div>
+      </footer>
     </div>
   )
 }

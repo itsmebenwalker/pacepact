@@ -40,26 +40,36 @@ export default async function ProfilePage() {
         {isStravaConnected ? (
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-zinc-900 dark:bg-zinc-50 rounded-md flex items-center justify-center text-white dark:text-zinc-900 text-xs font-bold shrink-0">
-                S
+              <div className="w-8 h-8 rounded-md overflow-hidden shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/powered-by-strava.svg" alt="Powered by Strava" width={150} height={28} className="h-6 w-auto" />
               </div>
               <div>
                 <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Connected</p>
-                <p className="text-xs text-zinc-400 dark:text-zinc-500">Athlete ID: {profile.strava_athlete_id}</p>
+                <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                  <a
+                    href={`https://www.strava.com/athletes/${profile.strava_athlete_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-[#FC5200] transition-colors"
+                  >
+                    View your Strava profile
+                  </a>
+                </p>
               </div>
             </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/powered-by-strava.svg" alt="Powered by Strava" width={150} height={28} className="h-6 w-auto" />
             <DisconnectStravaButton />
           </div>
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              Connect Strava so PacePact can automatically mark sessions complete when you log activities.
+              Connect Strava so PacePact can automatically mark sessions complete when you log activities. We only read your activity data to match completed sessions — we never post on your behalf.
             </p>
-            <a
-              href={stravaAuthUrl}
-              className="inline-flex items-center gap-2 bg-[#FC4C02] hover:bg-[#e04400] text-white font-medium px-4 py-2 rounded-md text-sm transition-colors"
-            >
-              Connect with Strava
+            <a href={stravaAuthUrl}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/connect-with-strava.svg" alt="Connect with Strava" width={193} height={48} className="h-12 w-auto" />
             </a>
           </div>
         )}

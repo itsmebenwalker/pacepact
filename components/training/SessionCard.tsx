@@ -56,6 +56,16 @@ export default function SessionCard({ session, pendingPart }: Props) {
           {session.points_awarded > 0 && (
             <span className="font-medium"> · +{session.points_awarded} pts</span>
           )}
+          {session.strava_activity_id && (
+            <a
+              href={`https://www.strava.com/activities/${session.strava_activity_id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-2 font-bold underline text-[#FC5200] hover:opacity-80 transition-opacity"
+            >
+              View on Strava
+            </a>
+          )}
         </p>
       )}
       {pendingPart && !isCompleted && (
