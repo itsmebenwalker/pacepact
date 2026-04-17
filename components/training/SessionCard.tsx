@@ -49,24 +49,26 @@ export default function SessionCard({ session, pendingPart }: Props) {
         </p>
       )}
       {isCompleted && (
-        <p className="text-zinc-400 dark:text-zinc-500 text-xs mt-1">
-          {session.completed_at
-            ? new Date(session.completed_at).toLocaleDateString('en', { month: 'short', day: 'numeric' })
-            : 'Completed'}
-          {session.points_awarded > 0 && (
-            <span className="font-medium"> · +{session.points_awarded} pts</span>
-          )}
+        <div className="text-zinc-400 dark:text-zinc-500 text-xs mt-1 space-y-0.5">
+          <p>
+            {session.completed_at
+              ? new Date(session.completed_at).toLocaleDateString('en', { month: 'short', day: 'numeric' })
+              : 'Completed'}
+            {session.points_awarded > 0 && (
+              <span className="font-medium"> · +{session.points_awarded} pts</span>
+            )}
+          </p>
           {session.strava_activity_id && (
             <a
               href={`https://www.strava.com/activities/${session.strava_activity_id}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-2 font-bold underline text-[#FC5200] hover:opacity-80 transition-opacity"
+              className="font-bold underline text-[#FC5200] hover:opacity-80 transition-opacity"
             >
               View on Strava
             </a>
           )}
-        </p>
+        </div>
       )}
       {pendingPart && !isCompleted && (
         <BrickProgress part={pendingPart} />

@@ -91,10 +91,6 @@ export default function LeaderboardTable({ groupId, initialMembers, currentUserI
           </>
         )}
       </div>
-      <div className="px-4 py-2 sm:px-5 border-t border-zinc-100 dark:border-zinc-800 flex justify-end">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/powered-by-strava.svg" alt="Powered by Strava" width={150} height={28} className="h-5 w-auto opacity-80" />
-      </div>
     </div>
   )
 }

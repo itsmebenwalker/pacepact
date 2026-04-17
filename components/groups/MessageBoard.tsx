@@ -17,6 +17,7 @@ interface Props {
   currentUserId: string
   initialMessages: MessageRow[]
   memberNames: Record<string, string | null>
+  memberAvatars: Record<string, string | null>
 }
 
 export default function MessageBoard({
@@ -24,6 +25,7 @@ export default function MessageBoard({
   currentUserId,
   initialMessages,
   memberNames,
+  memberAvatars,
 }: Props) {
   const [messages, setMessages] = useState<MessageRow[]>(initialMessages)
   const [content, setContent] = useState('')
@@ -112,24 +114,42 @@ export default function MessageBoard({
           messages.map((msg) => (
             <div
               key={msg.id}
-              className={`px-4 py-3 sm:px-5 ${
+              className={`px-4 py-3 sm:px-5 flex gap-3 ${
                 msg.user_id === currentUserId ? 'bg-zinc-50 dark:bg-zinc-800/40' : ''
               }`}
             >
-              <div className="flex items-baseline gap-2 mb-0.5">
-                <span className="text-xs font-medium text-zinc-900 dark:text-zinc-50">
-                  {msg.display_name ?? 'Athlete'}
-                  {msg.user_id === currentUserId && (
-                    <span className="ml-1.5 font-normal text-zinc-400 dark:text-zinc-500">you</span>
-                  )}
-                </span>
-                <span className="text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-                  {formatMessageTime(msg.created_at)}
-                </span>
+              {memberAvatars[msg.user_id] ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={memberAvatars[msg.user_id]!}
+                  alt={msg.display_name ?? 'Athlete'}
+                  width={28}
+                  height={28}
+                  className="w-7 h-7 rounded-full object-cover shrink-0 mt-0.5"
+                />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                    {(msg.display_name ?? 'A')[0].toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-2 mb-0.5">
+                  <span className="text-xs font-medium text-zinc-900 dark:text-zinc-50">
+                    {msg.display_name ?? 'Athlete'}
+                    {msg.user_id === currentUserId && (
+                      <span className="ml-1.5 font-normal text-zinc-400 dark:text-zinc-500">you</span>
+                    )}
+                  </span>
+                  <span className="text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                    {formatMessageTime(msg.created_at)}
+                  </span>
+                </div>
+                <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-snug break-words">
+                  {msg.content}
+                </p>
               </div>
-              <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-snug break-words">
-                {msg.content}
-              </p>
             </div>
           ))
         )}

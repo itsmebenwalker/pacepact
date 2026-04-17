@@ -35,16 +35,17 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
 
   const { data: membersRaw } = await supabase
     .from('group_members')
-    .select('user_id, points, profiles(display_name)')
+    .select('user_id, points, profiles(display_name, avatar_url)')
     .eq('group_id', groupId)
     .order('points', { ascending: false })
 
-  interface ProfileResult { display_name: string | null }
+  interface ProfileResult { display_name: string | null; avatar_url: string | null }
 
   const members = (membersRaw ?? []).map((m) => ({
     user_id: m.user_id,
     points: m.points,
     display_name: (m.profiles as unknown as ProfileResult)?.display_name ?? null,
+    avatar_url: (m.profiles as unknown as ProfileResult)?.avatar_url ?? null,
   }))
 
   const { data: messagesRaw } = await supabase
@@ -65,8 +66,10 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
   }))
 
   const memberNames: Record<string, string | null> = {}
+  const memberAvatars: Record<string, string | null> = {}
   for (const m of members) {
     memberNames[m.user_id] = m.display_name
+    memberAvatars[m.user_id] = m.avatar_url
   }
 
   const [{ data: sessions }, { data: brickPartsRaw }] = await Promise.all([
@@ -135,6 +138,7 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
         currentUserId={user!.id}
         initialMessages={initialMessages}
         memberNames={memberNames}
+        memberAvatars={memberAvatars}
       />
 
       <div>
