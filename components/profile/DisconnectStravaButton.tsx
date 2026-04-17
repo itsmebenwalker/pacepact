@@ -55,7 +55,7 @@ export default function DisconnectStravaButton() {
   return (
     <button
       onClick={() => setConfirming(true)}
-      className="text-sm border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-3 py-1.5 rounded-md transition-colors"
+      className="text-sm border border-red-200 dark:border-red-800 bg-white dark:bg-zinc-900 hover:bg-red-50 dark:hover:bg-red-950 text-red-600 dark:text-red-400 px-3 py-1.5 rounded-md transition-colors"
     >
       Disconnect Strava
     </button>

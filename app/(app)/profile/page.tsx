@@ -60,11 +60,11 @@ export default async function ProfilePage() {
             <DisconnectStravaButton />
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               Connect Strava so PacePact can automatically mark sessions complete when you log activities. We only read your activity data to match completed sessions — we never post on your behalf.
             </p>
-            <a href={stravaAuthUrl}>
+            <a href={stravaAuthUrl} className="inline-block mt-1">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/connect-with-strava.svg" alt="Connect with Strava" width={193} height={48} className="h-12 w-auto" />
             </a>
