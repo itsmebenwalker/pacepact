@@ -24,30 +24,30 @@ export default async function ProfilePage() {
       <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Profile</h1>
 
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-4">
-        <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Account</h2>
         <div className="flex items-center gap-3">
           {profile?.avatar_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={profile.avatar_url}
               alt={profile.display_name ?? 'Profile photo'}
-              width={48}
-              height={48}
-              className="w-12 h-12 rounded-full object-cover shrink-0"
+              width={40}
+              height={40}
+              className="w-10 h-10 rounded-full object-cover shrink-0"
             />
           ) : (
-            <div className="w-12 h-12 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center shrink-0">
               <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
                 {profile?.display_name?.[0]?.toUpperCase() ?? '?'}
               </span>
             </div>
           )}
-          <div className="text-sm space-y-1 flex-1 min-w-0">
-            <EditNameField initialName={profile?.display_name ?? ''} />
-            <div className="flex justify-between">
-              <span className="text-zinc-500 dark:text-zinc-400">Email</span>
-              <span className="text-zinc-900 dark:text-zinc-50 font-medium truncate ml-2">{user!.email}</span>
-            </div>
+          <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Account</h2>
+        </div>
+        <div className="text-sm space-y-3">
+          <EditNameField initialName={profile?.display_name ?? ''} />
+          <div className="flex justify-between">
+            <span className="text-zinc-500 dark:text-zinc-400">Email</span>
+            <span className="text-zinc-900 dark:text-zinc-50 font-medium">{user!.email}</span>
           </div>
         </div>
       </div>
