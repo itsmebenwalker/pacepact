@@ -95,6 +95,11 @@ export default function LoginPage() {
             </Link>
           </p>
         )}
+
+        <div className="flex items-center justify-center gap-4 mt-8 text-xs text-zinc-400 dark:text-zinc-500">
+          <Link href="/support" className="hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">Support</Link>
+          <Link href="/privacy" className="hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">Privacy</Link>
+        </div>
       </div>
     </div>
   )
