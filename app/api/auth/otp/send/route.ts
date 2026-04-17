@@ -25,15 +25,20 @@ export async function POST(request: Request) {
   // For login, verify the email exists before generating a magic link.
   // generateLink with type:'magiclink' creates the user if they don't exist,
   // so this check is required to gate sign-in to existing accounts only.
+  // Note: the Supabase JS SDK's listUsers silently drops unknown params like
+  // 'filter', so we fetch all users and search in memory.
   if (!isSignup) {
-    const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers(
-      { perPage: 1, filter: email } as { perPage: number }
-    )
+    const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    })
     if (listError || !listData) {
       console.error('listUsers error:', listError)
       return NextResponse.json({ error: 'Unable to verify account. Please try again.' }, { status: 500 })
     }
-    const userExists = listData.users.some((u) => u.email === email)
+    const userExists = listData.users.some(
+      (u) => u.email?.toLowerCase() === email.toLowerCase()
+    )
     if (!userExists) {
       return NextResponse.json(
         { error: 'No account found for this email address. You need an invite to join PacePact.' },

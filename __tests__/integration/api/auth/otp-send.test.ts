@@ -71,12 +71,10 @@ describe('POST /api/auth/otp/send', () => {
     expect(mockSendEmail).toHaveBeenCalledTimes(1)
   })
 
-  it('calls listUsers with perPage:1 and the email as filter (targeted lookup)', async () => {
+  it('calls listUsers with page:1 and perPage:1000 for full scan', async () => {
     await POST(makeRequest({ email: 'user@example.com' }))
 
-    expect(mockListUsers).toHaveBeenCalledWith(
-      expect.objectContaining({ perPage: 1, filter: 'user@example.com' })
-    )
+    expect(mockListUsers).toHaveBeenCalledWith({ page: 1, perPage: 1000 })
   })
 
   it('returns 404 with an error message when email is not registered', async () => {
