@@ -94,6 +94,13 @@ export default function PrivacyPage() {
               <li><strong className="text-zinc-700 dark:text-zinc-300">Strava</strong> — activity data source</li>
             </ul>
             <p>We do not share data with any other third parties.</p>
+            <p className="mt-2">
+              Please note that when you connect your Strava account, Strava may independently collect data about your
+              use of their platform in accordance with the{' '}
+              <a href="https://www.strava.com/legal/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:no-underline">
+                Strava Privacy Policy
+              </a>. PacePact has no control over Strava&apos;s data collection practices.
+            </p>
           </div>
         </section>
 
