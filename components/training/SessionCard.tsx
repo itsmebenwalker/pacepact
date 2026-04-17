@@ -49,7 +49,7 @@ export default function SessionCard({ session, pendingPart }: Props) {
         </p>
       )}
       {isCompleted && (
-        <div className="text-zinc-400 dark:text-zinc-500 text-xs mt-1 space-y-0.5">
+        <div className="text-zinc-400 dark:text-zinc-500 text-xs mt-1 space-y-1.5">
           <p>
             {session.completed_at
               ? new Date(session.completed_at).toLocaleDateString('en', { month: 'short', day: 'numeric' })
