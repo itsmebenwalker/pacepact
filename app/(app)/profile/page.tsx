@@ -40,10 +40,7 @@ export default async function ProfilePage() {
         {isStravaConnected ? (
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-md overflow-hidden shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/powered-by-strava.svg" alt="Powered by Strava" width={150} height={28} className="h-6 w-auto" />
-              </div>
+              <div className="w-2.5 h-2.5 rounded-full bg-[#FC5200] shrink-0" />
               <div>
                 <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Connected</p>
                 <p className="text-xs text-zinc-400 dark:text-zinc-500">
