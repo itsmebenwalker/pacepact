@@ -18,10 +18,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-50 tracking-tight">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="24" height="24" aria-hidden="true">
-              <rect width="32" height="32" rx="4" className="fill-zinc-950 dark:fill-zinc-50"/>
-              <path d="M9 8h7a5 5 0 0 1 0 10h-4v6H9V8z" className="fill-zinc-50 dark:fill-zinc-950"/>
-            </svg>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/favicon.svg" width={24} height={24} alt="" aria-hidden="true" className="dark:invert" />
             PacePact
           </Link>
           <div className="relative flex items-center gap-1">
