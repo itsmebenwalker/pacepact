@@ -77,7 +77,7 @@ export default async function DashboardPage() {
         </div>
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
             {groups.map((group) => (
               <GroupCard key={group.id} group={group} myPoints={group.my_points} />
             ))}
