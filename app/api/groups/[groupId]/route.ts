@@ -16,7 +16,7 @@ export async function PATCH(
 
   const { data: group } = await supabase
     .from('groups')
-    .select('created_by, invite_locked')
+    .select('created_by, invite_locked, allow_manual_complete')
     .eq('id', groupId)
     .single()
 
@@ -56,6 +56,20 @@ export async function PATCH(
     }
 
     return NextResponse.json({ ok: true, invite_locked: !group.invite_locked })
+  }
+
+  if (body.action === 'toggle_manual_complete') {
+    const next = !group.allow_manual_complete
+    const { error } = await serviceClient
+      .from('groups')
+      .update({ allow_manual_complete: next })
+      .eq('id', groupId)
+
+    if (error) {
+      return NextResponse.json({ error: 'Failed to update manual complete setting' }, { status: 500 })
+    }
+
+    return NextResponse.json({ ok: true, allow_manual_complete: next })
   }
 
   // Default action: edit group name + event name

@@ -8,6 +8,7 @@ interface Props {
   sessions: Session[]
   today: string // YYYY-MM-DD — passed from the server-rendered page
   brickParts?: BrickActivityPart[]
+  allowManualComplete?: boolean
 }
 
 /**
@@ -37,7 +38,7 @@ export function weekDateRange(sessions: Session[]): string | null {
   return `${start.getDate()} ${startMonth} – ${end.getDate()} ${endMonth}`
 }
 
-export default function WeekView({ weekNumber, sessions, today, brickParts = [] }: Props) {
+export default function WeekView({ weekNumber, sessions, today, brickParts = [], allowManualComplete = true }: Props) {
   const status = getWeekStatus(sessions, today)
   const restCount = sessions.filter((s) => s.session_type === 'rest').length
   const activeSessions = sessions.filter((s) => s.session_type !== 'rest')
@@ -118,6 +119,7 @@ export default function WeekView({ weekNumber, sessions, today, brickParts = [] 
                     ? weekBrickParts[0]
                     : undefined
                 }
+                allowManualComplete={allowManualComplete}
               />
             ))}
         </div>

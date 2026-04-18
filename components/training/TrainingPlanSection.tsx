@@ -10,9 +10,10 @@ interface Props {
   weeks: [number, Session[]][]
   today: string
   brickParts: BrickActivityPart[]
+  allowManualComplete: boolean
 }
 
-export default function TrainingPlanSection({ groupId, weeks, today, brickParts }: Props) {
+export default function TrainingPlanSection({ groupId, weeks, today, brickParts, allowManualComplete }: Props) {
   const [pastOpen, setPastOpen] = useState(false)
 
   return (
@@ -34,7 +35,7 @@ export default function TrainingPlanSection({ groupId, weeks, today, brickParts 
           {/* Desktop: first 4 weeks */}
           <div className="hidden sm:block space-y-3">
             {weeks.slice(0, 4).map(([weekNum, weekSessions]) => (
-              <WeekView key={weekNum} weekNumber={weekNum} sessions={weekSessions} today={today} brickParts={brickParts} />
+              <WeekView key={weekNum} weekNumber={weekNum} sessions={weekSessions} today={today} brickParts={brickParts} allowManualComplete={allowManualComplete} />
             ))}
           </div>
 
@@ -45,6 +46,7 @@ export default function TrainingPlanSection({ groupId, weeks, today, brickParts 
               sessions={weeks[0][1]}
               today={today}
               brickParts={brickParts}
+              allowManualComplete={allowManualComplete}
             />
 
             {weeks.length > 1 && (
@@ -66,7 +68,7 @@ export default function TrainingPlanSection({ groupId, weeks, today, brickParts 
                 {pastOpen && (
                   <div className="space-y-3">
                     {weeks.slice(1, 4).map(([weekNum, weekSessions]) => (
-                      <WeekView key={weekNum} weekNumber={weekNum} sessions={weekSessions} today={today} brickParts={brickParts} />
+                      <WeekView key={weekNum} weekNumber={weekNum} sessions={weekSessions} today={today} brickParts={brickParts} allowManualComplete={allowManualComplete} />
                     ))}
                   </div>
                 )}

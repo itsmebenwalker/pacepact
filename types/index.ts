@@ -59,6 +59,7 @@ export interface Group {
   training_plan_raw?: string
   invite_code: string
   invite_locked: boolean
+  allow_manual_complete: boolean
   created_by: string
   created_at: string
 }

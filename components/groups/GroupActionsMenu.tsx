@@ -10,6 +10,7 @@ interface Props {
   eventName: string
   inviteCode: string
   inviteLocked: boolean
+  allowManualComplete: boolean
   isCreator: boolean
 }
 
@@ -21,6 +22,7 @@ export default function GroupActionsMenu({
   eventName,
   inviteCode,
   inviteLocked,
+  allowManualComplete,
   isCreator,
 }: Props) {
   const router = useRouter()
@@ -90,6 +92,18 @@ export default function GroupActionsMenu({
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'toggle_invite_lock' }),
+    })
+    setLoading(false)
+    if (res.ok) router.refresh()
+  }
+
+  async function handleToggleManualComplete() {
+    setOpen(false)
+    setLoading(true)
+    const res = await fetch(`/api/groups/${groupId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'toggle_manual_complete' }),
     })
     setLoading(false)
     if (res.ok) router.refresh()
@@ -213,6 +227,13 @@ export default function GroupActionsMenu({
                   className={itemDefault}
                 >
                   {inviteLocked ? 'Unlock invites' : 'Lock invites'}
+                </button>
+                <button
+                  onClick={handleToggleManualComplete}
+                  disabled={loading}
+                  className={itemDefault}
+                >
+                  {allowManualComplete ? 'Disable manual done' : 'Allow manual done'}
                 </button>
                 <div className="border-t border-zinc-100 dark:border-zinc-800 my-1" />
                 <button onClick={() => openModal('edit')} className={itemDefault}>

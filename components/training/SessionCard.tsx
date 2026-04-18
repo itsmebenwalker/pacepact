@@ -24,9 +24,10 @@ const DEFAULT_TIPS: Record<string, string> = {
 interface Props {
   session: Session
   pendingPart?: BrickActivityPart
+  allowManualComplete?: boolean
 }
 
-export default function SessionCard({ session, pendingPart }: Props) {
+export default function SessionCard({ session, pendingPart, allowManualComplete = true }: Props) {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -35,7 +36,7 @@ export default function SessionCard({ session, pendingPart }: Props) {
   const label = SESSION_LABEL[session.session_type] ?? session.session_type.toUpperCase()
   const tip = session.tip ?? DEFAULT_TIPS[session.session_type] ?? null
 
-  const canMarkDone = !isCompleted && (() => {
+  const canMarkDone = !isCompleted && allowManualComplete && (() => {
     if (!session.scheduled_date) return true
     const todayStr = new Date().toISOString().split('T')[0]
     const today = new Date(todayStr)

@@ -57,6 +57,8 @@ supabase/migrations/20260413_brick_activity_parts_ui.sql            # Brick prog
 supabase/migrations/20260414_recreate_brick_activity_parts.sql      # Clean rebuild of brick table
 supabase/migrations/20260415_brick_parts_nullable_external_id.sql   # Allow non-Garmin activities to park
 supabase/migrations/20260416_group_admin_features.sql               # invite_locked + group_member_bans
+supabase/migrations/20260417_add_session_tip.sql                    # tip column on sessions
+supabase/migrations/20260418_allow_manual_complete.sql              # allow_manual_complete on groups
 ```
 
 > **Note**: the three `brick_activity_parts` migrations marked "superseded" are replaced by `20260414_recreate_brick_activity_parts.sql`. On a fresh install you can skip them and run only the final one. On an existing install, run all four in order — the final migration drops and recreates the table cleanly.
@@ -69,6 +71,9 @@ The notifications migration adds:
 The group admin migration adds:
 - `invite_locked boolean DEFAULT false` column to `groups` — when true, the join page rejects new members with an "Invites closed" message
 - `group_member_bans` table — records users kicked by the creator, preventing rejoin via any invite link; RLS allows users to read their own ban rows (needed for the join-gate check)
+
+The `allow_manual_complete` migration adds:
+- `allow_manual_complete boolean NOT NULL DEFAULT true` column to `groups` — when false, the "Mark done manually" button is hidden for all members. Defaults to `true` so existing groups are unaffected. Toggled by the group creator via the ••• menu.
 
 The brick activity parts migrations add:
 - `brick_activity_parts` table — in any week with a pending brick session, any incoming run or ride is stored here until it is either manually assigned by the user or auto-released when the brick completes

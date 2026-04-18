@@ -117,6 +117,7 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
           eventName={group.event_name}
           inviteCode={group.invite_code}
           inviteLocked={group.invite_locked}
+          allowManualComplete={group.allow_manual_complete ?? true}
           isCreator={group.created_by === user.id}
         />
       </div>
@@ -146,6 +147,7 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
         weeks={weeks}
         today={today}
         brickParts={brickParts}
+        allowManualComplete={group.allow_manual_complete ?? true}
       />
     </div>
   )

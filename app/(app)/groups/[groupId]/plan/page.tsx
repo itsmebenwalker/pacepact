@@ -14,7 +14,7 @@ export default async function PlanPage({ params }: { params: Promise<{ groupId: 
   if (!user) redirect('/login')
 
   const [{ data: group }, { data: membership }] = await Promise.all([
-    supabase.from('groups').select('id, name, event_name, event_date').eq('id', groupId).single(),
+    supabase.from('groups').select('id, name, event_name, event_date, allow_manual_complete').eq('id', groupId).single(),
     supabase.from('group_members').select('id').eq('group_id', groupId).eq('user_id', user.id).maybeSingle(),
   ])
 
@@ -63,7 +63,7 @@ export default async function PlanPage({ params }: { params: Promise<{ groupId: 
 
       <div className="space-y-4">
         {weeks.map(([weekNum, weekSessions]) => (
-          <WeekView key={weekNum} weekNumber={weekNum} sessions={weekSessions} today={today} brickParts={brickParts} />
+          <WeekView key={weekNum} weekNumber={weekNum} sessions={weekSessions} today={today} brickParts={brickParts} allowManualComplete={group.allow_manual_complete ?? true} />
         ))}
       </div>
     </div>

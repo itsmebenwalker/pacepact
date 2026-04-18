@@ -19,6 +19,7 @@ interface GroupRow {
   ambition: Ambition
   invite_code: string
   invite_locked: boolean
+  allow_manual_complete: boolean
 }
 
 export default async function DashboardPage() {
@@ -33,7 +34,7 @@ export default async function DashboardPage() {
       points,
       joined_at,
       groups (
-        id, name, event_name, event_type, event_date, ambition, invite_code, invite_locked
+        id, name, event_name, event_type, event_date, ambition, invite_code, invite_locked, allow_manual_complete
       )
     `)
     .eq('user_id', user.id)
