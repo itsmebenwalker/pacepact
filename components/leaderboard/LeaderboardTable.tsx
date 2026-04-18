@@ -49,16 +49,19 @@ export default function LeaderboardTable({ groupId, initialMembers, currentUserI
     return () => { supabase.removeChannel(channel) }
   }, [groupId])
 
+  const [mobileExpanded, setMobileExpanded] = useState(false)
+
   const LIMIT = 5
+  const MOBILE_LIMIT = 3
   const myRank = members.findIndex((m) => m.user_id === currentUserId)
   const isOutsideTop = myRank >= LIMIT
   const visibleMembers = members.slice(0, LIMIT)
   const me = isOutsideTop ? members[myRank] : null
 
-  function Row({ member, rank }: { member: MemberRow; rank: number }) {
+  function Row({ member, rank, className = '' }: { member: MemberRow; rank: number; className?: string }) {
     const isMe = member.user_id === currentUserId
     return (
-      <div className={`flex items-center gap-3 px-4 py-3 sm:px-5 sm:gap-4 ${isMe ? 'bg-zinc-50 dark:bg-zinc-800/50' : ''}`}>
+      <div className={`flex items-center gap-3 px-4 py-3 sm:px-5 sm:gap-4 ${isMe ? 'bg-zinc-50 dark:bg-zinc-800/50' : ''} ${className}`}>
         <span className={`w-5 text-center font-medium text-xs tabular-nums ${rank === 0 ? 'text-zinc-900 dark:text-zinc-50' : 'text-zinc-400 dark:text-zinc-500'}`}>
           {rank + 1}
         </span>
@@ -78,7 +81,12 @@ export default function LeaderboardTable({ groupId, initialMembers, currentUserI
       </div>
       <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
         {visibleMembers.map((member, i) => (
-          <Row key={member.user_id} member={member} rank={i} />
+          <Row
+            key={member.user_id}
+            member={member}
+            rank={i}
+            className={i >= MOBILE_LIMIT && !mobileExpanded ? 'hidden sm:flex' : ''}
+          />
         ))}
         {isOutsideTop && me && (
           <>
@@ -91,6 +99,14 @@ export default function LeaderboardTable({ groupId, initialMembers, currentUserI
           </>
         )}
       </div>
+      {members.length > MOBILE_LIMIT && (
+        <button
+          onClick={() => setMobileExpanded((v) => !v)}
+          className="sm:hidden w-full px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400 border-t border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors text-left"
+        >
+          {mobileExpanded ? 'Show less' : `View all ${members.length}`}
+        </button>
+      )}
     </div>
   )
 }

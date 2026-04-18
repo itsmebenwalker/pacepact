@@ -79,8 +79,12 @@ export default function CreateGroupForm() {
 
   const currentStepIndex = STEPS.indexOf(step)
 
+  const eventStepValid =
+    !!form.name && !!form.event_name && !!form.event_type && !!form.event_date &&
+    (form.event_type !== 'other' || (!!form.other_sport && !!form.other_distance_km))
+
   return (
-    <div className="max-w-lg mx-auto">
+    <div className="max-w-lg mx-auto pb-24 sm:pb-0">
       {/* Step indicator */}
       <div className="flex items-center gap-2 mb-8">
         {STEPS.map((s, i) => (
@@ -99,6 +103,7 @@ export default function CreateGroupForm() {
         ))}
       </div>
 
+      {/* Step content */}
       {step === 'event' && (
         <div className="space-y-5">
           <h2 className="text-base font-medium text-zinc-900 dark:text-zinc-50">Event details</h2>
@@ -180,17 +185,6 @@ export default function CreateGroupForm() {
               className={inputClass}
             />
           </div>
-
-          <button
-            onClick={() => setStep('ambition')}
-            disabled={
-              !form.name || !form.event_name || !form.event_type || !form.event_date ||
-              (form.event_type === 'other' && (!form.other_sport || !form.other_distance_km))
-            }
-            className="w-full bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-40 text-white dark:text-zinc-900 font-medium py-2.5 rounded-md text-sm transition-colors"
-          >
-            Next
-          </button>
         </div>
       )}
 
@@ -216,22 +210,6 @@ export default function CreateGroupForm() {
                 <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{a.desc}</div>
               </button>
             ))}
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={() => setStep('event')}
-              className="flex-1 text-sm text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 font-medium py-2.5 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-            >
-              Back
-            </button>
-            <button
-              onClick={() => setStep('review')}
-              disabled={!form.ambition}
-              className="flex-1 text-sm bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-40 text-white dark:text-zinc-900 font-medium py-2.5 rounded-md transition-colors"
-            >
-              Next
-            </button>
           </div>
         </div>
       )}
@@ -260,7 +238,40 @@ export default function CreateGroupForm() {
           </p>
 
           {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        </div>
+      )}
 
+      {/* Sticky action bar — fixed on mobile, static on desktop */}
+      <div className="fixed bottom-0 inset-x-0 z-10 sm:static sm:mt-5 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 sm:border-0 px-4 py-4 sm:p-0 space-y-2">
+        {step === 'event' && (
+          <button
+            onClick={() => setStep('ambition')}
+            disabled={!eventStepValid}
+            className="w-full bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-40 text-white dark:text-zinc-900 font-medium py-2.5 rounded-md text-sm transition-colors"
+          >
+            Next
+          </button>
+        )}
+
+        {step === 'ambition' && (
+          <div className="flex gap-3">
+            <button
+              onClick={() => setStep('event')}
+              className="flex-1 text-sm text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 font-medium py-2.5 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+            >
+              Back
+            </button>
+            <button
+              onClick={() => setStep('review')}
+              disabled={!form.ambition}
+              className="flex-1 text-sm bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-40 text-white dark:text-zinc-900 font-medium py-2.5 rounded-md transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        )}
+
+        {step === 'review' && (
           <div className="flex gap-3">
             <button
               onClick={() => setStep('ambition')}
@@ -285,8 +296,8 @@ export default function CreateGroupForm() {
               ) : 'Generate plan'}
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

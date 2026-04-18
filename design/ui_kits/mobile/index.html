@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PacePact · Mobile UI Kit</title>
+<link rel="icon" href="../../assets/favicon.svg">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config = { darkMode: 'class' };</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  html, body {
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+    margin: 0; padding: 0;
+  }
+  body { background: #e4e4e7; min-height: 100vh; }
+  .dark body { background: #18181b; }
+  /* Scrollbar inside phone frame */
+  .phone-scroll::-webkit-scrollbar { display: none; }
+  .phone-scroll { scrollbar-width: none; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js"     integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"     integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Shared web-kit atoms (Button, Pill, GroupCard, SessionCard, etc.) -->
+<script type="text/babel" src="../web/Icons.jsx"></script>
+<script type="text/babel" src="../web/Chrome.jsx"></script>
+<script type="text/babel" src="../web/Training.jsx"></script>
+<script type="text/babel" src="../web/GroupPanels.jsx"></script>
+<script type="text/babel" src="../web/Dashboard.jsx"></script>
+
+<!-- Mobile-specific components -->
+<script type="text/babel" src="ios_frame.jsx"></script>
+<script type="text/babel" src="MobileDashboard.jsx"></script>
+<script type="text/babel" src="MobileGroupHome.jsx"></script>
+<script type="text/babel" src="MobileNewGroup.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+/* globals React, ReactDOM, IosFrame, MobileDashboard, MobileGroupHome, MobileNewGroup,
+           IconSun, IconMoon */
+
+// ── Seed data (matches the web kit) ──────────────────────────────────────────
+const SEED_GROUPS = [
+  { id:'g1', name:'Berlin Crew',       event_name:'Berlin Marathon 2026',  event_type:'marathon',  event_date:'2026-09-27', ambition:'pb',     my_points:87  },
+  { id:'g2', name:'Tri Hards',         event_name:'Challenge Roth 2026',   event_type:'triathlon', event_date:'2026-07-05', ambition:'finish',  my_points:42  },
+  { id:'g3', name:'Sunday Spinners',   event_name:'Haute Route Alps',      event_type:'cycling',   event_date:'2026-08-23', ambition:'podium',  my_points:134 },
+];
+const SEED_MEMBERS = [
+  { user_id:'u1', display_name:'Priya',  points:134 },
+  { user_id:'u2', display_name:'Marcus', points:121 },
+  { user_id:'me', display_name:'Alex',   points:87  },
+  { user_id:'u4', display_name:'Jordan', points:72  },
+  { user_id:'u5', display_name:'Sam',    points:60  },
+  { user_id:'u6', display_name:'Chen',   points:45  },
+];
+const SEED_SESSIONS = [
+  { id:'s1', week_number:1, session_type:'run',  target_description:'Easy 5km recovery run',      target_distance_km:5,  target_duration_minutes:30,  completed:true,  completed_at:'Apr 8',  points_awarded:12, strava_activity_id:123, scheduled_date:'2026-04-08' },
+  { id:'s2', week_number:1, session_type:'run',  target_description:'4×800m intervals @ 5k pace', target_distance_km:6,  target_duration_minutes:40,  completed:true,  completed_at:'Apr 10', points_awarded:13, strava_activity_id:124, scheduled_date:'2026-04-10' },
+  { id:'s3', week_number:1, session_type:'run',  target_description:'Long run — 14km steady',     target_distance_km:14, target_duration_minutes:80,  completed:true,  completed_at:'Apr 13', points_awarded:10, strava_activity_id:125, scheduled_date:'2026-04-13' },
+  { id:'s4', week_number:2, session_type:'run',  target_description:'Easy 6km base run',          target_distance_km:6,  target_duration_minutes:35,  completed:true,  completed_at:'Apr 15', points_awarded:10, strava_activity_id:126, scheduled_date:'2026-04-15' },
+  { id:'s5', week_number:2, session_type:'run',  target_description:'Tempo 5km @ threshold',      target_distance_km:5,  target_duration_minutes:25,  completed:false, scheduled_date:'2026-04-17' },
+  { id:'s6', week_number:2, session_type:'run',  target_description:'Long run — 16km progressive', target_distance_km:16, target_duration_minutes:95, completed:false, scheduled_date:'2026-04-20' },
+  { id:'s7', week_number:3, session_type:'run',  target_description:'Easy 5km shakeout',          target_distance_km:5,  target_duration_minutes:30,  completed:true,  completed_at:'Apr 21', points_awarded:10, strava_activity_id:127, scheduled_date:'2026-04-21' },
+  { id:'s8', week_number:3, session_type:'run',  target_description:'6×400m hill repeats',        target_distance_km:7,  target_duration_minutes:45,  completed:false, scheduled_date:'2026-04-23' },
+  { id:'s9', week_number:3, session_type:'brick', target_description:'Brick — 30km ride + 5km run', target_distance_km:35, target_duration_minutes:120, completed:false, scheduled_date:'2026-04-26', tip:'Run straight off the bike to train your legs for the transition.' },
+  { id:'s10',week_number:3, session_type:'run',  target_description:'Long run — 18km aerobic',    target_distance_km:18, target_duration_minutes:105, completed:false, scheduled_date:'2026-04-27' },
+  { id:'r1', week_number:1, session_type:'rest', target_description:'Rest' },
+  { id:'r2', week_number:2, session_type:'rest', target_description:'Rest' },
+  { id:'r3', week_number:3, session_type:'rest', target_description:'Rest' },
+];
+const SEED_MESSAGES = [
+  { id:'m1', user_id:'u1', content:'Long run Sunday at 7am from the park, who is in?', created_at:new Date(Date.now()-86400000*2).toISOString(), display_name:'Priya'  },
+  { id:'m2', user_id:'u2', content:'In. Bringing gels.',                               created_at:new Date(Date.now()-86400000*2+3600000).toISOString(), display_name:'Marcus' },
+  { id:'m3', user_id:'me', content:'I can make it but might bail at 12k.',             created_at:new Date(Date.now()-3600000*2).toISOString(), display_name:'Alex'   },
+];
+const MEMBER_NAMES = Object.fromEntries(SEED_MEMBERS.map((m) => [m.user_id, m.display_name]));
+
+// ── Screen registry (used for the external jump buttons) ─────────────────────
+// Group: "Components" — these four entries correspond to the Design System tab
+// registrations described in the handoff.
+const SCREENS = [
+  { id:'dashboard', label:'Mobile · Dashboard'   },
+  { id:'group',     label:'Mobile · Group home'  },
+  { id:'session',   label:'Mobile · Session detail' },
+  { id:'new',       label:'Mobile · New group'   },
+];
+
+// ── App ───────────────────────────────────────────────────────────────────────
+function App() {
+  const [screen,        setScreen]        = React.useState('dashboard');
+  const [dark,          setDark]          = React.useState(false);
+  const [groups,        setGroups]        = React.useState(SEED_GROUPS);
+  const [activeGroupId, setActiveGroupId] = React.useState('g1');
+
+  // Persist route — separate key so it never collides with the web kit (pp-route)
+  React.useEffect(() => {
+    const saved = localStorage.getItem('pp-mobile-route');
+    if (saved) {
+      try {
+        const { screen: s, groupId: g } = JSON.parse(saved);
+        setScreen(s); setActiveGroupId(g);
+      } catch (_) {}
+    }
+  }, []);
+  React.useEffect(() => {
+    localStorage.setItem('pp-mobile-route', JSON.stringify({ screen, groupId: activeGroupId }));
+  }, [screen, activeGroupId]);
+
+  React.useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark);
+  }, [dark]);
+
+  const activeGroup = groups.find((g) => g.id === activeGroupId) ?? groups[0];
+
+  function renderScreen() {
+    switch (screen) {
+      case 'dashboard':
+        return (
+          <MobileDashboard
+            groups={groups}
+            onOpenGroup={(id) => { setActiveGroupId(id); setScreen('group'); }}
+            onNew={() => setScreen('new')}
+          />
+        );
+      case 'group':
+        return (
+          <MobileGroupHome
+            group={activeGroup}
+            sessions={SEED_SESSIONS}
+            members={SEED_MEMBERS}
+            currentUserId="me"
+            messages={SEED_MESSAGES}
+            memberNames={MEMBER_NAMES}
+            onBack={() => setScreen('dashboard')}
+          />
+        );
+      case 'session':
+        // Group home with the brick session detail sheet open on mount
+        return (
+          <MobileGroupHome
+            group={activeGroup}
+            sessions={SEED_SESSIONS}
+            members={SEED_MEMBERS}
+            currentUserId="me"
+            messages={SEED_MESSAGES}
+            memberNames={MEMBER_NAMES}
+            onBack={() => setScreen('group')}
+            initialSessionId="s9"
+          />
+        );
+      case 'new':
+        return (
+          <MobileNewGroup
+            onBack={() => setScreen('dashboard')}
+            onCreated={(data) => {
+              const id = 'g' + (groups.length + 1);
+              setGroups([
+                { id, name:data.name, event_name:data.eventName, event_type:data.eventType,
+                  event_date:data.eventDate, ambition:data.ambition, my_points:0 },
+                ...groups,
+              ]);
+              setActiveGroupId(id);
+              setScreen('group');
+            }}
+          />
+        );
+      default:
+        return null;
+    }
+  }
+
+  return (
+    <div style={{minHeight:'100vh', background: dark ? '#18181b' : '#e4e4e7'}}>
+
+      {/* ── Page header ──────────────────────────────────────────── */}
+      <div style={{
+        background: dark ? '#09090b' : '#fff',
+        borderBottom: `1px solid ${dark ? '#27272a' : '#e4e4e7'}`,
+        padding: '12px 24px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: '16px', flexWrap: 'wrap',
+      }}>
+        <div>
+          <p style={{margin:0, fontSize:'14px', fontWeight:600, color: dark ? '#fafafa' : '#09090b'}}>
+            PacePact · Mobile UI Kit
+          </p>
+          <p style={{margin:'2px 0 0', fontSize:'12px', color:'#71717a'}}>
+            iOS frame prototype — four screens
+          </p>
+        </div>
+
+        <div style={{display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap'}}>
+          {/* Screen jump buttons */}
+          {SCREENS.map((sc) => (
+            <button
+              key={sc.id}
+              onClick={() => setScreen(sc.id)}
+              style={{
+                padding: '6px 12px',
+                fontSize: '12px',
+                fontFamily: 'inherit',
+                fontWeight: screen === sc.id ? '500' : '400',
+                borderRadius: '6px',
+                border: `1px solid ${screen === sc.id ? (dark ? '#fafafa' : '#09090b') : (dark ? '#3f3f46' : '#e4e4e7')}`,
+                background: screen === sc.id ? (dark ? '#fafafa' : '#09090b') : 'transparent',
+                color: screen === sc.id ? (dark ? '#09090b' : '#fff') : (dark ? '#a1a1aa' : '#71717a'),
+                cursor: 'pointer',
+              }}
+            >
+              {sc.label}
+            </button>
+          ))}
+
+          {/* Dark mode toggle */}
+          <button
+            onClick={() => setDark(!dark)}
+            style={{
+              padding: '6px 8px', borderRadius: '6px', border: `1px solid ${dark ? '#3f3f46' : '#e4e4e7'}`,
+              background: 'transparent', cursor: 'pointer',
+              color: dark ? '#a1a1aa' : '#71717a', display:'flex', alignItems:'center',
+            }}
+            aria-label="Toggle dark mode"
+          >
+            {dark ? <IconSun size={14} /> : <IconMoon size={14} />}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Phone display area ───────────────────────────────────── */}
+      <div style={{
+        display: 'flex', justifyContent: 'center', alignItems: 'flex-start',
+        padding: '40px 24px 60px',
+        overflowX: 'auto',
+      }}>
+        <IosFrame dark={dark}>
+          {renderScreen()}
+        </IosFrame>
+      </div>
+
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

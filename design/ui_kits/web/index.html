@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PacePact · UI Kit</title>
+<link rel="icon" href="../../assets/favicon.svg">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { darkMode: 'class' };
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  html, body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
+  body { background: #fafafa; color: #09090b; }
+  .dark body { background: #09090b; color: #fafafa; }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body class="bg-zinc-50 dark:bg-zinc-950">
+<div id="root"></div>
+
+<script type="text/babel" src="Icons.jsx"></script>
+<script type="text/babel" src="Chrome.jsx"></script>
+<script type="text/babel" src="LoginScreen.jsx"></script>
+<script type="text/babel" src="Dashboard.jsx"></script>
+<script type="text/babel" src="Training.jsx"></script>
+<script type="text/babel" src="GroupPanels.jsx"></script>
+<script type="text/babel" src="GroupHome.jsx"></script>
+<script type="text/babel" src="NewGroup.jsx"></script>
+<script type="text/babel" src="Profile.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+/* globals React, ReactDOM, TopNav, LoginScreen, Dashboard, GroupHome, NewGroup, Profile */
+
+// ----- Seed data (fake but realistic) -----
+const SEED_GROUPS = [
+  {
+    id: 'g1',
+    name: 'Berlin Crew',
+    event_name: 'Berlin Marathon 2026',
+    event_type: 'marathon',
+    event_date: '2026-09-27',
+    ambition: 'pb',
+    my_points: 87,
+  },
+  {
+    id: 'g2',
+    name: 'Tri Hards',
+    event_name: 'Challenge Roth 2026',
+    event_type: 'triathlon',
+    event_date: '2026-07-05',
+    ambition: 'finish',
+    my_points: 42,
+  },
+  {
+    id: 'g3',
+    name: 'Sunday Spinners',
+    event_name: 'Haute Route Alps',
+    event_type: 'cycling',
+    event_date: '2026-08-23',
+    ambition: 'podium',
+    my_points: 134,
+  },
+];
+
+const SEED_MEMBERS = [
+  { user_id: 'u1', display_name: 'Priya', points: 134 },
+  { user_id: 'u2', display_name: 'Marcus', points: 121 },
+  { user_id: 'me', display_name: 'Alex', points: 87 },
+  { user_id: 'u4', display_name: 'Jordan', points: 72 },
+  { user_id: 'u5', display_name: 'Sam', points: 60 },
+  { user_id: 'u6', display_name: 'Chen', points: 45 },
+];
+
+const SEED_SESSIONS = [
+  // Week 1 (past-complete) — all done
+  { id: 's1', week_number: 1, session_type: 'run', target_description: 'Easy 5km recovery run', target_distance_km: 5, target_duration_minutes: 30, completed: true, completed_at: 'Apr 8', points_awarded: 12, strava_activity_id: 123, scheduled_date: '2026-04-08' },
+  { id: 's2', week_number: 1, session_type: 'run', target_description: '4×800m intervals @ 5k pace', target_distance_km: 6, target_duration_minutes: 40, completed: true, completed_at: 'Apr 10', points_awarded: 13, strava_activity_id: 124, scheduled_date: '2026-04-10' },
+  { id: 's3', week_number: 1, session_type: 'run', target_description: 'Long run — 14km steady', target_distance_km: 14, target_duration_minutes: 80, completed: true, completed_at: 'Apr 13', points_awarded: 10, strava_activity_id: 125, scheduled_date: '2026-04-13' },
+
+  // Week 2 (past-incomplete) — some skipped
+  { id: 's4', week_number: 2, session_type: 'run', target_description: 'Easy 6km base run', target_distance_km: 6, target_duration_minutes: 35, completed: true, completed_at: 'Apr 15', points_awarded: 10, strava_activity_id: 126, scheduled_date: '2026-04-15' },
+  { id: 's5', week_number: 2, session_type: 'run', target_description: 'Tempo 5km @ threshold', target_distance_km: 5, target_duration_minutes: 25, completed: false, scheduled_date: '2026-04-17' },
+  { id: 's6', week_number: 2, session_type: 'run', target_description: 'Long run — 16km progressive', target_distance_km: 16, target_duration_minutes: 95, completed: false, scheduled_date: '2026-04-20' },
+
+  // Week 3 (active) — this week
+  { id: 's7', week_number: 3, session_type: 'run', target_description: 'Easy 5km shakeout', target_distance_km: 5, target_duration_minutes: 30, completed: true, completed_at: 'Apr 21', points_awarded: 10, strava_activity_id: 127, scheduled_date: '2026-04-21' },
+  { id: 's8', week_number: 3, session_type: 'run', target_description: '6×400m hill repeats', target_distance_km: 7, target_duration_minutes: 45, completed: false, scheduled_date: '2026-04-23' },
+  { id: 's9', week_number: 3, session_type: 'brick', target_description: 'Brick — 30km ride + 5km run', target_distance_km: 35, target_duration_minutes: 120, completed: false, scheduled_date: '2026-04-26', tip: 'Run straight off the bike to train your legs.' },
+  { id: 's10', week_number: 3, session_type: 'run', target_description: 'Long run — 18km aerobic', target_distance_km: 18, target_duration_minutes: 105, completed: false, scheduled_date: '2026-04-27' },
+
+  // Rest days (displayed as note only)
+  { id: 'r1', week_number: 1, session_type: 'rest', target_description: 'Rest' },
+  { id: 'r2', week_number: 2, session_type: 'rest', target_description: 'Rest' },
+  { id: 'r3', week_number: 3, session_type: 'rest', target_description: 'Rest' },
+];
+
+const SEED_MESSAGES = [
+  { id: 'm1', user_id: 'u1', content: 'Long run Sunday at 7am from the park, who is in?', created_at: new Date(Date.now() - 86400000 * 2).toISOString(), display_name: 'Priya' },
+  { id: 'm2', user_id: 'u2', content: 'In. Bringing gels.', created_at: new Date(Date.now() - 86400000 * 2 + 3600000).toISOString(), display_name: 'Marcus' },
+  { id: 'm3', user_id: 'me', content: 'I can make it but might bail at 12k.', created_at: new Date(Date.now() - 3600000 * 2).toISOString(), display_name: 'Alex' },
+];
+
+const MEMBER_NAMES = Object.fromEntries(SEED_MEMBERS.map((m) => [m.user_id, m.display_name]));
+
+// ----- App shell -----
+function App() {
+  const [route, setRoute] = React.useState('login'); // login | dashboard | group | new | profile
+  const [activeGroupId, setActiveGroupId] = React.useState(null);
+  const [dark, setDark] = React.useState(false);
+  const [groups, setGroups] = React.useState(SEED_GROUPS);
+  const [unread, setUnread] = React.useState(3);
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem('pp-route');
+    if (saved) {
+      const { route, groupId } = JSON.parse(saved);
+      setRoute(route); setActiveGroupId(groupId);
+    }
+  }, []);
+  React.useEffect(() => {
+    localStorage.setItem('pp-route', JSON.stringify({ route, groupId: activeGroupId }));
+  }, [route, activeGroupId]);
+
+  React.useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark);
+  }, [dark]);
+
+  function navigate(r) {
+    if (r === 'notifications') { setUnread(0); return; } // no dedicated screen in this prototype
+    setRoute(r);
+  }
+
+  function openGroup(id) { setActiveGroupId(id); setRoute('group'); }
+  const activeGroup = groups.find((g) => g.id === activeGroupId) ?? groups[0];
+
+  return (
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
+      {route !== 'login' && (
+        <TopNav
+          unread={unread}
+          dark={dark}
+          onToggleTheme={() => setDark(!dark)}
+          onNavigate={navigate}
+          route={route}
+        />
+      )}
+
+      {route === 'login' && <LoginScreen onSignIn={() => setRoute('dashboard')} />}
+      {route === 'dashboard' && (
+        <Dashboard groups={groups} onOpenGroup={openGroup} onNew={() => setRoute('new')} />
+      )}
+      {route === 'group' && activeGroup && (
+        <GroupHome
+          group={activeGroup}
+          sessions={SEED_SESSIONS}
+          members={SEED_MEMBERS}
+          currentUserId="me"
+          messages={SEED_MESSAGES}
+          memberNames={MEMBER_NAMES}
+          onBack={() => setRoute('dashboard')}
+        />
+      )}
+      {route === 'new' && (
+        <NewGroup
+          onBack={() => setRoute('dashboard')}
+          onCreated={(data) => {
+            const id = 'g' + (groups.length + 1);
+            setGroups([
+              { id, name: data.name, event_name: data.eventName, event_type: data.eventType, event_date: data.eventDate, ambition: data.ambition, my_points: 0 },
+              ...groups,
+            ]);
+            setActiveGroupId(id);
+            setRoute('group');
+          }}
+        />
+      )}
+      {route === 'profile' && <Profile onBack={() => setRoute('dashboard')} />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

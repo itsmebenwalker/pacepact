@@ -89,7 +89,7 @@ export default function WeekInReviewPanel({
           strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className={`text-zinc-400 dark:text-zinc-500 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`text-zinc-400 dark:text-zinc-500 shrink-0 ${open ? 'rotate-180' : ''}`}
         >
           <polyline points="6 9 12 15 18 9" />
         </svg>

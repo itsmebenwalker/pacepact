@@ -3,11 +3,10 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import LeaderboardTable from '@/components/leaderboard/LeaderboardTable'
-import WeekView from '@/components/training/WeekView'
+import TrainingPlanSection from '@/components/training/TrainingPlanSection'
 import GroupActionsMenu from '@/components/groups/GroupActionsMenu'
 import MessageBoard from '@/components/groups/MessageBoard'
 import WeekInReview from '@/components/groups/WeekInReview'
-import Link from 'next/link'
 import { sortWeeks } from '@/lib/utils/week-status'
 import type { BrickActivityPart, Session } from '@/types'
 
@@ -104,7 +103,7 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
   )
 
   return (
-    <div className="space-y-5 sm:space-y-8">
+    <div className="space-y-5 sm:space-y-8 pb-20 sm:pb-0">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">{group.name}</h1>
@@ -142,27 +141,12 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
         memberAvatars={memberAvatars}
       />
 
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Training plan</h2>
-          <Link
-            href={`/groups/${group.id}/plan`}
-            className="text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-          >
-            View all weeks
-          </Link>
-        </div>
-
-        {weeks.length === 0 ? (
-          <p className="text-zinc-400 dark:text-zinc-500 text-sm">No sessions found.</p>
-        ) : (
-          <div className="space-y-3">
-            {weeks.slice(0, 4).map(([weekNum, weekSessions]) => (
-              <WeekView key={weekNum} weekNumber={weekNum} sessions={weekSessions} today={today} brickParts={brickParts} />
-            ))}
-          </div>
-        )}
-      </div>
+      <TrainingPlanSection
+        groupId={group.id}
+        weeks={weeks}
+        today={today}
+        brickParts={brickParts}
+      />
     </div>
   )
 }
