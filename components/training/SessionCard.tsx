@@ -35,6 +35,16 @@ export default function SessionCard({ session, pendingPart }: Props) {
   const label = SESSION_LABEL[session.session_type] ?? session.session_type.toUpperCase()
   const tip = session.tip ?? DEFAULT_TIPS[session.session_type] ?? null
 
+  const canMarkDone = !isCompleted && (() => {
+    if (!session.scheduled_date) return true
+    const todayStr = new Date().toISOString().split('T')[0]
+    const today = new Date(todayStr)
+    const daysUntilSunday = today.getDay() === 0 ? 0 : 7 - today.getDay()
+    const sunday = new Date(today)
+    sunday.setDate(today.getDate() + daysUntilSunday)
+    return session.scheduled_date <= sunday.toISOString().split('T')[0]
+  })()
+
   async function markDone() {
     setLoading(true)
     await fetch(`/api/sessions/${session.id}/complete`, { method: 'POST' })
@@ -188,15 +198,17 @@ export default function SessionCard({ session, pendingPart }: Props) {
                   View on Strava
                 </a>
               ) : null
-            ) : (
+            ) : (canMarkDone || pendingPart) ? (
               <div className="space-y-2">
-                <button
-                  onClick={markDone}
-                  disabled={loading}
-                  className="w-full bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 font-medium rounded-md text-sm py-3 transition-colors hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-40"
-                >
-                  Mark done manually
-                </button>
+                {canMarkDone && (
+                  <button
+                    onClick={markDone}
+                    disabled={loading}
+                    className="w-full bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 font-medium rounded-md text-sm py-3 transition-colors hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-40"
+                  >
+                    Mark done manually
+                  </button>
+                )}
                 {pendingPart && (
                   <button
                     onClick={assignBrickPart}
@@ -207,7 +219,7 @@ export default function SessionCard({ session, pendingPart }: Props) {
                   </button>
                 )}
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       )}
