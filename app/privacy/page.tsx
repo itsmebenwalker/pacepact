@@ -25,13 +25,15 @@ export default function PrivacyPage() {
       <main className="max-w-2xl mx-auto px-4 py-10 space-y-8">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50 mb-2">Privacy Policy</h1>
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">Last updated: April 2025</p>
+          <p className="text-sm text-zinc-400 dark:text-zinc-500">Last updated: April 2026</p>
         </div>
 
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
           PacePact (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;) operates the PacePact platform, a group training
           accountability app for endurance athletes. This policy explains what data we collect, why we collect it, and
-          how you can control it. If you have questions, contact us at{' '}
+          how you can control it. PacePact is committed to handling your personal information in accordance with the{' '}
+          <em>Privacy Act 1988</em> (Cth) and the Australian Privacy Principles (APPs). If you have questions, contact
+          us at{' '}
           <a href="mailto:support@pacepact.com.au" className="underline hover:no-underline">
             support@pacepact.com.au
           </a>.
@@ -42,7 +44,7 @@ export default function PrivacyPage() {
           <div className="space-y-3 text-sm text-zinc-500 dark:text-zinc-400">
             <p><strong className="text-zinc-700 dark:text-zinc-300">Account data.</strong> When you sign up we collect your email address. You may optionally add a display name.</p>
             <p><strong className="text-zinc-700 dark:text-zinc-300">Strava connection data.</strong> When you connect your Strava account, we store your Strava athlete ID and OAuth tokens (access token, refresh token, token expiry). These are used solely to receive activity notifications from Strava on your behalf.</p>
-            <p><strong className="text-zinc-700 dark:text-zinc-300">Activity data.</strong> When Strava notifies us that you have completed an activity, we fetch the activity&apos;s type, distance, duration, and date. We store only the Strava activity ID against any session it matches — we do not store GPS routes, heart rate, power data, or other detailed health metrics.</p>
+            <p><strong className="text-zinc-700 dark:text-zinc-300">Activity data.</strong> When Strava notifies us that you have completed an activity, we fetch the activity&apos;s type, distance, duration, and date. We store only the Strava activity ID against any session it matches — we do not store GPS routes, heart rate, power data, or other detailed health metrics. Some activity data may constitute health information under the Privacy Act and is treated accordingly with heightened care.</p>
             <p><strong className="text-zinc-700 dark:text-zinc-300">Group and training data.</strong> We store the groups you belong to, your generated training sessions, completion status, and points. Within a group, all members can see each other&apos;s training progress and points — you consent to this when joining a group.</p>
             <p><strong className="text-zinc-700 dark:text-zinc-300">Messages.</strong> Group chat messages are stored and visible to all members of the group. Messages are limited to 200 characters.</p>
           </div>
@@ -95,6 +97,12 @@ export default function PrivacyPage() {
             </ul>
             <p>We do not share data with any other third parties.</p>
             <p className="mt-2">
+              Some of these sub-processors are located overseas (primarily the United States). Under APP 8 of the
+              Australian Privacy Principles, where we disclose personal information to an overseas recipient, we remain
+              accountable for ensuring that information is handled in accordance with the APPs. We take reasonable
+              contractual and technical steps to ensure overseas sub-processors meet this standard.
+            </p>
+            <p className="mt-2">
               Please note that when you connect your Strava account, Strava may independently collect data about your
               use of their platform in accordance with the{' '}
               <a href="https://www.strava.com/legal/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:no-underline">
@@ -116,26 +124,34 @@ export default function PrivacyPage() {
         <section className="space-y-3">
           <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">6. Your rights</h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Under UK and EU GDPR you have the right to access, correct, or delete the data we hold about you, as well
-            as the right to data portability and to withdraw consent. To exercise any of these rights, email{' '}
+            Under the <em>Privacy Act 1988</em> (Cth) and the Australian Privacy Principles, you have the right to
+            access the personal information we hold about you (APP 12) and to request corrections if it is inaccurate,
+            out of date, incomplete, or misleading (APP 13). To exercise any of these rights, email{' '}
             <a href="mailto:support@pacepact.com.au" className="underline hover:no-underline">
               support@pacepact.com.au
             </a>
-            . We will respond within 30 days.
+            . We will respond within 30 days. There is no charge for making an access or correction request.
           </p>
           <ul className="text-sm text-zinc-500 dark:text-zinc-400 list-disc list-inside space-y-1">
             <li><strong className="text-zinc-700 dark:text-zinc-300">Delete your account</strong>: profile page → Danger zone → Delete account</li>
             <li><strong className="text-zinc-700 dark:text-zinc-300">Disconnect Strava</strong>: profile page → Strava → Disconnect</li>
             <li><strong className="text-zinc-700 dark:text-zinc-300">Data export</strong>: email support@pacepact.com.au with subject &quot;Data export request&quot;</li>
           </ul>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            If you are not satisfied with our response to a privacy concern, you may lodge a complaint with the{' '}
+            <a href="https://www.oaic.gov.au/privacy/privacy-complaints" target="_blank" rel="noopener noreferrer" className="underline hover:no-underline">
+              Office of the Australian Information Commissioner (OAIC)
+            </a>.
+          </p>
         </section>
 
         <section className="space-y-3">
           <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">7. Security</h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
             We use Supabase&apos;s built-in Row Level Security to ensure users can only access data they are authorised
-            to see. Strava OAuth tokens are stored encrypted at rest. In the event of a security breach we will notify
-            affected users and Strava within 24 hours of becoming aware of the breach.
+            to see. Strava OAuth tokens are stored encrypted at rest. In the event of an eligible data breach under the
+            Notifiable Data Breaches scheme, we will notify affected individuals and the Office of the Australian
+            Information Commissioner (OAIC) as soon as practicable after becoming aware of the breach.
           </p>
         </section>
 
