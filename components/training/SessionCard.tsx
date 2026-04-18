@@ -76,12 +76,12 @@ export default function SessionCard({ session, pendingPart }: Props) {
           </span>
           <div className="flex items-center gap-1.5 shrink-0">
             {tip && (
-              <div className="relative group hidden sm:block">
+              <div className="relative group">
                 <button
                   type="button"
                   aria-label="Training tip"
                   className="text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 focus:outline-none focus:text-zinc-500 transition-colors mt-0.5"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); setSheetOpen(true); }}
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10"/>

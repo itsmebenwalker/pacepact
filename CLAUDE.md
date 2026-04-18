@@ -269,6 +269,9 @@ pacepact/
 │   │   │           └── [userId]/route.ts # DELETE kick+ban; PATCH transfer creator (creator only)
 │   │   ├── activities/
 │   │   │   └── assign/route.ts         # POST: assign parked brick leg to standalone session
+│   │   ├── sessions/
+│   │   │   └── [sessionId]/
+│   │   │       └── complete/route.ts   # POST: manually mark session complete (10 pts, no Strava)
 │   │   ├── notifications/
 │   │   │   └── read-all/route.ts       # Mark all notifications read (POST)
 │   │   └── user/
@@ -304,6 +307,9 @@ pacepact/
 │   │   ├── DisconnectStravaButton.tsx  # Strava disconnect (client component)
 │   │   └── NotificationSettings.tsx   # Opt-in toggles for message notifications
 │   └── ui/                             # Shared primitives
+│       ├── NavUser.tsx                 # Sign out + nav links (desktop text; mobile profile icon)
+│       ├── PoweredByStrava.tsx         # Dual-image dark mode (light SVG / dark SVG, no invert)
+│       └── ThemeToggle.tsx             # Sun/moon icon; persists to localStorage
 ├── lib/
 │   ├── supabase/
 │   │   ├── client.ts

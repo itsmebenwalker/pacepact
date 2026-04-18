@@ -60,7 +60,7 @@ export default function TrainingPlanSection({ groupId, weeks, today, brickParts 
                   >
                     <polyline points="6 9 12 15 18 9"/>
                   </svg>
-                  {pastOpen ? 'Hide' : `Past weeks (${Math.min(weeks.length - 1, 3)})`}
+                  {pastOpen ? 'Hide' : `More weeks (${Math.min(weeks.length - 1, 3)})`}
                 </button>
 
                 {pastOpen && (

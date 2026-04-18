@@ -143,9 +143,10 @@ Strava. Everything else is zinc.
   use `space-y-3` (dense, session cards), `space-y-4` (forms), or `space-y-6 /
   -8` (page-level).
 - **Imagery.** None in-product other than:
-  - `/favicon.svg` — a black `#09090b` square with a white `P` glyph.
+  - `/favicon.svg` — a black `#09090b` square with a white `P` glyph. Used with `dark:invert` in the nav.
   - `/connect-with-strava.svg` — Strava's official OAuth button (orange).
-  - `/powered-by-strava.svg` — Strava's official attribution lockup.
+  - `/powered-by-strava.svg` — Strava's official attribution lockup (light mode).
+  - `/powered-by-strava-dark.svg` — Dark-mode variant with near-white text (`#fafafa`). Used via dual `<img>` tags with `dark:hidden` / `hidden dark:block` — **not** CSS `invert`, which would flip the orange.
   - User avatars from Strava (circular, 28px in chat, 40px on profile) — or a
     single-letter initial on `bg-zinc-200` / `zinc-700` fallback.
 
@@ -174,12 +175,11 @@ you cannot describe the animation in one word, it does not belong.
 See [`preview/motion.html`](preview/motion.html) for live demos of all three
 rules.
 
-<!-- Rule violations found in the codebase (do not fix without approval):
-  - components/groups/WeekInReviewPanel.tsx — chevron uses `transition-transform`
-    to rotate 180° on open/close. Standard disclosure pattern but technically
-    "something moves."
-  - components/profile/NotificationSettings.tsx + ui_kits/web/Profile.jsx —
-    toggle thumb uses `transition-transform` to slide left/right. Same caveat.
+<!-- Previously flagged violations — now resolved:
+  - components/groups/WeekInReviewPanel.tsx — transition-transform removed;
+    chevron now flips instantly via inline style={{ transform }}.
+  - components/profile/NotificationSettings.tsx — transition-transform removed;
+    toggle thumb position is now instant.
 -->
 
 ## Iconography
@@ -214,7 +214,9 @@ rules.
 Copied into `assets/`:
 - `assets/favicon.svg` — PacePact favicon.
 - `assets/connect-with-strava.svg` — official Strava OAuth button.
-- `assets/powered-by-strava.svg` — official Strava attribution lockup.
+- `assets/powered-by-strava.svg` — official Strava attribution lockup (light mode).
+
+Note: `powered-by-strava-dark.svg` (white text variant) lives in `pacepact/public/` but is not copied here — the design system `assets/` folder holds only the canonical originals.
 
 ## Index
 

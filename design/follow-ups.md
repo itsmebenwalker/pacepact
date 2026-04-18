@@ -30,29 +30,30 @@ Same issue — the handoff specifies:
 
 ---
 
-## Motion violations (approve or fix)
+## Motion violations — RESOLVED
 
-Two components in `pacepact/` stretch the "colors animate, nothing moves" rule.
-Flagged in the README Motion section; not changed without approval:
+Both violations were fixed by removing `transition-transform` and switching to
+instant state changes:
 
-1. `components/groups/WeekInReviewPanel.tsx` — chevron icon uses
-   `transition-transform` to rotate 180° when the panel opens. It is a standard
-   disclosure affordance. **Decision needed:** accept as a named exception, or
-   remove the transition so the chevron flips instantly.
+1. `components/groups/WeekInReviewPanel.tsx` — chevron now uses inline
+   `style={{ transform: open ? 'rotate(180deg)' : 'none' }}` with no transition.
+   Flips instantly on open/close.
 
-2. `components/profile/NotificationSettings.tsx` — toggle thumb uses
-   `transition-transform` to slide left/right. Same question.
+2. `components/profile/NotificationSettings.tsx` — toggle thumb also switched to
+   instant position via the same inline style approach. `transition-transform`
+   removed.
+
+The README motion violation comment block should be updated to reflect this.
 
 ---
 
-## Mobile nav bar (not implemented)
+## Mobile nav bar — RESOLVED
 
-The mobile screens use a minimal nav bar (back arrow + title). The production
-app's `TopNav` is unchanged — it has horizontal text links that overflow at
-phone width. A production implementation would either:
-- Hide the text links on mobile (`hidden sm:flex`) and keep the icon-only
-  version, or
-- Add a hamburger/sheet menu for mobile nav.
+Production `NavUser` now handles mobile:
+- Desktop text links (`Dashboard`, `Profile`) have `hidden sm:block` — invisible
+  on phone.
+- A profile icon (`<svg>` person glyph) is added with `sm:hidden` — visible only
+  on phone.
+- `Sign out` button remains visible on all sizes.
 
-This was intentionally left out of scope for the UI kit (the prototype shows
-only the inner screen, not how TopNav adapts).
+No hamburger or sheet menu was needed — the icon approach keeps the nav clean.
