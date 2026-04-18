@@ -5,6 +5,7 @@ import DeleteAccountButton from '@/components/profile/DeleteAccountButton'
 import DisconnectStravaButton from '@/components/profile/DisconnectStravaButton'
 import EditNameField from '@/components/profile/EditNameField'
 import NotificationSettings from '@/components/profile/NotificationSettings'
+import PoweredByStrava from '@/components/ui/PoweredByStrava'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -75,8 +76,7 @@ export default async function ProfilePage() {
                 </p>
               </div>
             </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/powered-by-strava.svg" alt="Powered by Strava" width={150} height={28} className="h-6 w-auto" />
+            <PoweredByStrava className="h-6 w-auto" />
             <DisconnectStravaButton />
           </div>
         ) : (
