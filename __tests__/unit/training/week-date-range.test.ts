@@ -1,4 +1,4 @@
-import { weekDateRange } from '@/components/training/WeekView'
+import { formatWeekBoundsLabel } from '@/components/training/WeekView'
 import type { Session } from '@/types'
 
 function makeSession(overrides: Partial<Session> = {}): Session {
@@ -21,57 +21,27 @@ function makeSession(overrides: Partial<Session> = {}): Session {
   }
 }
 
-// ── weekDateRange ─────────────────────────────────────────────────────────────
+// ── formatWeekBoundsLabel ──────────────────────────────────────────────────────
 
-describe('weekDateRange', () => {
-  it('returns null when no sessions have a scheduled_date', () => {
-    expect(weekDateRange([makeSession({ scheduled_date: null })])).toBeNull()
-  })
-
-  it('returns null for an empty session list', () => {
-    expect(weekDateRange([])).toBeNull()
-  })
-
+describe('formatWeekBoundsLabel', () => {
   it('shows "D–D Mon" format when start and end are in the same month', () => {
-    const sessions = [
-      makeSession({ scheduled_date: '2026-03-02' }),
-      makeSession({ scheduled_date: '2026-03-04' }),
-      makeSession({ scheduled_date: '2026-03-06' }),
-      makeSession({ scheduled_date: '2026-03-08' }),
-    ]
-    expect(weekDateRange(sessions)).toBe('2–8 Mar')
+    expect(formatWeekBoundsLabel('2026-03-02', '2026-03-08')).toBe('2–8 Mar')
   })
 
   it('shows "D Mon – D Mon" format when the week crosses a month boundary', () => {
-    const sessions = [
-      makeSession({ scheduled_date: '2026-03-30' }),
-      makeSession({ scheduled_date: '2026-03-31' }),
-      makeSession({ scheduled_date: '2026-04-01' }),
-      makeSession({ scheduled_date: '2026-04-05' }),
-    ]
-    expect(weekDateRange(sessions)).toBe('30 Mar – 5 Apr')
+    expect(formatWeekBoundsLabel('2026-03-30', '2026-04-05')).toBe('30 Mar – 5 Apr')
   })
 
-  it('works with a single session', () => {
-    expect(weekDateRange([makeSession({ scheduled_date: '2026-04-10' })])).toBe('10–10 Apr')
+  it('works when start and end are the same date', () => {
+    expect(formatWeekBoundsLabel('2026-04-10', '2026-04-10')).toBe('10–10 Apr')
   })
 
-  it('ignores null dates and uses only the dated sessions', () => {
-    const sessions = [
-      makeSession({ scheduled_date: null }),
-      makeSession({ scheduled_date: '2026-05-05' }),
-      makeSession({ scheduled_date: '2026-05-09' }),
-    ]
-    expect(weekDateRange(sessions)).toBe('5–9 May')
+  it('shows a standard Mon–Sun week in the same month', () => {
+    expect(formatWeekBoundsLabel('2026-04-20', '2026-04-26')).toBe('20–26 Apr')
   })
 
-  it('picks the correct min and max regardless of session order', () => {
-    const sessions = [
-      makeSession({ scheduled_date: '2026-06-07' }),
-      makeSession({ scheduled_date: '2026-06-03' }),
-      makeSession({ scheduled_date: '2026-06-05' }),
-    ]
-    expect(weekDateRange(sessions)).toBe('3–7 Jun')
+  it('handles a week crossing into a new month', () => {
+    expect(formatWeekBoundsLabel('2026-04-27', '2026-05-03')).toBe('27 Apr – 3 May')
   })
 })
 

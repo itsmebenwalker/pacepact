@@ -12,21 +12,13 @@ interface Props {
 }
 
 /**
- * Returns a compact date range label for a week's sessions, e.g.:
- *   "1–7 Apr"   (same month)
- *   "28 Apr – 4 May"  (month boundary)
- * Returns null if no sessions have a scheduled_date.
+ * Returns a compact date range label for a Mon–Sun week, e.g.:
+ *   "20–26 Apr"         (same month)
+ *   "28 Apr – 4 May"    (month boundary)
  */
-export function weekDateRange(sessions: Session[]): string | null {
-  const dates = sessions
-    .map((s) => s.scheduled_date)
-    .filter((d): d is string => d !== null)
-    .sort()
-
-  if (dates.length === 0) return null
-
-  const start = new Date(`${dates[0]}T12:00:00`)
-  const end = new Date(`${dates[dates.length - 1]}T12:00:00`)
+export function formatWeekBoundsLabel(startStr: string, endStr: string): string {
+  const start = new Date(`${startStr}T12:00:00`)
+  const end = new Date(`${endStr}T12:00:00`)
 
   const startMonth = start.toLocaleDateString('en', { month: 'short' })
   const endMonth = end.toLocaleDateString('en', { month: 'short' })
@@ -43,13 +35,13 @@ export default function WeekView({ weekNumber, sessions, today, brickParts = [],
   const restCount = sessions.filter((s) => s.session_type === 'rest').length
   const activeSessions = sessions.filter((s) => s.session_type !== 'rest')
   const completed = activeSessions.filter((s) => s.completed).length
-  const dateRange = weekDateRange(sessions)
 
   // Find the brick parts that fall within this week so we can show the progress
   // bar on the right session card. Match by the part's activity_date against the
   // week's calendar bounds derived from the sessions' scheduled dates.
   const firstDate = sessions.find((s) => s.scheduled_date)?.scheduled_date
   const weekBounds = firstDate ? getWeekBounds(firstDate) : null
+  const dateRange = weekBounds ? formatWeekBoundsLabel(weekBounds.start, weekBounds.end) : null
   const weekBrickParts = weekBounds
     ? brickParts.filter(
         (p) => p.activity_date && p.activity_date >= weekBounds.start && p.activity_date <= weekBounds.end
