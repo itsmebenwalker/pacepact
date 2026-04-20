@@ -17,7 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col">
       <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-50 tracking-tight">
+          <Link href="/groups" className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-50 tracking-tight">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/favicon.svg" width={24} height={24} alt="" aria-hidden="true" className="dark:invert" />
             PacePact

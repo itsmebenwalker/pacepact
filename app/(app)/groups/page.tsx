@@ -56,7 +56,7 @@ export default async function DashboardPage() {
       <div className="flex items-center justify-between mb-5 sm:mb-8">
         <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Groups</h1>
         <Link
-          href="/groups/new"
+          href="/group/new"
           className="hidden sm:block bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-medium px-4 py-2 rounded-md text-sm transition-colors"
         >
           New group
@@ -70,7 +70,7 @@ export default async function DashboardPage() {
             Create one for your next race, or ask a friend for their invite link.
           </p>
           <Link
-            href="/groups/new"
+            href="/group/new"
             className="bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-medium px-5 py-2.5 rounded-md text-sm transition-colors"
           >
             Create your first group
@@ -84,7 +84,7 @@ export default async function DashboardPage() {
             ))}
           </div>
           <Link
-            href="/groups/new"
+            href="/group/new"
             className="sm:hidden mt-3 block w-full text-center py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-500 transition-colors"
           >
             New group

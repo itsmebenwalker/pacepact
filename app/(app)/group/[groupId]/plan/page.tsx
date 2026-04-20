@@ -54,7 +54,7 @@ export default async function PlanPage({ params }: { params: Promise<{ groupId: 
           <p className="text-zinc-500 dark:text-zinc-400 mt-0.5 text-sm">{group.event_name}</p>
         </div>
         <Link
-          href={`/groups/${groupId}`}
+          href={`/group/${groupId}`}
           className="flex items-center gap-1.5 text-sm border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-3 py-1.5 rounded-md transition-colors"
         >
           Back

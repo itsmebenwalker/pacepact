@@ -70,7 +70,7 @@ export default function CreateGroupForm() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Something went wrong')
-      router.push(`/groups/${data.groupId}`)
+      router.push(`/group/${data.groupId}`)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Something went wrong')
       setLoading(false)

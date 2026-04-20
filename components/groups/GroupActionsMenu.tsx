@@ -157,7 +157,7 @@ export default function GroupActionsMenu({
       setLoading(false)
       return
     }
-    router.push('/dashboard')
+    router.push('/groups')
   }
 
   async function handleLeave() {
@@ -170,7 +170,7 @@ export default function GroupActionsMenu({
       setLoading(false)
       return
     }
-    router.push('/dashboard')
+    router.push('/groups')
   }
 
   // ── Shared styles ────────────────────────────────────────────────────────────
@@ -208,7 +208,7 @@ export default function GroupActionsMenu({
         {/* ── Dropdown ─────────────────────────────────────────────────────── */}
         {open && (
           <div className="absolute right-0 top-full mt-1 w-52 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg overflow-hidden z-40">
-            <Link href={`/groups/${groupId}/members`} className={itemDefault}>
+            <Link href={`/group/${groupId}/members`} className={itemDefault}>
               Members
             </Link>
             <div className="border-t border-zinc-100 dark:border-zinc-800 my-1" />

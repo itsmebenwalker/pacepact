@@ -243,8 +243,8 @@ pacepact/
 │   │   ├── login/page.tsx
 │   │   └── signup/page.tsx
 │   ├── (app)/
-│   │   ├── dashboard/page.tsx          # All groups overview
-│   │   ├── groups/
+│   │   ├── groups/page.tsx             # All groups overview
+│   │   ├── group/
 │   │   │   ├── new/page.tsx            # Create group + generate plan
 │   │   │   └── [groupId]/
 │   │   │       ├── page.tsx            # Group home: leaderboard + plan
@@ -359,7 +359,7 @@ The group creator has five admin-only actions, all enforced by a creator-only ch
 
 **UI components**: the group home page uses a single `GroupActionsMenu` (`•••` dropdown) that surfaces all actions in one place — mobile-friendly and uncluttered. Creators see: Copy invite link, Reset invite link, Lock/Unlock invites, Edit group, Delete group. Non-creators see: Copy invite link, Leave group. The individual standalone components (`RotateInviteButton`, `LockInviteToggle`, etc.) are kept but not used on the group home page. The members page still uses `KickMemberButton` and `TransferCreatorButton` directly.
 
-**Leaving a group**: non-creator members see a `LeaveGroupButton` on the group home page in place of the admin controls. It calls `DELETE /api/groups/[groupId]/members/me` and redirects to `/dashboard` on success. Creators must transfer admin rights before they can leave.
+**Leaving a group**: non-creator members see a `LeaveGroupButton` on the group home page in place of the admin controls. It calls `DELETE /api/groups/[groupId]/members/me` and redirects to `/groups` on success. Creators must transfer admin rights before they can leave.
 
 ### Group Creation Flow
 
@@ -538,8 +538,9 @@ Each group gets a unique `invite_code` (nanoid, 8 chars) at creation. The group 
 
 The `/join/[inviteCode]` page:
 - If not logged in → prompt to sign up, then redirect back after auth
-- If logged in but Strava not connected → prompt to connect Strava first
-- If all good → add to `group_members`, redirect to group page
+- If all good → add to `group_members`, fan out sessions, redirect to group page
+
+Strava is not required to join — users without Strava connected can join and use manual session completion. They can connect Strava later from their profile to enable automatic session matching.
 
 ---
 

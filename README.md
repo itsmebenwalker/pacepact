@@ -59,8 +59,8 @@ pacepact/
 ├── app/
 │   ├── (auth)/               # Login + signup pages (magic link / OTP)
 │   ├── (app)/                # Authenticated app routes
-│   │   ├── dashboard/        # All groups overview
-│   │   ├── groups/
+│   │   ├── groups/           # All groups overview
+│   │   ├── group/
 │   │   │   ├── new/          # Create group + generate plan
 │   │   │   └── [groupId]/    # Group home, full plan, members
 │   │   ├── profile/          # Strava connect/disconnect, account info
@@ -150,7 +150,7 @@ PacePact uses passwordless magic link authentication:
 4. The callback page handles both flows:
    - **PKCE** (`?code=` query param): exchanges code for session
    - **Implicit** (`#access_token=` in URL hash): calls `setSession()` directly — the hash is never sent to the server, so this must be handled client-side
-5. Profile is upserted, user is redirected to `/dashboard`
+5. Profile is upserted, user is redirected to `/groups`
 
 ## Strava activity matching
 

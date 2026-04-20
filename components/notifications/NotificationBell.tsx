@@ -113,7 +113,7 @@ export default function NotificationBell({ userId }: Props) {
               notifications.map((n) => (
                 <Link
                   key={n.id}
-                  href={n.group_id ? `/groups/${n.group_id}` : '#'}
+                  href={n.group_id ? `/group/${n.group_id}` : '#'}
                   onClick={() => setOpen(false)}
                   className="flex items-start gap-3 px-3 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
                 >

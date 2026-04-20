@@ -27,7 +27,7 @@ export default function AuthCallbackPage() {
       const code = params.get('code')
       const accessToken = hash.get('access_token')
       const refreshToken = hash.get('refresh_token')
-      const next = params.get('next') ?? '/dashboard'
+      const next = params.get('next') ?? '/groups'
 
       try {
         if (code) {

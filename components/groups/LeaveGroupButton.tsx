@@ -37,7 +37,7 @@ export default function LeaveGroupButton({ groupId, groupName }: Props) {
       return
     }
 
-    router.push('/dashboard')
+    router.push('/groups')
   }
 
   return (

@@ -20,7 +20,7 @@ auto-complete sessions via Strava webhooks, and compete on a live leaderboard.
 
 PacePact is a mobile-first, responsive web app. One product, one surface — no
 marketing site, no separate mobile app, no docs site. Users land on `/login`,
-sign in via magic link, connect Strava, and work inside `/dashboard → /groups/[id]`.
+sign in via magic link, connect Strava, and work inside `/groups → /group/[id]`.
 The only brand adjacency is the Strava OAuth integration (the distinctive
 `#FC5200` orange and the official "Powered by Strava" badge).
 

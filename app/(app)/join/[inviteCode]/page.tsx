@@ -36,7 +36,7 @@ export default async function JoinPage({ params }: { params: Promise<{ inviteCod
     .maybeSingle()
 
   if (existing) {
-    redirect(`/groups/${group.id}`)
+    redirect(`/group/${group.id}`)
   }
 
   const { data: ban } = await supabase
@@ -72,31 +72,6 @@ export default async function JoinPage({ params }: { params: Promise<{ inviteCod
     )
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('strava_athlete_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile?.strava_athlete_id) {
-    return (
-      <div className="max-w-sm mx-auto text-center py-20 space-y-4">
-        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Connect Strava first</h1>
-        <p className="text-zinc-500 dark:text-zinc-400 text-sm">
-          You need to connect your Strava account before joining{' '}
-          <span className="text-zinc-900 dark:text-zinc-100 font-medium">{group.name}</span>.
-          PacePact uses Strava to automatically mark your sessions complete.
-        </p>
-        <a
-          href="/profile"
-          className="inline-block bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-medium px-5 py-2.5 rounded-md text-sm transition-colors"
-        >
-          Go to Profile
-        </a>
-      </div>
-    )
-  }
-
   await serviceClient.from('group_members').insert({
     group_id: group.id,
     user_id: user.id,
@@ -105,5 +80,5 @@ export default async function JoinPage({ params }: { params: Promise<{ inviteCod
 
   await fanOutSessionsForUser(serviceClient, group, user.id)
 
-  redirect(`/groups/${group.id}`)
+  redirect(`/group/${group.id}`)
 }

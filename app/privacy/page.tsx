@@ -10,11 +10,11 @@ export default function PrivacyPage() {
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/dashboard" className="font-semibold text-zinc-900 dark:text-zinc-50 tracking-tight">
+          <Link href="/groups" className="font-semibold text-zinc-900 dark:text-zinc-50 tracking-tight">
             PacePact
           </Link>
           <Link
-            href="/dashboard"
+            href="/groups"
             className="flex items-center gap-1.5 text-sm border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-3 py-1.5 rounded-md transition-colors"
           >
             Back to PacePact

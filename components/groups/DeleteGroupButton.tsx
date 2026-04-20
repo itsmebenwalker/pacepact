@@ -39,7 +39,7 @@ export default function DeleteGroupButton({ groupId, eventName }: Props) {
       return
     }
 
-    router.push('/dashboard')
+    router.push('/groups')
   }
 
   return (

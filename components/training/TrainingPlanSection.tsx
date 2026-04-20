@@ -21,7 +21,7 @@ export default function TrainingPlanSection({ groupId, weeks, today, brickParts,
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Training plan</h2>
         <Link
-          href={`/groups/${groupId}/plan`}
+          href={`/group/${groupId}/plan`}
           className="text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
         >
           View all weeks
