@@ -310,7 +310,8 @@ pacepact/
 │   └── ui/                             # Shared primitives
 │       ├── NavUser.tsx                 # Sign out + nav links (desktop text; mobile profile icon)
 │       ├── PoweredByStrava.tsx         # Dual-image dark mode (light SVG / dark SVG, no invert)
-│       └── ThemeToggle.tsx             # Sun/moon icon; persists to localStorage
+│       ├── ThemeToggle.tsx             # Sun/moon icon; persists to localStorage
+│       └── TimezoneSetter.tsx          # Sets tz cookie from Intl API; read by server components for local today
 ├── lib/
 │   ├── supabase/
 │   │   ├── client.ts
@@ -331,6 +332,7 @@ pacepact/
 │   └── utils/
 │       ├── week-status.ts              # Week state (past-complete/incomplete/active) + sort
 │       ├── week-in-review.ts           # Pure logic for Week in Review stats (testable)
+│       ├── local-date.ts               # getLocalToday(): reads tz cookie → YYYY-MM-DD in user's timezone
 │       └── format-time.ts              # Message timestamp formatting
 ├── types/
 │   └── index.ts                        # Shared TypeScript types
