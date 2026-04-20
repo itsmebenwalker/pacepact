@@ -12,7 +12,9 @@ export default async function JoinPage({ params }: { params: Promise<{ inviteCod
     redirect(`/login?next=/join/${inviteCode}`)
   }
 
-  const { data: group } = await supabase
+  const serviceClient = createServiceClient()
+
+  const { data: group } = await serviceClient
     .from('groups')
     .select('*')
     .eq('invite_code', inviteCode)
@@ -94,8 +96,6 @@ export default async function JoinPage({ params }: { params: Promise<{ inviteCod
       </div>
     )
   }
-
-  const serviceClient = createServiceClient()
 
   await serviceClient.from('group_members').insert({
     group_id: group.id,
