@@ -565,6 +565,8 @@ Do this after deploying to Railway. The webhook URL must be publicly accessible 
 ## Development Notes
 
 - Use Supabase RLS (Row Level Security) from day one. Users should only be able to read groups they are members of
+- **RLS + cross-user queries**: tables like `sessions`, `profiles`, and `brick_activity_parts` have own-row-only RLS (`user_id = auth.uid()`). Any server component that needs data for *all* group members (leaderboard, Week in Review, members page) must use `createServiceClient()` — the user-scoped client will silently return empty/null for other users' rows. Auth and membership must still be verified before using the service client.
+- **Session fan-out** anchors week 1 to the Monday of `group.created_at`, so all members share the same week boundaries regardless of when they joined
 - The `sessions` table will grow fast — index on `(user_id, group_id, completed, scheduled_date)`
 - Strava API rate limits: 100 requests per 15 minutes, 1000 per day. The webhook approach avoids polling so this is unlikely to be a problem in early stage
 - Plan generation via Claude takes 5–15 seconds — show a loading state on the group creation form and don't let the user navigate away

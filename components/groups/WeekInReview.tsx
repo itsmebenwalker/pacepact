@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { buildWeekInReviewData } from '@/lib/utils/week-in-review'
 import { getLocalToday } from '@/lib/utils/local-date'
 import WeekInReviewPanel from './WeekInReviewPanel'
@@ -17,10 +17,10 @@ interface Props {
 }
 
 export default async function WeekInReview({ groupId, currentUserId, members }: Props) {
-  const supabase = await createClient()
+  const serviceClient = createServiceClient()
   const today = await getLocalToday()
 
-  const { data: allSessions } = await supabase
+  const { data: allSessions } = await serviceClient
     .from('sessions')
     .select('*')
     .eq('group_id', groupId)
