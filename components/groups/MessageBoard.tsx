@@ -105,7 +105,9 @@ export default function MessageBoard({
     setSending(false)
   }
 
-  function MessageList({ bottomRef }: { bottomRef: React.RefObject<HTMLDivElement> }) {
+  const unreadCount = 0 // future: track unread since sheet last opened
+
+  function renderMessages(bottomRef: React.RefObject<HTMLDivElement>) {
     return (
       <>
         {messages.length === 0 ? (
@@ -160,7 +162,7 @@ export default function MessageBoard({
     )
   }
 
-  function ChatForm() {
+  function renderChatForm() {
     return (
       <form
         onSubmit={handleSend}
@@ -172,7 +174,7 @@ export default function MessageBoard({
           onChange={(e) => setContent(e.target.value)}
           placeholder="Write a message…"
           maxLength={200}
-          className="flex-1 px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:border-transparent transition-colors"
+          className="flex-1 px-3 py-2 text-[16px] sm:text-sm border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:border-transparent transition-colors"
         />
         <button
           type="submit"
@@ -185,8 +187,6 @@ export default function MessageBoard({
     )
   }
 
-  const unreadCount = 0 // future: track unread since sheet last opened
-
   return (
     <>
       {/* Desktop chat box */}
@@ -195,9 +195,9 @@ export default function MessageBoard({
           <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Group chat</h2>
         </div>
         <div className="h-72 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800">
-          <MessageList bottomRef={desktopBottomRef} />
+          {renderMessages(desktopBottomRef)}
         </div>
-        <ChatForm />
+        {renderChatForm()}
       </div>
 
       {/* Mobile floating pill */}
@@ -246,10 +246,10 @@ export default function MessageBoard({
               </button>
             </div>
             <div className="flex-1 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800">
-              <MessageList bottomRef={mobileBottomRef} />
+              {renderMessages(mobileBottomRef)}
             </div>
             <div className="shrink-0">
-              <ChatForm />
+              {renderChatForm()}
             </div>
           </div>
         </div>
