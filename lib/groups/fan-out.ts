@@ -8,7 +8,7 @@ export async function fanOutSessionsForUser(
   userId: string
 ) {
   const sessions: TrainingSession[] = group.training_plan
-  const planStart = startOfWeek(new Date(), { weekStartsOn: 1 })
+  const planStart = startOfWeek(new Date(group.created_at), { weekStartsOn: 1 })
 
   const rows = sessions.map((s) => {
     const weekOffset = (s.week_number - 1) * 7

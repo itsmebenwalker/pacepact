@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import LeaderboardTable from '@/components/leaderboard/LeaderboardTable'
 import TrainingPlanSection from '@/components/training/TrainingPlanSection'
@@ -34,7 +34,8 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
   if (!group) notFound()
   if (!membership) notFound()
 
-  const { data: membersRaw } = await supabase
+  const serviceClient = createServiceClient()
+  const { data: membersRaw } = await serviceClient
     .from('group_members')
     .select('user_id, points, profiles(display_name, avatar_url)')
     .eq('group_id', groupId)

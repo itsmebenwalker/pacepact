@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import KickMemberButton from '@/components/groups/KickMemberButton'
@@ -23,7 +23,8 @@ export default async function MembersPage({ params }: { params: Promise<{ groupI
 
   const isCreator = group.created_by === user.id
 
-  const { data: members } = await supabase
+  const serviceClient = createServiceClient()
+  const { data: members } = await serviceClient
     .from('group_members')
     .select('user_id, points, joined_at, profiles(display_name, strava_athlete_id)')
     .eq('group_id', groupId)
