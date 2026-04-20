@@ -155,6 +155,32 @@ export default function SessionCard({ session, pendingPart, allowManualComplete 
         {pendingPart && !isCompleted && (
           <BrickProgress part={pendingPart} />
         )}
+
+        {/* Desktop inline actions */}
+        {!isCompleted && (canMarkDone || pendingPart) && (
+          <div className="hidden sm:flex flex-col gap-1.5 mt-2.5 pt-2.5 border-t border-zinc-100 dark:border-zinc-800">
+            {canMarkDone && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); markDone(); }}
+                disabled={loading}
+                className="w-full text-xs font-medium py-1.5 rounded bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-40 transition-colors"
+              >
+                {loading ? 'Saving…' : 'Mark done manually'}
+              </button>
+            )}
+            {pendingPart && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); assignBrickPart(); }}
+                disabled={loading}
+                className="w-full text-xs font-medium py-1.5 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 transition-colors"
+              >
+                Count as {pendingPart.activity_type} session instead
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Mobile bottom sheet */}
