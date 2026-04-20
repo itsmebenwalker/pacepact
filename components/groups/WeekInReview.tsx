@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { buildWeekInReviewData } from '@/lib/utils/week-in-review'
+import { getLocalToday } from '@/lib/utils/local-date'
 import WeekInReviewPanel from './WeekInReviewPanel'
 import type { Session } from '@/types'
 
@@ -17,7 +18,7 @@ interface Props {
 
 export default async function WeekInReview({ groupId, currentUserId, members }: Props) {
   const supabase = await createClient()
-  const today = new Date().toISOString().split('T')[0]
+  const today = await getLocalToday()
 
   const { data: allSessions } = await supabase
     .from('sessions')

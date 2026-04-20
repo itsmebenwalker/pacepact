@@ -8,6 +8,7 @@ import GroupActionsMenu from '@/components/groups/GroupActionsMenu'
 import MessageBoard from '@/components/groups/MessageBoard'
 import WeekInReview from '@/components/groups/WeekInReview'
 import { sortWeeks } from '@/lib/utils/week-status'
+import { getLocalToday } from '@/lib/utils/local-date'
 import type { BrickActivityPart, Session } from '@/types'
 
 export default async function GroupPage({ params }: { params: Promise<{ groupId: string }> }) {
@@ -95,7 +96,7 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
     sessionsByWeek.get(week)!.push(session as Session)
   }
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = await getLocalToday()
   const weeks = sortWeeks(Array.from(sessionsByWeek.entries()), today)
 
   const daysUntil = Math.ceil(

@@ -5,6 +5,7 @@ import { notFound, redirect } from 'next/navigation'
 import WeekView from '@/components/training/WeekView'
 import Link from 'next/link'
 import { sortWeeks } from '@/lib/utils/week-status'
+import { getLocalToday } from '@/lib/utils/local-date'
 import type { BrickActivityPart, Session } from '@/types'
 
 export default async function PlanPage({ params }: { params: Promise<{ groupId: string }> }) {
@@ -43,7 +44,7 @@ export default async function PlanPage({ params }: { params: Promise<{ groupId: 
     sessionsByWeek.get(week)!.push(session as Session)
   }
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = await getLocalToday()
   const weeks = sortWeeks(Array.from(sessionsByWeek.entries()), today)
 
   return (
