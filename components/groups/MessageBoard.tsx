@@ -224,7 +224,7 @@ export default function MessageBoard({
           onClick={() => setChatOpen(false)}
         >
           <div
-            className="absolute bottom-0 inset-x-0 bg-white dark:bg-zinc-900 rounded-t-2xl flex flex-col"
+            className="absolute bottom-0 inset-x-0 bg-white dark:bg-zinc-900 rounded-t-2xl flex flex-col border border-zinc-200 dark:border-zinc-700 border-b-0"
             style={{ height: '70%' }}
             onClick={(e) => e.stopPropagation()}
           >
