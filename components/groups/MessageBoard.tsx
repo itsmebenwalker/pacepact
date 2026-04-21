@@ -223,7 +223,6 @@ export default function MessageBoard({
           className="fixed inset-0 z-50 sm:hidden"
           onClick={() => setChatOpen(false)}
         >
-          <div className="absolute inset-0 bg-black/40" />
           <div
             className="absolute bottom-0 inset-x-0 bg-white dark:bg-zinc-900 rounded-t-2xl flex flex-col"
             style={{ height: '70%' }}
