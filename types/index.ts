@@ -102,7 +102,6 @@ export interface BrickActivityPart {
   id: string
   user_id: string
   group_id: string
-  external_id: string
   activity_type: 'run' | 'ride'
   strava_activity_id: number | null
   activity_name: string | null
@@ -132,7 +131,6 @@ export interface StravaActivity {
   start_date: string
   start_date_local: string
   athlete: { id: number }
-  external_id?: string // set by the originating device/app (e.g. garmin_ping_XXXX); shared across split multisport activities
 }
 
 export interface StravaTokenResponse {

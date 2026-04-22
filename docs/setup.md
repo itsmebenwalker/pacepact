@@ -55,8 +55,9 @@ supabase/migrations/20260411_add_brick_activity_parts.sql           # Garmin bri
 supabase/migrations/20260412_extend_brick_activity_parts.sql        # Brick combined stats (superseded)
 supabase/migrations/20260413_brick_activity_parts_ui.sql            # Brick progress UI + RLS (superseded)
 supabase/migrations/20260414_recreate_brick_activity_parts.sql      # Clean rebuild of brick table
-supabase/migrations/20260415_brick_parts_nullable_external_id.sql   # Allow non-Garmin activities to park
+supabase/migrations/20260415_brick_parts_nullable_external_id.sql   # Allow non-Garmin activities to park (superseded)
 supabase/migrations/20260416_group_admin_features.sql               # invite_locked + group_member_bans
+supabase/migrations/20260422_drop_external_id_brick_activity_parts.sql  # Drop external_id; switch to same-day matching
 supabase/migrations/20260417_add_session_tip.sql                    # tip column on sessions
 supabase/migrations/20260418_allow_manual_complete.sql              # allow_manual_complete on groups
 ```
@@ -79,7 +80,6 @@ The brick activity parts migrations add:
 - `brick_activity_parts` table — in any week with a pending brick session, any incoming run or ride is stored here until it is either manually assigned by the user or auto-released when the brick completes
 - `distance_km` / `duration_minutes` columns — stored so both Garmin legs can be combined and validated against the brick session target (85% threshold) when the second leg arrives
 - `group_id`, `strava_activity_id`, `activity_name`, `activity_date` columns — context needed for the progress bar UI and manual assignment
-- `external_id` made nullable — Garmin activities have an `external_id` (used to match both legs of a multisport activity); non-Garmin activities do not and park without one
 - RLS SELECT policy so the client can read its own pending parts
 
 > **Existing installs**: if you applied the schema before this was fixed, run the following to add the missing cascade:
@@ -340,10 +340,8 @@ Located in `__tests__/integration/`. Cover API routes with Supabase mocked via `
 - Activity confirmation notifications are always on — if those aren't appearing, check that `processWebhookEvent` is completing successfully (see webhook troubleshooting above)
 - Message notifications only fire if the recipient has opted in via Profile → Notifications; the opt-in is `false` by default
 
-**Garmin brick workout not completing a brick session**
-- Strava splits Garmin multisport activities into separate run and ride activities, both sharing the same `external_id`
-- Confirm all brick migrations have been applied in filename order through `20260415_brick_parts_nullable_external_id.sql`
+**Brick workout not completing a brick session**
+- Confirm all brick migrations have been applied in filename order through `20260422_drop_external_id_brick_activity_parts.sql`
 - In any week containing a brick session, every incoming run or ride is parked in `brick_activity_parts` and shown as a 50% progress bar on the brick session card. The user can tap **"Count as ride/run session instead"** to manually assign it to a matching standalone session at any time
-- For Garmin multisport: when the second leg arrives with the same `external_id`, combined stats are validated (85% rule) and the brick session is marked complete automatically. Any other activities parked earlier that week (orphans) are then automatically matched to remaining standalone sessions
+- When a second complementary leg (opposite type) arrives on the same calendar date, combined stats are validated against the 85% rule and the brick session is marked complete automatically. Any other activities parked earlier that week (orphans) are then matched to remaining standalone sessions
 - If the combined distance/duration doesn't reach 85% of the session target, the brick won't auto-complete — the user will need to manually assign each leg
-- Non-Garmin activities (phone GPS, manual Strava entry) have no `external_id` and cannot auto-complete a brick; they park and must be manually assigned

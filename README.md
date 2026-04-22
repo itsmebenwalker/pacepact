@@ -6,7 +6,7 @@ Social training platform for groups of friends preparing for the same endurance 
 
 - **Group training plans** — Claude generates a structured plan based on event type, date, and training ambition (`finish` / `pb` / `podium`)
 - **Strava auto-sync** — sessions are marked complete when you log a matching Strava activity; matched by activity type and weekly schedule, not exact date
-- **Garmin brick support** — Garmin multisport activities (ride + run) are detected by shared `external_id` and auto-complete brick sessions; a 50% progress bar shows while the first leg is pending, with a manual assign fallback
+- **Brick session support** — any two complementary activities (ride + run) on the same day auto-complete a brick session; a 50% progress bar shows while the first leg is pending, with a manual assign fallback
 - **Live leaderboard** — Supabase Realtime keeps scores updated for everyone in the group simultaneously
 - **Group chat** — per-group message board with real-time updates via Supabase Realtime
 - **In-app notifications** — real-time bell in the nav; activity confirmations are always on, message notifications are opt-in per user

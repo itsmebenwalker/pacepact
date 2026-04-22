@@ -100,7 +100,6 @@ function makePart(overrides: Record<string, unknown> = {}) {
     id: 'part-1',
     user_id: 'user-1',
     group_id: 'group-1',
-    external_id: 'garmin_ping_AAA',
     activity_type: 'ride',
     strava_activity_id: 12345,
     activity_name: '40km Ride',

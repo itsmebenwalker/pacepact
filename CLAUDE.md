@@ -191,7 +191,6 @@ brick_activity_parts (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references profiles(id) on delete cascade not null,
   group_id uuid references groups(id) on delete cascade not null,
-  external_id text,                        -- Garmin multisport legs share this; null for phone/manual
   activity_type text not null,             -- 'run' | 'ride'
   strava_activity_id bigint,
   activity_name text,
@@ -424,7 +423,7 @@ The webhook endpoint handles two things:
 4. Fetch full activity from Strava API (need distance, type, elapsed time)
 5. Bucket all pending sessions by `group_id`
 6. Per group, in order:
-   - **Brick partner check** (run/ride with `external_id` only): if a complementary leg with the same `external_id` is already stored in `brick_activity_parts`, combine both legs' stats, validate against the brick session target (85% threshold), mark the brick complete, delete the partner row, then run an **orphan release** — any other parts parked for this group/week are matched to remaining standalone sessions
+   - **Brick partner check**: if a complementary leg (opposite type — run vs ride) on the same `activity_date` is already stored in `brick_activity_parts`, combine both legs' stats, validate against the brick session target (85% threshold), mark the brick complete, delete the partner row, then run an **orphan release** — any other parts parked for this group/week are matched to remaining standalone sessions
    - **First-leg park**: if a brick session is pending this week and the activity is a run or ride, store it in `brick_activity_parts` and show a 50% progress bar in the UI
    - **Regular match**: if no brick is pending, call `matchActivity` and award points to the matching session
 7. Mark matched sessions complete and award points per group
@@ -442,7 +441,7 @@ Always return HTTP 200 immediately — Strava will retry on non-200.
 4. If `target_duration_minutes` is set, elapsed time must be ≥ 85% of target
 5. Match to the earliest qualifying session. If no match, the activity is ignored (no points)
 
-`findPendingBrickSession` finds an incomplete brick-type session within the same calendar week. Optionally accepts combined distance/duration to validate against the brick target (used when the second Garmin leg arrives).
+`findPendingBrickSession` finds an incomplete brick-type session within the same calendar week. Optionally accepts combined distance/duration to validate against the brick target (used when the second leg arrives).
 
 `getWeekBounds(date)` returns `{ start, end }` for the Monday–Sunday week containing a given date. Used by the webhook handler for orphan release queries and by `WeekView` to scope brick parts to the displayed week.
 
@@ -455,10 +454,7 @@ Brick sessions (e.g. ride + run) are completed via a two-phase process:
    - **Drop** — discards the parked leg via `DELETE /api/activities/assign`. Always visible as the fallback when there is nothing to assign to.
    - `WeekView` computes `hasAssignableSession` (checks for a pending session matching the brick part's activity type in the same week) and threads it down to `SessionCard` → `BrickProgress` to drive this smart show/hide.
 
-2. **Automatic second-leg detection** — the webhook tries two strategies for finding a stored complementary leg:
-   - **Garmin multisport (`external_id` match)**: both legs of a multisport workout share the same `external_id`; the second leg triggers an exact match.
-   - **Same-day match (fallback)**: if no `external_id` match is found, the webhook looks for a complementary leg (`brick_activity_parts`) on the same `activity_date`. This handles two separate phone/manual uploads on the same day (e.g. morning ride + evening run) without any user action.
-   When a match is found, stats from both legs are combined, validated against the brick target (85% threshold), and the session is marked complete.
+2. **Automatic second-leg detection** — when a run or ride arrives, the webhook looks for a complementary leg (opposite type) already stored in `brick_activity_parts` on the same `activity_date`. This covers both Garmin multisport uploads and two separate manual uploads on the same day (e.g. morning ride + evening run). When a match is found, stats from both legs are combined, validated against the brick target (85% threshold), and the session is marked complete.
 
 3. **Orphan release**: when a brick completes, the handler queries `brick_activity_parts` for any remaining parts in the same user/group/week and runs them through `matchActivity` against remaining pending sessions. This handles the case where a Monday run was parked (brick was pending), then Tuesday's brick completes — the Monday run is retroactively credited to the standalone run session without user action.
 

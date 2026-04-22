@@ -56,33 +56,18 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
   const activityDate = activity.start_date_local.split('T')[0]
   const isRunOrRide = activityType === 'run' || activityType === 'ride'
 
-  // Look for a stored complementary leg to confirm the second leg of a brick has
-  // arrived. Two strategies: exact external_id match (Garmin multisport, both legs
-  // share the same id) or same-day match (two separate uploads on the same date,
-  // e.g. a morning ride and an evening run entered via phone).
+  // Look for a stored complementary leg on the same day to confirm the second leg
+  // of a brick has arrived (e.g. a morning ride followed by an evening run).
   let brickPartners: Array<{ id: string; group_id: string; distance_km: number | null; duration_minutes: number | null }> = []
   if (isRunOrRide) {
     const complementaryType = activityType === 'run' ? 'ride' : 'run'
-
-    if (activity.external_id) {
-      const { data: partners } = await serviceClient
-        .from('brick_activity_parts')
-        .select('id, group_id, distance_km, duration_minutes')
-        .eq('user_id', profile.id)
-        .eq('external_id', activity.external_id)
-        .eq('activity_type', complementaryType)
-      brickPartners = partners ?? []
-    }
-
-    if (brickPartners.length === 0) {
-      const { data: sameDayPartners } = await serviceClient
-        .from('brick_activity_parts')
-        .select('id, group_id, distance_km, duration_minutes')
-        .eq('user_id', profile.id)
-        .eq('activity_type', complementaryType)
-        .eq('activity_date', activityDate)
-      brickPartners = sameDayPartners ?? []
-    }
+    const { data: sameDayPartners } = await serviceClient
+      .from('brick_activity_parts')
+      .select('id, group_id, distance_km, duration_minutes')
+      .eq('user_id', profile.id)
+      .eq('activity_type', complementaryType)
+      .eq('activity_date', activityDate)
+    brickPartners = sameDayPartners ?? []
   }
 
   // Each entry pairs a session with the activity whose stats should drive points.
@@ -153,7 +138,6 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
         await serviceClient.from('brick_activity_parts').insert({
           user_id: profile.id,
           group_id: groupId,
-          external_id: activity.external_id ?? null,
           activity_type: activityType,
           strava_activity_id: stravaActivityId,
           activity_name: activity.name,
