@@ -51,7 +51,7 @@ export default function BrickProgress({ part, hasAssignableSession }: Props) {
       <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
         {legLabel} received{statsLabel ? ` · ${statsLabel}` : ''}
       </p>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 sm:hidden">
         {hasAssignableSession !== false && (
           <button
             onClick={handleAssign}
