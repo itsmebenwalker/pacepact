@@ -5,6 +5,29 @@ import { checkStreak } from '@/lib/strava/webhook'
 import { getWeekBounds } from '@/lib/strava/activity-matcher'
 import type { Session, StravaActivity } from '@/types'
 
+export async function DELETE(request: Request) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const body = await request.json()
+  const { brick_part_id } = body
+  if (!brick_part_id) return NextResponse.json({ error: 'Missing brick_part_id' }, { status: 400 })
+
+  const serviceClient = createServiceClient()
+  const { data: part } = await serviceClient
+    .from('brick_activity_parts')
+    .select('id')
+    .eq('id', brick_part_id)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!part) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  await serviceClient.from('brick_activity_parts').delete().eq('id', brick_part_id)
+  return NextResponse.json({ ok: true })
+}
+
 export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

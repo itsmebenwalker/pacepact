@@ -24,10 +24,11 @@ const DEFAULT_TIPS: Record<string, string> = {
 interface Props {
   session: Session
   pendingPart?: BrickActivityPart
+  hasAssignableSession?: boolean
   allowManualComplete?: boolean
 }
 
-export default function SessionCard({ session, pendingPart, allowManualComplete = true }: Props) {
+export default function SessionCard({ session, pendingPart, hasAssignableSession, allowManualComplete = true }: Props) {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -59,6 +60,19 @@ export default function SessionCard({ session, pendingPart, allowManualComplete 
     setLoading(true)
     await fetch('/api/activities/assign', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ brick_part_id: pendingPart.id }),
+    })
+    setLoading(false)
+    setSheetOpen(false)
+    router.refresh()
+  }
+
+  async function dropBrickPart() {
+    if (!pendingPart) return
+    setLoading(true)
+    await fetch('/api/activities/assign', {
+      method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ brick_part_id: pendingPart.id }),
     })
@@ -153,7 +167,7 @@ export default function SessionCard({ session, pendingPart, allowManualComplete 
           </div>
         )}
         {pendingPart && !isCompleted && (
-          <BrickProgress part={pendingPart} />
+          <BrickProgress part={pendingPart} hasAssignableSession={hasAssignableSession} />
         )}
 
         {/* Desktop inline actions */}
@@ -169,7 +183,7 @@ export default function SessionCard({ session, pendingPart, allowManualComplete 
                 {loading ? 'Saving…' : 'Mark done manually'}
               </button>
             )}
-            {pendingPart && (
+            {pendingPart && hasAssignableSession !== false && (
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); assignBrickPart(); }}
@@ -177,6 +191,16 @@ export default function SessionCard({ session, pendingPart, allowManualComplete 
                 className="w-full text-xs font-medium py-1.5 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 transition-colors"
               >
                 Count as {pendingPart.activity_type} session instead
+              </button>
+            )}
+            {pendingPart && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); dropBrickPart(); }}
+                disabled={loading}
+                className="w-full text-xs font-medium py-1.5 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800 disabled:opacity-40 transition-colors"
+              >
+                Drop activity
               </button>
             )}
           </div>
@@ -236,13 +260,22 @@ export default function SessionCard({ session, pendingPart, allowManualComplete 
                     Mark done manually
                   </button>
                 )}
-                {pendingPart && (
+                {pendingPart && hasAssignableSession !== false && (
                   <button
                     onClick={assignBrickPart}
                     disabled={loading}
                     className="w-full border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium rounded-md text-sm py-3 transition-colors bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40"
                   >
                     Count as {pendingPart.activity_type} session instead
+                  </button>
+                )}
+                {pendingPart && (
+                  <button
+                    onClick={dropBrickPart}
+                    disabled={loading}
+                    className="w-full border border-zinc-200 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 font-medium rounded-md text-sm py-3 transition-colors bg-white dark:bg-zinc-900 hover:text-red-500 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800 disabled:opacity-40"
+                  >
+                    Drop activity
                   </button>
                 )}
               </div>

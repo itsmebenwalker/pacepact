@@ -6,9 +6,10 @@ import type { BrickActivityPart } from '@/types'
 
 interface Props {
   part: BrickActivityPart
+  hasAssignableSession?: boolean
 }
 
-export default function BrickProgress({ part }: Props) {
+export default function BrickProgress({ part, hasAssignableSession }: Props) {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
@@ -16,6 +17,16 @@ export default function BrickProgress({ part }: Props) {
     setLoading(true)
     await fetch('/api/activities/assign', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ brick_part_id: part.id }),
+    })
+    router.refresh()
+  }
+
+  async function handleDrop() {
+    setLoading(true)
+    await fetch('/api/activities/assign', {
+      method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ brick_part_id: part.id }),
     })
@@ -40,13 +51,27 @@ export default function BrickProgress({ part }: Props) {
       <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
         {legLabel} received{statsLabel ? ` · ${statsLabel}` : ''}
       </p>
-      <button
-        onClick={handleAssign}
-        disabled={loading}
-        className="text-[11px] text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 underline underline-offset-2 transition-colors disabled:opacity-40"
-      >
-        {loading ? 'Assigning…' : `Count as ${legLabel.toLowerCase()} session instead`}
-      </button>
+      <div className="flex items-center gap-2">
+        {hasAssignableSession !== false && (
+          <button
+            onClick={handleAssign}
+            disabled={loading}
+            className="text-[11px] text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 underline underline-offset-2 transition-colors disabled:opacity-40"
+          >
+            {loading ? 'Saving…' : `Count as ${legLabel.toLowerCase()} session instead`}
+          </button>
+        )}
+        {hasAssignableSession !== false && (
+          <span className="text-[11px] text-zinc-300 dark:text-zinc-600">·</span>
+        )}
+        <button
+          onClick={handleDrop}
+          disabled={loading}
+          className="text-[11px] text-zinc-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 underline underline-offset-2 transition-colors disabled:opacity-40"
+        >
+          {loading ? 'Saving…' : 'Drop'}
+        </button>
+      </div>
     </div>
   )
 }

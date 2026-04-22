@@ -89,6 +89,18 @@ jest.mock('@/lib/supabase/server', () => ({
         return { insert: mockNotificationsInsert }
       }
 
+      if (table === 'brick_activity_parts') {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                eq: () => Promise.resolve({ data: [], error: null }),
+              }),
+            }),
+          }),
+        }
+      }
+
       return {}
     },
   })),
