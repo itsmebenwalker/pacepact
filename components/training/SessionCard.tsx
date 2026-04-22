@@ -28,6 +28,16 @@ interface Props {
   allowManualComplete?: boolean
 }
 
+function isSessionInCurrentOrPastWeek(scheduledDate: string | null | undefined): boolean {
+  if (!scheduledDate) return true
+  const todayStr = new Date().toISOString().split('T')[0]
+  const today = new Date(todayStr)
+  const daysUntilSunday = today.getDay() === 0 ? 0 : 7 - today.getDay()
+  const sunday = new Date(today)
+  sunday.setDate(today.getDate() + daysUntilSunday)
+  return scheduledDate <= sunday.toISOString().split('T')[0]
+}
+
 export default function SessionCard({ session, pendingPart, hasAssignableSession, allowManualComplete = true }: Props) {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -37,15 +47,7 @@ export default function SessionCard({ session, pendingPart, hasAssignableSession
   const label = SESSION_LABEL[session.session_type] ?? session.session_type.toUpperCase()
   const tip = session.tip ?? DEFAULT_TIPS[session.session_type] ?? null
 
-  const canMarkDone = !isCompleted && allowManualComplete && (() => {
-    if (!session.scheduled_date) return true
-    const todayStr = new Date().toISOString().split('T')[0]
-    const today = new Date(todayStr)
-    const daysUntilSunday = today.getDay() === 0 ? 0 : 7 - today.getDay()
-    const sunday = new Date(today)
-    sunday.setDate(today.getDate() + daysUntilSunday)
-    return session.scheduled_date <= sunday.toISOString().split('T')[0]
-  })()
+  const canMarkDone = !isCompleted && allowManualComplete && isSessionInCurrentOrPastWeek(session.scheduled_date)
 
   async function markDone() {
     setLoading(true)

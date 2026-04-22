@@ -105,8 +105,6 @@ export default function MessageBoard({
     setSending(false)
   }
 
-  const unreadCount = 0 // future: track unread since sheet last opened
-
   function renderMessages(bottomRef: React.RefObject<HTMLDivElement>) {
     return (
       <>
@@ -210,11 +208,6 @@ export default function MessageBoard({
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
         Group chat
-        {unreadCount > 0 && (
-          <span className="flex items-center justify-center w-4 h-4 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 text-[10px] font-bold rounded-full">
-            {unreadCount}
-          </span>
-        )}
       </button>
 
       {/* Mobile chat sheet */}

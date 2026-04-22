@@ -88,12 +88,12 @@ pacepact/
 ├── components/
 │   ├── leaderboard/          # Real-time leaderboard table
 │   ├── training/             # Week view + session cards
-│   ├── groups/               # Group cards, create form, invite button, message board
+│   ├── groups/               # Group cards, create form, actions menu, message board
 │   ├── notifications/        # NotificationBell — real-time bell icon with dropdown
 │   ├── profile/              # Delete account, disconnect Strava, notification settings
 │   └── ui/                   # Shared primitives (nav, theme toggle)
 ├── lib/
-│   ├── supabase/             # Browser + server clients
+│   ├── supabase/             # Browser + server clients; `requireAuth()` shared auth helper
 │   ├── strava/               # OAuth, webhook processing, activity matching
 │   ├── claude/               # Plan generation prompt + parsing
 │   ├── resend/               # Magic link email template
@@ -167,7 +167,7 @@ Multiple activities in the same week can each match a different session — comp
 
 In any week that contains a pending brick session, every incoming run or ride is held in `brick_activity_parts` and shown as a 50% progress bar on the brick session card. There are two resolution paths:
 
-- **Garmin multisport**: both legs (ride + run) share the same `external_id`. When the second leg arrives, stats are combined and validated against the brick target. The brick is marked complete automatically, and any other activities parked earlier that week are released and matched to remaining standalone sessions.
+- **Auto-complete**: when a complementary leg (opposite type — ride + run) arrives on the same calendar date, stats from both legs are combined and validated against the brick target (85% threshold). The brick is marked complete automatically, and any other activities parked earlier that week are released and matched to remaining standalone sessions.
 - **Manual assign**: the user taps "Count as ride/run session instead" to credit a parked leg to a standalone session instead.
 
 ## Environment variables

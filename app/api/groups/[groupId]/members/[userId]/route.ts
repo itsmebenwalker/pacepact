@@ -1,16 +1,13 @@
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { requireAuth, createServiceClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 type Params = { params: Promise<{ groupId: string; userId: string }> }
 
 export async function DELETE(_request: Request, { params }: Params) {
   const { groupId, userId } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const auth = await requireAuth()
+  if (auth.error) return auth.error
+  const { user, supabase } = auth
 
   const { data: group } = await supabase
     .from('groups')
@@ -67,12 +64,9 @@ export async function DELETE(_request: Request, { params }: Params) {
 
 export async function PATCH(request: Request, { params }: Params) {
   const { groupId, userId } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const auth = await requireAuth()
+  if (auth.error) return auth.error
+  const { user, supabase } = auth
 
   const { action } = await request.json() as { action: string }
 

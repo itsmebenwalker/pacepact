@@ -291,12 +291,8 @@ pacepact/
 │   │   ├── GroupCard.tsx               # Dashboard summary card
 │   │   ├── CreateGroupForm.tsx         # Multi-step group setup
 │   │   ├── GroupActionsMenu.tsx        # ••• dropdown: invite copy, rotate/lock/manual-done toggle, edit, delete, leave
-│   │   ├── InviteButton.tsx            # Copy invite link (standalone, kept for reuse)
-│   │   ├── RotateInviteButton.tsx      # Regenerate invite code (standalone, kept for reuse)
-│   │   ├── LockInviteToggle.tsx        # Lock/unlock new members (standalone, kept for reuse)
 │   │   ├── KickMemberButton.tsx        # Remove + ban a member (used on members page)
 │   │   ├── TransferCreatorButton.tsx   # Hand off admin rights (used on members page)
-│   │   ├── LeaveGroupButton.tsx        # Self-leave (standalone, kept for reuse)
 │   │   ├── MessageBoard.tsx            # Realtime group chat; shows member avatars
 │   │   ├── WeekInReview.tsx            # Server component — fetches data, delegates to panel
 │   │   └── WeekInReviewPanel.tsx       # Client component — collapsible review UI
@@ -314,7 +310,7 @@ pacepact/
 ├── lib/
 │   ├── supabase/
 │   │   ├── client.ts
-│   │   └── server.ts
+│   │   └── server.ts               # createClient, createServiceClient, requireAuth
 │   ├── strava/
 │   │   ├── oauth.ts                    # Token exchange, refresh
 │   │   ├── webhook.ts                  # Webhook processing, per-group matching
@@ -342,6 +338,20 @@ pacepact/
 
 ## Key Implementation Details
 
+### API Authentication
+
+All authenticated API routes use `requireAuth()` from `lib/supabase/server.ts` instead of calling `createClient()` + `getUser()` inline:
+
+```typescript
+const auth = await requireAuth()
+if (auth.error) return auth.error          // returns NextResponse 401 automatically
+const { user, supabase } = auth
+```
+
+`requireAuth` returns a discriminated union: `{ user, supabase, error: null }` when authenticated, or `{ user: null, supabase: null, error: NextResponse }` with a 401. The `strava/callback` route is the one exception — it redirects to `/login` rather than returning a 401.
+
+---
+
 ### Group Admin Features
 
 The group creator has five admin-only actions, all enforced by a creator-only check (`group.created_by === user.id`) on the relevant API routes:
@@ -358,9 +368,9 @@ The group creator has five admin-only actions, all enforced by a creator-only ch
 
 **Kicking always bans**: there is no "remove without banning" — the DELETE route always inserts into `group_member_bans`. This prevents a kicked user from immediately rejoining via the same invite link.
 
-**UI components**: the group home page uses a single `GroupActionsMenu` (`•••` dropdown) that surfaces all actions in one place — mobile-friendly and uncluttered. Creators see: Copy invite link, Reset invite link, Lock/Unlock invites, Edit group, Delete group. Non-creators see: Copy invite link, Leave group. The individual standalone components (`RotateInviteButton`, `LockInviteToggle`, etc.) are kept but not used on the group home page. The members page still uses `KickMemberButton` and `TransferCreatorButton` directly.
+**UI components**: the group home page uses a single `GroupActionsMenu` (`•••` dropdown) that surfaces all actions in one place — mobile-friendly and uncluttered. Creators see: Copy invite link, Reset invite link, Lock/Unlock invites, Edit group, Delete group. Non-creators see: Copy invite link, Leave group. The members page uses `KickMemberButton` and `TransferCreatorButton` directly.
 
-**Leaving a group**: non-creator members see a `LeaveGroupButton` on the group home page in place of the admin controls. It calls `DELETE /api/groups/[groupId]/members/me` and redirects to `/groups` on success. Creators must transfer admin rights before they can leave.
+**Leaving a group**: non-creator members leave via the `GroupActionsMenu` leave action. It calls `DELETE /api/groups/[groupId]/members/me` and redirects to `/groups` on success. Creators must transfer admin rights before they can leave.
 
 ### Group Creation Flow
 

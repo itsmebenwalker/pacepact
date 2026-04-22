@@ -64,12 +64,6 @@ export interface Group {
   created_at: string
 }
 
-export interface GroupMemberBan {
-  group_id: string
-  user_id: string
-  banned_by: string
-  banned_at: string
-}
 
 export interface GroupMember {
   id: string

@@ -1,4 +1,4 @@
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { requireAuth, createServiceClient } from '@/lib/supabase/server'
 import { generateTrainingPlan } from '@/lib/claude/generate-plan'
 import { fanOutSessionsForUser } from '@/lib/groups/fan-out'
 import { NextResponse } from 'next/server'
@@ -6,12 +6,9 @@ import { nanoid } from 'nanoid'
 import type { EventType, Ambition, OtherSport, TrainingSession } from '@/types'
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const auth = await requireAuth()
+  if (auth.error) return auth.error
+  const { user } = auth
 
   const body = await request.json()
   const { name, event_name, event_type, event_date, ambition, other_sport, other_distance_km } = body as {

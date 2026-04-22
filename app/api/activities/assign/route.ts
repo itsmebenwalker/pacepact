@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { requireAuth, createServiceClient } from '@/lib/supabase/server'
 import { calculatePoints } from '@/lib/points/calculator'
 import { checkStreak } from '@/lib/strava/webhook'
 import { getWeekBounds } from '@/lib/strava/activity-matcher'
 import type { Session, StravaActivity } from '@/types'
 
 export async function DELETE(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireAuth()
+  if (auth.error) return auth.error
+  const { user } = auth
 
   const body = await request.json()
   const { brick_part_id } = body
@@ -29,9 +29,9 @@ export async function DELETE(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireAuth()
+  if (auth.error) return auth.error
+  const { user } = auth
 
   const body = await request.json()
   const { brick_part_id } = body

@@ -13,13 +13,11 @@ const mockEq = jest.fn()
 const mockUpdate = jest.fn()
 
 jest.mock('@/lib/supabase/server', () => ({
-  createClient: jest.fn(() =>
-    Promise.resolve({
-      auth: { getUser: mockGetUser },
-      from: () => ({ update: mockUpdate }),
-    })
-  ),
-  createServiceClient: jest.fn(),
+  requireAuth: jest.fn(async () => {
+    const { data: { user } } = await mockGetUser()
+    if (!user) return { user: null, supabase: null, error: new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 }) }
+    return { user, supabase: { from: () => ({ update: mockUpdate }) }, error: null }
+  }),
 }))
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

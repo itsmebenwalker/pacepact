@@ -5,6 +5,29 @@ import { ensureFreshToken, getStravaActivity } from './oauth'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Session, StravaActivity, StravaWebhookPayload } from '@/types'
 
+function brickPartToActivity(orphan: {
+  strava_activity_id: number | null
+  activity_name: string | null
+  activity_type: string
+  distance_km: number | null
+  duration_minutes: number | null
+  created_at: string
+  activity_date: string | null
+}, fallbackDate: string): StravaActivity {
+  return {
+    id: orphan.strava_activity_id ?? 0,
+    name: orphan.activity_name ?? '',
+    type: orphan.activity_type,
+    sport_type: orphan.activity_type,
+    distance: (orphan.distance_km ?? 0) * 1000,
+    moving_time: Math.round((orphan.duration_minutes ?? 0) * 60),
+    elapsed_time: Math.round((orphan.duration_minutes ?? 0) * 60),
+    start_date: orphan.created_at,
+    start_date_local: (orphan.activity_date ?? fallbackDate) + 'T00:00:00',
+    athlete: { id: 0 },
+  }
+}
+
 export async function processWebhookEvent(payload: StravaWebhookPayload) {
   const serviceClient = createServiceClient()
 
@@ -102,18 +125,7 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
         const alreadyMatchedIds = new Set(matchedSessions.map((m) => m.session.id))
 
         for (const orphan of orphans ?? []) {
-          const orphanActivity: StravaActivity = {
-            id: orphan.strava_activity_id ?? 0,
-            name: orphan.activity_name ?? '',
-            type: orphan.activity_type,
-            sport_type: orphan.activity_type,
-            distance: (orphan.distance_km ?? 0) * 1000,
-            moving_time: Math.round((orphan.duration_minutes ?? 0) * 60),
-            elapsed_time: Math.round((orphan.duration_minutes ?? 0) * 60),
-            start_date: orphan.created_at,
-            start_date_local: (orphan.activity_date ?? activityDate) + 'T00:00:00',
-            athlete: { id: 0 },
-          }
+          const orphanActivity = brickPartToActivity(orphan, activityDate)
 
           const remainingSessions = groupSessions.filter((s) => !alreadyMatchedIds.has(s.id))
           const orphanMatch = matchActivity(orphanActivity, remainingSessions)

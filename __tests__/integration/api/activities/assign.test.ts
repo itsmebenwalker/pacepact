@@ -27,9 +27,12 @@ beforeEach(() => {
 })
 
 jest.mock('@/lib/supabase/server', () => ({
-  createClient: jest.fn(() => ({
-    auth: { getUser: () => mockGetUser() },
-  })),
+  requireAuth: jest.fn(async () => {
+    const result = await mockGetUser()
+    const user = result?.data?.user ?? null
+    if (!user) return { user: null, supabase: null, error: new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 }) }
+    return { user, supabase: {}, error: null }
+  }),
   createServiceClient: jest.fn(() => ({
     from: (table: string) => {
       if (table === 'brick_activity_parts') {
