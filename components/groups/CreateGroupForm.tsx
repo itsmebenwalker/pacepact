@@ -234,7 +234,7 @@ export default function CreateGroupForm() {
           </div>
 
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            AI will generate a personalised training plan in the background. You&apos;ll be notified when it&apos;s ready — you can navigate away.
+            AI will generate a personalised training plan in the background — usually a minute or two. You&apos;ll be notified when it&apos;s ready.
           </p>
 
           {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}

@@ -51,7 +51,7 @@ export default function PlanGeneratingBanner({ groupId, failed }: Props) {
         <div>
           <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Generating your training plan…</p>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            This takes 10–15 seconds. The plan will appear here automatically.
+            This usually takes a minute or two. The plan will appear here automatically.
           </p>
         </div>
       </div>

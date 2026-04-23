@@ -165,7 +165,7 @@ you cannot describe the animation in one word, it does not belong.
   scale-from-small.
 - **Instant for commits.** Form state, route changes, and loading indicators
   appear instantly. The one permitted spinning animation is `animate-spin` on
-  the plan-generation loader (Claude can take 5–15 s, so a spinner is the
+  the plan-generation loader (Claude can take a minute or two, so a spinner is the
   right affordance) and the auth-callback page. A 200 ms spinner for a fast
   operation is worse than no spinner.
 
