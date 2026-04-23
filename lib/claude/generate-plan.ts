@@ -66,12 +66,16 @@ ${otherSportRule}
 - Maximum ${weeksUntil * 6} sessions total
 - day_of_week: 1=Mon through 7=Sun`
 
-  const message = await client.messages.create({
+  // Use streaming — the SDK requires it when max_tokens is large enough that the
+  // request could theoretically exceed its non-streaming timeout (10 min).
+  const stream = client.messages.stream({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 64000,
     system: `You are an expert endurance sports coach. You generate structured training plans as JSON. Respond ONLY with valid JSON — no markdown, no explanation.`,
     messages: [{ role: 'user', content: userPrompt }],
   })
+
+  const message = await stream.finalMessage()
 
   if (message.stop_reason === 'max_tokens') {
     throw new Error('Plan generation exceeded token limit — try a shorter event window')

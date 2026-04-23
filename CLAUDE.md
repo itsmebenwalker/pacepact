@@ -425,7 +425,7 @@ Rules:
 
 Parse the response, validate the structure, then fan out sessions per group member into the `sessions` table.
 
-`max_tokens` is set to 64,000 — long-duration events (e.g. 32-week triathlon) can generate 190+ sessions and easily exceed smaller limits. If the API returns `stop_reason: 'max_tokens'`, a descriptive error is thrown before attempting to parse the truncated JSON.
+`max_tokens` is set to 64,000 — long-duration events (e.g. 32-week triathlon) can generate 190+ sessions and easily exceed smaller limits. The Anthropic SDK requires streaming for requests with a `max_tokens` large enough to potentially exceed its 10-minute non-streaming timeout, so `client.messages.stream()` is used instead of `messages.create()`, with `stream.finalMessage()` to collect the full response. If the API returns `stop_reason: 'max_tokens'`, a descriptive error is thrown before attempting to parse the truncated JSON.
 
 ### Strava Webhook (`app/api/strava/webhook/route.ts`)
 

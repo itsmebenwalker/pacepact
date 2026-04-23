@@ -2,20 +2,23 @@
  * Tests for the plan generation parser logic.
  * The Anthropic client is mocked — we test that generateTrainingPlan correctly
  * handles clean JSON, markdown-fenced JSON, and malformed responses.
+ *
+ * The SDK's streaming API is used (messages.stream → finalMessage()) so the mock
+ * returns a stream-shaped object with a finalMessage() method.
  */
 
 import type { TrainingSession } from '@/types'
 
 // ── Mock setup ───────────────────────────────────────────────────────────────
-// Must be declared before jest.mock (factory runs at hoist time, so the mock
-// fn itself is captured via the shared reference in the module factory closure).
+// Variables starting with 'mock' are hoisted alongside jest.mock() calls.
 
-const mockCreate = jest.fn()
+const mockFinalMessage = jest.fn()
+const mockStream = jest.fn()
 
 jest.mock('@anthropic-ai/sdk', () => ({
   __esModule: true,
   default: jest.fn().mockImplementation(() => ({
-    messages: { create: mockCreate },
+    messages: { stream: mockStream },
   })),
 }))
 
@@ -56,11 +59,14 @@ function makeApiResponse(text: string, stop_reason = 'end_turn') {
 
 describe('generateTrainingPlan — JSON parsing', () => {
   beforeEach(() => {
-    mockCreate.mockReset()
+    mockStream.mockReset()
+    mockFinalMessage.mockReset()
+    // stream() returns a stream-like object; finalMessage() resolves to the message
+    mockStream.mockReturnValue({ finalMessage: mockFinalMessage })
   })
 
   it('parses a clean JSON response', async () => {
-    mockCreate.mockResolvedValue(makeApiResponse(JSON.stringify(VALID_SESSIONS)))
+    mockFinalMessage.mockResolvedValue(makeApiResponse(JSON.stringify(VALID_SESSIONS)))
 
     const { sessions } = await generateTrainingPlan('marathon', '2026-10-01', 'finish')
 
@@ -70,7 +76,7 @@ describe('generateTrainingPlan — JSON parsing', () => {
 
   it('parses a response wrapped in markdown json fences', async () => {
     const wrapped = '```json\n' + JSON.stringify(VALID_SESSIONS) + '\n```'
-    mockCreate.mockResolvedValue(makeApiResponse(wrapped))
+    mockFinalMessage.mockResolvedValue(makeApiResponse(wrapped))
 
     const { sessions } = await generateTrainingPlan('marathon', '2026-10-01', 'finish')
 
@@ -79,7 +85,7 @@ describe('generateTrainingPlan — JSON parsing', () => {
 
   it('parses a response wrapped in plain markdown fences', async () => {
     const wrapped = '```\n' + JSON.stringify(VALID_SESSIONS) + '\n```'
-    mockCreate.mockResolvedValue(makeApiResponse(wrapped))
+    mockFinalMessage.mockResolvedValue(makeApiResponse(wrapped))
 
     const { sessions } = await generateTrainingPlan('marathon', '2026-10-01', 'finish')
 
@@ -88,7 +94,7 @@ describe('generateTrainingPlan — JSON parsing', () => {
 
   it('returns the raw response alongside parsed sessions', async () => {
     const raw = JSON.stringify(VALID_SESSIONS)
-    mockCreate.mockResolvedValue(makeApiResponse(raw))
+    mockFinalMessage.mockResolvedValue(makeApiResponse(raw))
 
     const result = await generateTrainingPlan('marathon', '2026-10-01', 'finish')
 
@@ -96,7 +102,7 @@ describe('generateTrainingPlan — JSON parsing', () => {
   })
 
   it('throws when response is not an array', async () => {
-    mockCreate.mockResolvedValue(
+    mockFinalMessage.mockResolvedValue(
       makeApiResponse(JSON.stringify({ sessions: VALID_SESSIONS }))
     )
 
@@ -106,7 +112,7 @@ describe('generateTrainingPlan — JSON parsing', () => {
   })
 
   it('throws when response is invalid JSON', async () => {
-    mockCreate.mockResolvedValue(
+    mockFinalMessage.mockResolvedValue(
       makeApiResponse('Sorry, I cannot generate a plan right now.')
     )
 
@@ -115,29 +121,29 @@ describe('generateTrainingPlan — JSON parsing', () => {
     ).rejects.toThrow()
   })
 
-  it('passes the correct model to the API', async () => {
-    mockCreate.mockResolvedValue(makeApiResponse(JSON.stringify(VALID_SESSIONS)))
+  it('passes the correct model to the streaming API', async () => {
+    mockFinalMessage.mockResolvedValue(makeApiResponse(JSON.stringify(VALID_SESSIONS)))
 
     await generateTrainingPlan('marathon', '2026-10-01', 'finish')
 
-    expect(mockCreate).toHaveBeenCalledWith(
+    expect(mockStream).toHaveBeenCalledWith(
       expect.objectContaining({ model: 'claude-sonnet-4-20250514' })
     )
   })
 
   it('includes event type and ambition in the prompt', async () => {
-    mockCreate.mockResolvedValue(makeApiResponse(JSON.stringify(VALID_SESSIONS)))
+    mockFinalMessage.mockResolvedValue(makeApiResponse(JSON.stringify(VALID_SESSIONS)))
 
     await generateTrainingPlan('triathlon', '2026-10-01', 'podium')
 
-    const callArgs = mockCreate.mock.calls[0][0]
+    const callArgs = mockStream.mock.calls[0][0]
     const userMessage = callArgs.messages[0].content as string
     expect(userMessage).toContain('triathlon')
     expect(userMessage).toContain('podium')
   })
 
   it('preserves the tip field from the parsed session', async () => {
-    mockCreate.mockResolvedValue(makeApiResponse(JSON.stringify(VALID_SESSIONS)))
+    mockFinalMessage.mockResolvedValue(makeApiResponse(JSON.stringify(VALID_SESSIONS)))
 
     const { sessions } = await generateTrainingPlan('marathon', '2026-10-01', 'finish')
 
@@ -145,27 +151,27 @@ describe('generateTrainingPlan — JSON parsing', () => {
   })
 
   it('includes tip in the prompt schema', async () => {
-    mockCreate.mockResolvedValue(makeApiResponse(JSON.stringify(VALID_SESSIONS)))
+    mockFinalMessage.mockResolvedValue(makeApiResponse(JSON.stringify(VALID_SESSIONS)))
 
     await generateTrainingPlan('marathon', '2026-10-01', 'finish')
 
-    const callArgs = mockCreate.mock.calls[0][0]
+    const callArgs = mockStream.mock.calls[0][0]
     const userMessage = callArgs.messages[0].content as string
     expect(userMessage).toContain('"tip"')
   })
 
-  it('passes max_tokens 64000 to the API', async () => {
-    mockCreate.mockResolvedValue(makeApiResponse(JSON.stringify(VALID_SESSIONS)))
+  it('passes max_tokens 64000 to the streaming API', async () => {
+    mockFinalMessage.mockResolvedValue(makeApiResponse(JSON.stringify(VALID_SESSIONS)))
 
     await generateTrainingPlan('marathon', '2026-10-01', 'finish')
 
-    expect(mockCreate).toHaveBeenCalledWith(
+    expect(mockStream).toHaveBeenCalledWith(
       expect.objectContaining({ max_tokens: 64000 })
     )
   })
 
   it('throws with a descriptive message when stop_reason is max_tokens', async () => {
-    mockCreate.mockResolvedValue(makeApiResponse('', 'max_tokens'))
+    mockFinalMessage.mockResolvedValue(makeApiResponse('', 'max_tokens'))
 
     await expect(
       generateTrainingPlan('marathon', '2026-10-01', 'finish')
