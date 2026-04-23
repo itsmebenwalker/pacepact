@@ -4,7 +4,7 @@ Social training platform for groups of friends preparing for the same endurance 
 
 ## Features
 
-- **Group training plans** — Claude generates a structured plan based on event type, date, and training ambition (`finish` / `pb` / `podium`)
+- **Group training plans** — Claude generates a structured plan in the background; the group is created immediately and the user is notified via the bell when the plan is ready
 - **Strava auto-sync** — sessions are marked complete when you log a matching Strava activity; matched by activity type and weekly schedule, not exact date
 - **Brick session support** — any two complementary activities (ride + run) on the same day auto-complete a brick session; a 50% progress bar shows while the first leg is pending, with a manual assign fallback
 - **Live leaderboard** — Supabase Realtime keeps scores updated for everyone in the group simultaneously
@@ -88,7 +88,7 @@ pacepact/
 ├── components/
 │   ├── leaderboard/          # Real-time leaderboard table
 │   ├── training/             # Week view + session cards
-│   ├── groups/               # Group cards, create form, actions menu, message board
+│   ├── groups/               # Group cards, create form, actions menu, message board, plan generating banner
 │   ├── notifications/        # NotificationBell — real-time bell icon with dropdown
 │   ├── profile/              # Delete account, disconnect Strava, notification settings
 │   └── ui/                   # Shared primitives (nav, theme toggle)
@@ -119,7 +119,7 @@ npm run test:watch # Watch mode
 
 ## Testing
 
-Unit tests cover core business logic (points calculator, activity matcher, plan parser, week status, date formatting, webhook notification insertion, join-gate evaluation). Integration tests cover API routes with Supabase mocked — Strava webhook, auth OTP, notification read-all, profile preference updates, brick leg assignment, and group admin actions (kick, transfer creator, rotate invite, lock invites).
+Unit tests cover core business logic (points calculator, activity matcher, plan parser, week status, date formatting, webhook notification insertion, join-gate evaluation) plus the background plan generation route (group created immediately with `plan_status: 'generating'`, `after()` scheduled, background success and failure paths). Integration tests cover API routes with Supabase mocked — Strava webhook, auth OTP, notification read-all, profile preference updates, brick leg assignment, and group admin actions (kick, transfer creator, rotate invite, lock invites).
 
 ```bash
 npm test                                       # Run all tests

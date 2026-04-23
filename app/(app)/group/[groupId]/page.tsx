@@ -4,6 +4,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import LeaderboardTable from '@/components/leaderboard/LeaderboardTable'
 import TrainingPlanSection from '@/components/training/TrainingPlanSection'
+import PlanGeneratingBanner from '@/components/groups/PlanGeneratingBanner'
 import GroupActionsMenu from '@/components/groups/GroupActionsMenu'
 import MessageBoard from '@/components/groups/MessageBoard'
 import WeekInReview from '@/components/groups/WeekInReview'
@@ -144,13 +145,17 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
         memberAvatars={memberAvatars}
       />
 
-      <TrainingPlanSection
-        groupId={group.id}
-        weeks={weeks}
-        today={today}
-        brickParts={brickParts}
-        allowManualComplete={group.allow_manual_complete ?? true}
-      />
+      {group.plan_status === 'generating' || group.plan_status === 'failed' ? (
+        <PlanGeneratingBanner groupId={group.id} failed={group.plan_status === 'failed'} />
+      ) : (
+        <TrainingPlanSection
+          groupId={group.id}
+          weeks={weeks}
+          today={today}
+          brickParts={brickParts}
+          allowManualComplete={group.allow_manual_complete ?? true}
+        />
+      )}
     </div>
   )
 }

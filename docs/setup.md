@@ -60,6 +60,7 @@ supabase/migrations/20260416_group_admin_features.sql               # invite_loc
 supabase/migrations/20260422_drop_external_id_brick_activity_parts.sql  # Drop external_id; switch to same-day matching
 supabase/migrations/20260417_add_session_tip.sql                    # tip column on sessions
 supabase/migrations/20260418_allow_manual_complete.sql              # allow_manual_complete on groups
+supabase/migrations/20260423_background_plan_generation.sql         # plan_status column + plan_ready notification type + groups Realtime
 ```
 
 > **Note**: the three `brick_activity_parts` migrations marked "superseded" are replaced by `20260414_recreate_brick_activity_parts.sql`. On a fresh install you can skip them and run only the final one. On an existing install, run all four in order — the final migration drops and recreates the table cleanly.
@@ -75,6 +76,11 @@ The group admin migration adds:
 
 The `allow_manual_complete` migration adds:
 - `allow_manual_complete boolean NOT NULL DEFAULT true` column to `groups` — when false, the "Mark done manually" button is hidden for all members. Defaults to `true` so existing groups are unaffected. Toggled by the group creator via the ••• menu.
+
+The background plan generation migration adds:
+- `plan_status text NOT NULL DEFAULT 'ready'` column to `groups` — set to `'generating'` when the group is first created, updated to `'ready'` when the Claude plan arrives (or `'failed'` on error). Existing groups default to `'ready'`.
+- Extends the `notifications` type check to include `'plan_ready'` — fired by the background generation task when the plan is ready.
+- Adds `groups` to the `supabase_realtime` publication so `PlanGeneratingBanner` can subscribe to `plan_status` changes.
 
 The brick activity parts migrations add:
 - `brick_activity_parts` table — in any week with a pending brick session, any incoming run or ride is stored here until it is either manually assigned by the user or auto-released when the brick completes
@@ -99,6 +105,7 @@ Go to **Database → Replication** in your Supabase dashboard and enable replica
 | `group_members` | Live leaderboard |
 | `messages` | Live group chat |
 | `notifications` | Real-time notification bell |
+| `groups` | Plan generating banner (`PlanGeneratingBanner` subscribes to `plan_status` changes) |
 
 The migrations add these tables to `supabase_realtime` automatically via `ALTER PUBLICATION`, but you can verify in the dashboard under Database → Replication.
 
@@ -284,7 +291,8 @@ Located in `__tests__/unit/`. Cover pure business logic with no external depende
 | `strava/activity-matcher.test.ts` | Type matching, date window, distance/duration thresholds, multi-candidate selection, brick session detection, combined stats validation |
 | `strava/webhook-processor.test.ts` | Multi-group matching logic, brick detection coordination |
 | `strava/webhook-notifications.test.ts` | Activity matched notification insertion |
-| `claude/generate-plan.test.ts` | JSON parsing, markdown stripping, validation |
+| `claude/generate-plan.test.ts` | JSON parsing, markdown stripping, validation, max_tokens limit, stop_reason guard |
+| `groups/generate-plan-route.test.ts` | Group created immediately with `plan_status: 'generating'`, `after()` scheduled, background success + failure paths |
 | `resend/otp-email.test.ts` | Magic link email rendering |
 | `utils/week-in-review.test.ts` | Review week selection, stat aggregation, teaser copy, streak detection, member ranking |
 | `utils/week-status.test.ts` | Week state classification (past-complete, past-incomplete, active) |
@@ -329,6 +337,8 @@ Located in `__tests__/integration/`. Cover API routes with Supabase mocked via `
 **Plan generation fails**
 - Check `ANTHROPIC_API_KEY` is valid and has credits
 - The raw Claude response is stored in `groups.training_plan_raw` for debugging bad parses
+- Plan generation now runs in the background — check `groups.plan_status` in Supabase. A value of `'failed'` means generation errored; Railway logs will show the `Background plan generation error` message with the cause
+- If `plan_status` is stuck on `'generating'` after a server restart, the background task was lost — update the row to `'failed'` manually in Supabase so the group page shows the error state rather than an infinite spinner
 
 **Leaderboard not updating in real time**
 - Confirm Realtime replication is enabled for `group_members` in Supabase → Database → Replication

@@ -68,10 +68,14 @@ ${otherSportRule}
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-20250514',
-    max_tokens: 16000,
+    max_tokens: 64000,
     system: `You are an expert endurance sports coach. You generate structured training plans as JSON. Respond ONLY with valid JSON — no markdown, no explanation.`,
     messages: [{ role: 'user', content: userPrompt }],
   })
+
+  if (message.stop_reason === 'max_tokens') {
+    throw new Error('Plan generation exceeded token limit — try a shorter event window')
+  }
 
   const raw = message.content[0].type === 'text' ? message.content[0].text : ''
 

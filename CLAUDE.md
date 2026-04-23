@@ -95,6 +95,7 @@ groups (
   invite_code text unique not null,
   invite_locked boolean not null default false,
   allow_manual_complete boolean not null default true,
+  plan_status text not null default 'ready', -- 'generating' | 'ready' | 'failed'
   created_by uuid references profiles(id),
   created_at timestamptz default now()
 )
@@ -163,7 +164,7 @@ In-app notification rows per user. Created by a Postgres trigger (messages) or t
 notifications (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references profiles(id) on delete cascade,
-  type text not null check (type in ('message_admin', 'message_any', 'activity_matched')),
+  type text not null check (type in ('message_admin', 'message_any', 'activity_matched', 'plan_ready')),
   group_id uuid references groups(id) on delete cascade,
   data jsonb not null default '{}',
   read boolean not null default false,
@@ -182,6 +183,7 @@ Supabase Realtime must be enabled so the bell badge updates live.
 `data` payload by type:
 - `message_admin` / `message_any`: `{ content, group_name, sender_name }`
 - `activity_matched`: `{ activity_name, session_description, points_awarded, group_name }`
+- `plan_ready`: `{ group_name }`
 
 ### `brick_activity_parts`
 Staging area for the first leg of a brick workout. In any week that contains a pending brick session, every incoming run or ride is parked here until either manually assigned by the user or auto-released when the brick completes.
@@ -294,6 +296,7 @@ pacepact/
 │   │   ├── KickMemberButton.tsx        # Remove + ban a member (used on members page)
 │   │   ├── TransferCreatorButton.tsx   # Hand off admin rights (used on members page)
 │   │   ├── MessageBoard.tsx            # Realtime group chat; shows member avatars
+│   │   ├── PlanGeneratingBanner.tsx    # Loading/error state while plan_status=generating; Realtime-subscribed, calls router.refresh() on ready/failed
 │   │   ├── WeekInReview.tsx            # Server component — fetches data, delegates to panel
 │   │   └── WeekInReviewPanel.tsx       # Client component — collapsible review UI
 │   ├── notifications/
@@ -378,9 +381,11 @@ The group creation is a multi-step form:
 
 1. **Event details** — event name, type (dropdown), event date
 2. **Training ambition** — single choice: `Just finish`, `Beat my PB`, `Go for podium`
-3. **Review + generate** — shows a summary, user clicks "Generate Training Plan"
+3. **Review + create** — shows a summary, user clicks "Create group"
 
-On submit, the API route calls Claude to generate the plan, stores the group and sessions in Supabase, then redirects to the group page.
+On submit, the API route immediately creates the group with `plan_status: 'generating'` and adds the creator as a member, then returns `{ groupId }` and redirects to the group page — no waiting for Claude. Plan generation runs in the background via Next.js `after()`. When complete, the group is updated to `plan_status: 'ready'`, sessions are fanned out to the creator, and a `plan_ready` notification is inserted.
+
+The group page renders `PlanGeneratingBanner` instead of `TrainingPlanSection` while `plan_status === 'generating'`. The banner subscribes to Supabase Realtime on the `groups` table and calls `router.refresh()` when `plan_status` changes to `ready` or `failed`. If generation fails, `plan_status` is set to `'failed'` and the banner shows an error state.
 
 ### Claude Plan Generation (`lib/claude/generate-plan.ts`)
 
@@ -419,6 +424,8 @@ Rules:
 ```
 
 Parse the response, validate the structure, then fan out sessions per group member into the `sessions` table.
+
+`max_tokens` is set to 64,000 — long-duration events (e.g. 32-week triathlon) can generate 190+ sessions and easily exceed smaller limits. If the API returns `stop_reason: 'max_tokens'`, a descriptive error is thrown before attempting to parse the truncated JSON.
 
 ### Strava Webhook (`app/api/strava/webhook/route.ts`)
 
@@ -493,6 +500,7 @@ Notifications are stored in the `notifications` table. There are three types:
 | Type | Trigger | Always on? |
 |---|---|---|
 | `activity_matched` | `processWebhookEvent` after a session is marked complete | Yes |
+| `plan_ready` | `generate-plan` route handler `after()` callback, when plan generation succeeds | Yes |
 | `message_admin` | Postgres trigger on `messages` INSERT, if sender = group creator | No (opt-in) |
 | `message_any` | Postgres trigger on `messages` INSERT, for all members | No (opt-in) |
 
@@ -581,7 +589,7 @@ Do this after deploying to Railway. The webhook URL must be publicly accessible 
 - **Session fan-out** anchors week 1 to the Monday of `group.created_at`, so all members share the same week boundaries regardless of when they joined
 - The `sessions` table will grow fast — index on `(user_id, group_id, completed, scheduled_date)`
 - Strava API rate limits: 100 requests per 15 minutes, 1000 per day. The webhook approach avoids polling so this is unlikely to be a problem in early stage
-- Plan generation via Claude takes 5–15 seconds — show a loading state on the group creation form and don't let the user navigate away
+- Plan generation via Claude runs in the background via Next.js `after()` — the group is created immediately and the user is redirected. The group page shows `PlanGeneratingBanner` with a Realtime subscription while `plan_status === 'generating'`
 - Store the raw Claude response alongside the parsed plan in the `groups` table (`training_plan_raw text`) for debugging bad parses
 
 ---

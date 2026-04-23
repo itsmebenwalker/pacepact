@@ -78,6 +78,8 @@ export default function NotificationBell({ userId }: Props) {
         return `${d.sender_name} in ${d.group_name}: "${d.content}"`
       case 'activity_matched':
         return `${d.activity_name} matched to "${d.session_description}" in ${d.group_name} (+${d.points_awarded} pts)`
+      case 'plan_ready':
+        return `Your training plan for ${d.group_name} is ready`
       default:
         return 'New notification'
     }

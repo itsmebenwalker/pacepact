@@ -1,9 +1,9 @@
 import { requireAuth, createServiceClient } from '@/lib/supabase/server'
 import { generateTrainingPlan } from '@/lib/claude/generate-plan'
 import { fanOutSessionsForUser } from '@/lib/groups/fan-out'
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { nanoid } from 'nanoid'
-import type { EventType, Ambition, OtherSport, TrainingSession } from '@/types'
+import type { EventType, Ambition, OtherSport } from '@/types'
 
 export async function POST(request: Request) {
   const auth = await requireAuth()
@@ -29,18 +29,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing sport or distance for other event type' }, { status: 400 })
   }
 
-  // Generate plan via Claude
-  let sessions: TrainingSession[], raw: string
-  try {
-    ;({ sessions, raw } = await generateTrainingPlan(event_type, event_date, ambition, other_sport, other_distance_km ? parseFloat(other_distance_km) : undefined))
-  } catch (e) {
-    console.error('Plan generation error:', e)
-    return NextResponse.json({ error: 'Failed to generate training plan. Please try again.' }, { status: 500 })
-  }
-
   const serviceClient = createServiceClient()
 
-  // Create the group
+  // Create the group immediately so the user can navigate away
   const { data: group, error: groupError } = await serviceClient
     .from('groups')
     .insert({
@@ -49,8 +40,8 @@ export async function POST(request: Request) {
       event_type,
       event_date,
       ambition,
-      training_plan: sessions,
-      training_plan_raw: raw,
+      training_plan: [],
+      plan_status: 'generating',
       invite_code: nanoid(8),
       created_by: user.id,
     })
@@ -61,15 +52,43 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: groupError?.message ?? 'Failed to create group' }, { status: 500 })
   }
 
-  // Add creator as first member
   await serviceClient.from('group_members').insert({
     group_id: group.id,
     user_id: user.id,
     points: 0,
   })
 
-  // Fan out sessions to creator
-  await fanOutSessionsForUser(serviceClient, group, user.id)
+  // Capture values needed in the background task before the request scope closes
+  const userId = user.id
+  const distanceKm = other_distance_km ? parseFloat(other_distance_km) : undefined
+
+  after(async () => {
+    try {
+      const { sessions, raw } = await generateTrainingPlan(
+        event_type, event_date, ambition, other_sport, distanceKm
+      )
+
+      await serviceClient
+        .from('groups')
+        .update({ training_plan: sessions, training_plan_raw: raw, plan_status: 'ready' })
+        .eq('id', group.id)
+
+      await fanOutSessionsForUser(serviceClient, { ...group, training_plan: sessions }, userId)
+
+      await serviceClient.from('notifications').insert({
+        user_id: userId,
+        type: 'plan_ready',
+        group_id: group.id,
+        data: { group_name: name },
+      })
+    } catch (e) {
+      console.error('Background plan generation error:', e)
+      await serviceClient
+        .from('groups')
+        .update({ plan_status: 'failed' })
+        .eq('id', group.id)
+    }
+  })
 
   return NextResponse.json({ groupId: group.id })
 }

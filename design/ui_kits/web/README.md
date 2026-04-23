@@ -12,7 +12,7 @@ Open `index.html` directly in a browser. No build step — Tailwind via CDN, Rea
 
 - **Login** — magic-link style screen, with a "(prototype) skip" shortcut.
 - **Dashboard** — list of groups as `GroupCard`s; "New group" CTA top right.
-- **New group** — 3-step form: Event details → Ambition → Review. Generate has a fake 1.8s loading state.
+- **New group** — 3-step form: Event details → Ambition → Review. Prototype uses a fake 1.8s loading state; in the real app the group is created immediately and plan generation runs in the background via Next.js `after()`.
 - **Group home** — 2-col grid. Left: three weeks (past-complete / past-incomplete / active) with `SessionCard`s including a pending brick leg at 50%. Right: `Leaderboard` + `MessageBoard` (live local-only).
 - **Profile** — account, Strava connect/disconnect toggle, notification preferences.
 

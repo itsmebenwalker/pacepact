@@ -26,7 +26,7 @@ export interface Profile {
   created_at: string
 }
 
-export type NotificationType = 'message_admin' | 'message_any' | 'activity_matched'
+export type NotificationType = 'message_admin' | 'message_any' | 'activity_matched' | 'plan_ready'
 
 export interface AppNotification {
   id: string
@@ -60,6 +60,7 @@ export interface Group {
   invite_code: string
   invite_locked: boolean
   allow_manual_complete: boolean
+  plan_status?: 'generating' | 'ready' | 'failed'
   created_by: string
   created_at: string
 }

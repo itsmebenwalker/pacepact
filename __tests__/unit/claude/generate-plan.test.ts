@@ -45,8 +45,9 @@ const VALID_SESSIONS: TrainingSession[] = [
   },
 ]
 
-function makeApiResponse(text: string) {
+function makeApiResponse(text: string, stop_reason = 'end_turn') {
   return {
+    stop_reason,
     content: [{ type: 'text', text }],
   }
 }
@@ -151,5 +152,23 @@ describe('generateTrainingPlan — JSON parsing', () => {
     const callArgs = mockCreate.mock.calls[0][0]
     const userMessage = callArgs.messages[0].content as string
     expect(userMessage).toContain('"tip"')
+  })
+
+  it('passes max_tokens 64000 to the API', async () => {
+    mockCreate.mockResolvedValue(makeApiResponse(JSON.stringify(VALID_SESSIONS)))
+
+    await generateTrainingPlan('marathon', '2026-10-01', 'finish')
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ max_tokens: 64000 })
+    )
+  })
+
+  it('throws with a descriptive message when stop_reason is max_tokens', async () => {
+    mockCreate.mockResolvedValue(makeApiResponse('', 'max_tokens'))
+
+    await expect(
+      generateTrainingPlan('marathon', '2026-10-01', 'finish')
+    ).rejects.toThrow('Plan generation exceeded token limit')
   })
 })

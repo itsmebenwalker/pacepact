@@ -234,7 +234,7 @@ export default function CreateGroupForm() {
           </div>
 
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            AI will generate a personalised training plan. This takes 5–15 seconds — don&apos;t navigate away.
+            AI will generate a personalised training plan in the background. You&apos;ll be notified when it&apos;s ready — you can navigate away.
           </p>
 
           {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
@@ -291,9 +291,9 @@ export default function CreateGroupForm() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
                   </svg>
-                  Generating...
+                  Creating…
                 </>
-              ) : 'Generate plan'}
+              ) : 'Create group'}
             </button>
           </div>
         )}

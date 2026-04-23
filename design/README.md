@@ -72,8 +72,8 @@ Examples copied verbatim:
 > **Dashboard empty state** — "No groups yet. Create one for your next race, or
 > ask a friend for their invite link."
 >
-> **Group creation CTA** — "AI will generate a personalised training plan. This
-> takes 5–15 seconds — don't navigate away."
+> **Group creation CTA** — "AI will generate a personalised training plan in the
+> background. You'll be notified when it's ready — you can navigate away."
 >
 > **Strava connect** — "Connect Strava so PacePact can automatically mark
 > sessions complete when you log activities. We only read your activity data to
