@@ -13,7 +13,8 @@ export default function BrickProgress({ part, hasAssignableSession }: Props) {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  async function handleAssign() {
+  async function handleAssign(e: React.MouseEvent) {
+    e.stopPropagation()
     setLoading(true)
     await fetch('/api/activities/assign', {
       method: 'POST',
@@ -23,7 +24,8 @@ export default function BrickProgress({ part, hasAssignableSession }: Props) {
     router.refresh()
   }
 
-  async function handleDrop() {
+  async function handleDrop(e: React.MouseEvent) {
+    e.stopPropagation()
     setLoading(true)
     await fetch('/api/activities/assign', {
       method: 'DELETE',
