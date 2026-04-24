@@ -291,6 +291,7 @@ pacepact/
 │   │   └── BrickProgress.tsx           # Progress bar for parked brick legs; assign + drop actions; hides assign when no matching session exists
 │   ├── groups/
 │   │   ├── GroupCard.tsx               # Dashboard summary card
+│   ├── GroupList.tsx               # Client component — groups grid with points-sorted order; search box appears when > 5 groups
 │   │   ├── CreateGroupForm.tsx         # Multi-step group setup
 │   │   ├── GroupActionsMenu.tsx        # ••• dropdown: invite copy, rotate/lock/manual-done toggle, edit, delete, leave
 │   │   ├── KickMemberButton.tsx        # Remove + ban a member (used on members page)
