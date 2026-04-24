@@ -51,7 +51,7 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
     avatar_url: (m.profiles as unknown as ProfileResult)?.avatar_url ?? null,
   }))
 
-  const { data: messagesRaw } = await supabase
+  const { data: messagesRaw } = await serviceClient
     .from('messages')
     .select('id, user_id, content, created_at, profiles(display_name)')
     .eq('group_id', groupId)

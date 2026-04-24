@@ -2,6 +2,9 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
+// User-scoped client — subject to RLS. Only reads rows where user_id = auth.uid().
+// Use createServiceClient() for any query that joins or reads rows belonging to OTHER users
+// (e.g. profiles, sessions, brick_activity_parts). Always verify auth/membership first.
 export async function createClient() {
   const cookieStore = await cookies()
 
