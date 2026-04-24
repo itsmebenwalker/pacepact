@@ -24,6 +24,9 @@ beforeEach(() => {
   mockGetCandidates = jest.fn()
   mockGetMember = jest.fn()
   mockGetGroup = jest.fn()
+  // Reset call history and install a fresh eq mock so each test gets a clean slate
+  mockSessionsUpdate.mockClear()
+  mockSessionsUpdate.mockReturnValue({ eq: jest.fn().mockResolvedValue({ error: null }) })
 })
 
 jest.mock('@/lib/supabase/server', () => ({
@@ -158,6 +161,25 @@ describe('POST /api/activities/assign', () => {
     mockGetCandidates.mockResolvedValue({ data: [], error: null })
     const res = await POST(makeRequest({ brick_part_id: 'part-1' }))
     expect(res.status).toBe(404)
+  })
+
+  it('when multiple sessions match, only the earliest-scheduled one is assigned', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
+    mockGetPart.mockResolvedValue({ data: makePart({ activity_type: 'run', activity_date: '2026-04-02' }), error: null })
+
+    const earlierSession = makeSession({ id: 'sess-early', session_type: 'run', scheduled_date: '2026-04-02' })
+    const laterSession = makeSession({ id: 'sess-late', session_type: 'run', scheduled_date: '2026-04-04' })
+    mockGetCandidates.mockResolvedValue({ data: [earlierSession, laterSession], error: null })
+    mockGetMember.mockResolvedValue({ data: { points: 0 }, error: null })
+    mockGetGroup.mockResolvedValue({ data: { name: 'Test Group' }, error: null })
+
+    const res = await POST(makeRequest({ brick_part_id: 'part-1' }))
+    expect(res.status).toBe(200)
+
+    expect(mockSessionsUpdate).toHaveBeenCalledTimes(1)
+    const updateEq = mockSessionsUpdate.mock.results[0].value.eq
+    expect(updateEq).toHaveBeenCalledWith('id', 'sess-early')
+    expect(updateEq).not.toHaveBeenCalledWith('id', 'sess-late')
   })
 
   it('completes the session, awards points, and deletes the part', async () => {
