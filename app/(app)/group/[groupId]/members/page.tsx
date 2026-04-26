@@ -5,7 +5,6 @@ import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import KickMemberButton from '@/components/groups/KickMemberButton'
 import TransferCreatorButton from '@/components/groups/TransferCreatorButton'
-import EditMembersCap from '@/components/groups/EditMembersCap'
 
 interface ProfileResult { display_name: string | null; strava_athlete_id: number | null }
 
@@ -50,7 +49,12 @@ export default async function MembersPage({ params }: { params: Promise<{ groupI
                   }
                 </span>
                 {isCreator && (
-                  <EditMembersCap groupId={groupId} currentCap={group.members_cap} />
+                  <Link
+                    href={`/group/${groupId}/members/cap`}
+                    className="text-[11px] text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 underline underline-offset-2 transition-colors"
+                  >
+                    Increase limit
+                  </Link>
                 )}
               </p>
             )

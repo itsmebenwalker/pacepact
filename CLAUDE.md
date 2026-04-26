@@ -266,7 +266,9 @@ pacepact/
 │   │   │   └── [groupId]/
 │   │   │       ├── page.tsx            # Group home: leaderboard + plan
 │   │   │       ├── plan/page.tsx       # Full training plan view
-│   │   │       └── members/page.tsx    # Member list + stats
+│   │   │       └── members/
+│   │   │           ├── page.tsx        # Member list + stats
+│   │   │           └── cap/page.tsx    # Increase member cap (creator only, dedicated page)
 │   │   ├── profile/page.tsx            # Strava connect, settings, avatar display
 │   │   └── join/[inviteCode]/page.tsx  # Invite link landing
 │   ├── support/page.tsx                # Public support page + FAQ (no auth required)
@@ -312,7 +314,7 @@ pacepact/
 │   │   ├── GroupActionsMenu.tsx        # ••• dropdown: invite copy, rotate/lock/manual-done toggle, edit, delete, leave
 │   │   ├── KickMemberButton.tsx        # Remove + ban a member (used on members page)
 │   │   ├── TransferCreatorButton.tsx   # Hand off admin rights (used on members page)
-│   │   ├── EditMembersCap.tsx          # Inline editor to increase members_cap (creator only, increase-only)
+│   │   ├── IncreaseMembersCapForm.tsx  # 2-step dedicated-page form to increase members_cap (creator only, increase-only)
 │   │   ├── MessageBoard.tsx            # Realtime group chat; shows member avatars
 │   │   ├── PlanGeneratingBanner.tsx    # Loading/error state while plan_status=generating; Realtime-subscribed, calls router.refresh() on ready/failed
 │   │   ├── WeekInReview.tsx            # Server component — fetches data, delegates to panel
@@ -391,7 +393,7 @@ The group creator has six admin-only actions, all enforced by a creator-only che
 
 **Kicking always bans**: there is no "remove without banning" — the DELETE route always inserts into `group_member_bans`. This prevents a kicked user from immediately rejoining via the same invite link.
 
-**UI components**: the group home page uses a single `GroupActionsMenu` (`•••` dropdown) that surfaces all actions in one place — mobile-friendly and uncluttered. Creators see: Copy invite link, Reset invite link, Lock/Unlock invites, Edit group, Delete group. Non-creators see: Copy invite link, Leave group. The members page uses `KickMemberButton`, `TransferCreatorButton`, and `EditMembersCap` directly.
+**UI components**: the group home page uses a single `GroupActionsMenu` (`•••` dropdown) that surfaces all actions in one place — mobile-friendly and uncluttered. Creators see: Copy invite link, Reset invite link, Lock/Unlock invites, Edit group, Delete group. Non-creators see: Copy invite link, Leave group. The members page uses `KickMemberButton` and `TransferCreatorButton` directly, plus an "Increase limit" link that navigates to `/group/[groupId]/members/cap` — a dedicated 2-step page (`IncreaseMembersCapForm`) where the creator sets and confirms the new limit. This page is the hook for a future payment flow before confirming the increase.
 
 **Leaving a group**: non-creator members leave via the `GroupActionsMenu` leave action. It calls `DELETE /api/groups/[groupId]/members/me` and redirects to `/groups` on success. Creators must transfer admin rights before they can leave.
 
