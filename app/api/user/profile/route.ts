@@ -10,6 +10,7 @@ export async function PATCH(request: Request) {
     display_name?: string
     notify_admin_message?: boolean
     notify_any_message?: boolean
+    avatar_url?: string
   }
 
   const updates: Record<string, unknown> = {}
@@ -22,6 +23,7 @@ export async function PATCH(request: Request) {
   }
   if (body.notify_admin_message !== undefined) updates.notify_admin_message = body.notify_admin_message
   if (body.notify_any_message !== undefined) updates.notify_any_message = body.notify_any_message
+  if (body.avatar_url !== undefined) updates.avatar_url = body.avatar_url
 
   if (Object.keys(updates).length === 0) return NextResponse.json({ ok: true })
 

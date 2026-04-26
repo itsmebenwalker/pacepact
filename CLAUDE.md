@@ -293,7 +293,7 @@ pacepact/
 │   │   ├── notifications/
 │   │   │   └── read-all/route.ts       # Mark all notifications read (POST)
 │   │   └── user/
-│   │       ├── profile/route.ts        # PATCH: update display_name + notification prefs
+│   │       ├── profile/route.ts        # PATCH: update display_name, notification prefs, avatar_url
 │   │       └── delete/route.ts         # Delete authenticated user account
 │   ├── auth/
 │   │   └── callback/page.tsx           # Auth callback (PKCE + implicit flow)
@@ -320,6 +320,7 @@ pacepact/
 │   ├── notifications/
 │   │   └── NotificationBell.tsx        # Bell icon + dropdown; Realtime-subscribed, marks all read on open
 │   ├── profile/
+│   │   ├── AvatarUpload.tsx            # Clickable avatar with camera overlay; uploads to Supabase Storage avatars bucket
 │   │   ├── DeleteAccountButton.tsx     # Delete account (client component)
 │   │   ├── DisconnectStravaButton.tsx  # Strava disconnect (client component)
 │   │   └── NotificationSettings.tsx   # Opt-in toggles for message notifications
@@ -533,6 +534,8 @@ Notifications are stored in the `notifications` table. There are three types:
 - Marks all as read (optimistic + `POST /api/notifications/read-all`) when the panel is opened
 
 **Preferences** are two boolean columns on `profiles` (`notify_admin_message`, `notify_any_message`, both default `false`). The `NotificationSettings` client component in the profile page toggles them via `PATCH /api/user/profile`.
+
+**Avatar upload**: `AvatarUpload` uploads directly from the browser to the `avatars` Supabase Storage bucket at path `{userId}/avatar` (upsert). After upload it appends `?t={timestamp}` to the public URL for cache-busting, then saves it to `profiles.avatar_url` via `PATCH /api/user/profile`. Storage RLS: authenticated users can write only to their own folder; public read. Migration: `supabase/migrations/20260426_avatars_storage.sql`.
 
 ### Strava OAuth Flow
 

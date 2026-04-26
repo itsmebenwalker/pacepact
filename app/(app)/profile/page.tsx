@@ -5,6 +5,7 @@ import DeleteAccountButton from '@/components/profile/DeleteAccountButton'
 import DisconnectStravaButton from '@/components/profile/DisconnectStravaButton'
 import EditNameField from '@/components/profile/EditNameField'
 import NotificationSettings from '@/components/profile/NotificationSettings'
+import AvatarUpload from '@/components/profile/AvatarUpload'
 import PoweredByStrava from '@/components/ui/PoweredByStrava'
 
 export default async function ProfilePage() {
@@ -28,23 +29,20 @@ export default async function ProfilePage() {
 
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-4">
         <div className="flex items-center gap-3">
-          {profile?.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={profile.avatar_url}
-              alt={profile.display_name ?? 'Profile photo'}
-              width={40}
-              height={40}
-              className="w-10 h-10 rounded-full object-cover shrink-0"
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center shrink-0">
-              <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                {profile?.display_name?.[0]?.toUpperCase() ?? '?'}
-              </span>
-            </div>
-          )}
-          <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Account</h2>
+          <AvatarUpload
+            userId={user.id}
+            initialAvatarUrl={profile?.avatar_url ?? null}
+            displayName={profile?.display_name ?? null}
+          />
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Account</h2>
+            {profile?.role === 'admin' && (
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">Admin</span>
+            )}
+            {profile?.role === 'founding' && (
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Founding</span>
+            )}
+          </div>
         </div>
         <div className="text-sm space-y-3">
           <EditNameField initialName={profile?.display_name ?? ''} />
