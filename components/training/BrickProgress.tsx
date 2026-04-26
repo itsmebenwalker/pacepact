@@ -10,12 +10,12 @@ interface Props {
 }
 
 export default function BrickProgress({ part, hasAssignableSession }: Props) {
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState<'assign' | 'drop' | null>(null)
   const router = useRouter()
 
   async function handleAssign(e: React.MouseEvent) {
     e.stopPropagation()
-    setLoading(true)
+    setLoading('assign')
     await fetch('/api/activities/assign', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -26,7 +26,7 @@ export default function BrickProgress({ part, hasAssignableSession }: Props) {
 
   async function handleDrop(e: React.MouseEvent) {
     e.stopPropagation()
-    setLoading(true)
+    setLoading('drop')
     await fetch('/api/activities/assign', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -57,10 +57,10 @@ export default function BrickProgress({ part, hasAssignableSession }: Props) {
         {hasAssignableSession !== false && (
           <button
             onClick={handleAssign}
-            disabled={loading}
+            disabled={loading !== null}
             className="text-[11px] text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 underline underline-offset-2 transition-colors disabled:opacity-40"
           >
-            {loading ? 'Saving…' : `Count as ${legLabel.toLowerCase()} session instead`}
+            {loading === 'assign' ? 'Saving…' : `Count as ${legLabel.toLowerCase()} session instead`}
           </button>
         )}
         {hasAssignableSession !== false && (
@@ -68,10 +68,10 @@ export default function BrickProgress({ part, hasAssignableSession }: Props) {
         )}
         <button
           onClick={handleDrop}
-          disabled={loading}
+          disabled={loading !== null}
           className="text-[11px] text-zinc-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 underline underline-offset-2 transition-colors disabled:opacity-40"
         >
-          {loading ? 'Saving…' : 'Drop'}
+          {loading === 'drop' ? 'Saving…' : 'Drop'}
         </button>
       </div>
     </div>
