@@ -1,3 +1,5 @@
+export type UserRole = 'admin' | 'founding'
+
 export type EventType =
   | 'marathon'
   | 'half_marathon'
@@ -23,6 +25,7 @@ export interface Profile {
   strava_token_expires_at: string | null
   notify_admin_message: boolean
   notify_any_message: boolean
+  role: UserRole | null
   created_at: string
 }
 
@@ -60,6 +63,7 @@ export interface Group {
   invite_code: string
   invite_locked: boolean
   allow_manual_complete: boolean
+  members_cap: number | null
   plan_status?: 'generating' | 'ready' | 'failed'
   created_by: string
   created_at: string

@@ -5,6 +5,7 @@ import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import KickMemberButton from '@/components/groups/KickMemberButton'
 import TransferCreatorButton from '@/components/groups/TransferCreatorButton'
+import EditMembersCap from '@/components/groups/EditMembersCap'
 
 interface ProfileResult { display_name: string | null; strava_athlete_id: number | null }
 
@@ -15,7 +16,7 @@ export default async function MembersPage({ params }: { params: Promise<{ groupI
   if (!user) redirect('/login')
 
   const [{ data: group }, { data: membership }] = await Promise.all([
-    supabase.from('groups').select('id, name, event_name, created_by').eq('id', groupId).single(),
+    supabase.from('groups').select('id, name, event_name, created_by, members_cap').eq('id', groupId).single(),
     supabase.from('group_members').select('id').eq('group_id', groupId).eq('user_id', user.id).maybeSingle(),
   ])
 
@@ -36,6 +37,24 @@ export default async function MembersPage({ params }: { params: Promise<{ groupI
         <div>
           <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Members</h1>
           <p className="text-zinc-500 dark:text-zinc-400 mt-0.5 text-sm">{group.name}</p>
+          {group.members_cap != null && (() => {
+            const memberCount = members?.length ?? 0
+            const spotsLeft = group.members_cap - memberCount
+            return (
+              <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 flex items-center gap-2 flex-wrap">
+                <span>
+                  {memberCount} / {group.members_cap} members
+                  {spotsLeft > 0
+                    ? <> · <span className="text-zinc-500 dark:text-zinc-400">{spotsLeft} spot{spotsLeft !== 1 ? 's' : ''} remaining</span></>
+                    : <> · <span className="text-amber-600 dark:text-amber-500">Full</span></>
+                  }
+                </span>
+                {isCreator && (
+                  <EditMembersCap groupId={groupId} currentCap={group.members_cap} />
+                )}
+              </p>
+            )
+          })()}
         </div>
         <Link
           href={`/group/${groupId}`}

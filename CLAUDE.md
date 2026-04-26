@@ -62,6 +62,20 @@ Points are stored per user per group so leaderboards are group-scoped.
 
 ---
 
+## User Roles
+
+Each profile has an optional `role` column (`'admin' | 'founding' | null`). This is the foundation for future billing — role boundaries define what's free vs. paid, but **no hard enforcement exists yet**. Roles are set manually in the DB for now.
+
+| Role | Group limit | Members per group | Event lead time |
+|---|---|---|---|
+| `admin` | Unlimited | Unlimited | Unlimited |
+| `founding` | 3 active groups | 10 members (free tier) | 8 months |
+| `null` | TBD (paid) | TBD | TBD |
+
+"Active" means `event_date >= today`. Exceeding founding boundaries is permitted — billing logic (charging for the overage) will be layered on later.
+
+---
+
 ## Database Schema
 
 ### `users`
@@ -78,6 +92,7 @@ profiles (
   strava_token_expires_at timestamptz,
   notify_admin_message boolean not null default false,
   notify_any_message boolean not null default false,
+  role text check (role in ('admin', 'founding')), -- null = standard user
   created_at timestamptz default now()
 )
 ```
@@ -95,6 +110,7 @@ groups (
   invite_code text unique not null,
   invite_locked boolean not null default false,
   allow_manual_complete boolean not null default true,
+  members_cap integer,             -- max members allowed; null = unlimited (legacy groups)
   plan_status text not null default 'ready', -- 'generating' | 'ready' | 'failed'
   created_by uuid references profiles(id),
   created_at timestamptz default now()
@@ -296,6 +312,7 @@ pacepact/
 │   │   ├── GroupActionsMenu.tsx        # ••• dropdown: invite copy, rotate/lock/manual-done toggle, edit, delete, leave
 │   │   ├── KickMemberButton.tsx        # Remove + ban a member (used on members page)
 │   │   ├── TransferCreatorButton.tsx   # Hand off admin rights (used on members page)
+│   │   ├── EditMembersCap.tsx          # Inline editor to increase members_cap (creator only, increase-only)
 │   │   ├── MessageBoard.tsx            # Realtime group chat; shows member avatars
 │   │   ├── PlanGeneratingBanner.tsx    # Loading/error state while plan_status=generating; Realtime-subscribed, calls router.refresh() on ready/failed
 │   │   ├── WeekInReview.tsx            # Server component — fetches data, delegates to panel
@@ -327,7 +344,7 @@ pacepact/
 │   │   └── calculator.ts               # Points logic
 │   ├── groups/
 │   │   ├── fan-out.ts                  # Session fan-out for new members
-│   │   └── join-gate.ts                # Pure fn: evaluateJoinGate(locked, banned) → result
+│   │   └── join-gate.ts                # Pure fn: evaluateJoinGate(locked, banned, memberCount, cap) → result
 │   └── utils/
 │       ├── week-status.ts              # Week state (past-complete/incomplete/active) + sort
 │       ├── week-in-review.ts           # Pure logic for Week in Review stats (testable)
@@ -358,7 +375,7 @@ const { user, supabase } = auth
 
 ### Group Admin Features
 
-The group creator has five admin-only actions, all enforced by a creator-only check (`group.created_by === user.id`) on the relevant API routes:
+The group creator has six admin-only actions, all enforced by a creator-only check (`group.created_by === user.id`) on the relevant API routes:
 
 | Action | Endpoint | What it does |
 |---|---|---|
@@ -366,13 +383,14 @@ The group creator has five admin-only actions, all enforced by a creator-only ch
 | Rotate invite link | `PATCH /api/groups/[groupId]` `{ action: 'rotate_invite' }` | Generates a new `nanoid(8)` invite code; old link stops working immediately |
 | Lock/unlock invites | `PATCH /api/groups/[groupId]` `{ action: 'toggle_invite_lock' }` | Flips `invite_locked` on the group; locked groups reject all new joins |
 | Allow/disable manual done | `PATCH /api/groups/[groupId]` `{ action: 'toggle_manual_complete' }` | Flips `allow_manual_complete`; when false, "Mark done manually" is hidden for all members |
+| Increase member cap | `PATCH /api/groups/[groupId]` `{ action: 'update_members_cap', members_cap: n }` | Increases `members_cap`; API rejects decreases. Only shown when a cap is set (not null). Billing for overage applied later |
 | Transfer admin | `PATCH /api/groups/[groupId]/members/[userId]` `{ action: 'make_creator' }` | Updates `groups.created_by` to the target member; creator cannot undo this themselves |
 
-**Join gate** (`lib/groups/join-gate.ts`): the `/join/[inviteCode]` page runs `evaluateJoinGate(group.invite_locked, !!ban)` after fetching the group and checking `group_member_bans`. Returns `{ allowed: false, reason: 'locked' | 'banned' }` before reaching the Strava connect or member insert steps.
+**Join gate** (`lib/groups/join-gate.ts`): the `/join/[inviteCode]` page runs `evaluateJoinGate(group.invite_locked, !!ban, memberCount, group.members_cap)` after fetching the group, checking `group_member_bans`, and counting current members. Returns `{ allowed: false, reason: 'locked' | 'banned' | 'full' }` before reaching the member insert step. `members_cap: null` means unlimited (legacy groups created before the cap feature).
 
 **Kicking always bans**: there is no "remove without banning" — the DELETE route always inserts into `group_member_bans`. This prevents a kicked user from immediately rejoining via the same invite link.
 
-**UI components**: the group home page uses a single `GroupActionsMenu` (`•••` dropdown) that surfaces all actions in one place — mobile-friendly and uncluttered. Creators see: Copy invite link, Reset invite link, Lock/Unlock invites, Edit group, Delete group. Non-creators see: Copy invite link, Leave group. The members page uses `KickMemberButton` and `TransferCreatorButton` directly.
+**UI components**: the group home page uses a single `GroupActionsMenu` (`•••` dropdown) that surfaces all actions in one place — mobile-friendly and uncluttered. Creators see: Copy invite link, Reset invite link, Lock/Unlock invites, Edit group, Delete group. Non-creators see: Copy invite link, Leave group. The members page uses `KickMemberButton`, `TransferCreatorButton`, and `EditMembersCap` directly.
 
 **Leaving a group**: non-creator members leave via the `GroupActionsMenu` leave action. It calls `DELETE /api/groups/[groupId]/members/me` and redirects to `/groups` on success. Creators must transfer admin rights before they can leave.
 

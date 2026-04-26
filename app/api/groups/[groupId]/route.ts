@@ -13,7 +13,7 @@ export async function PATCH(
 
   const { data: group } = await supabase
     .from('groups')
-    .select('created_by, invite_locked, allow_manual_complete')
+    .select('created_by, invite_locked, allow_manual_complete, members_cap')
     .eq('id', groupId)
     .single()
 
@@ -67,6 +67,29 @@ export async function PATCH(
     }
 
     return NextResponse.json({ ok: true, allow_manual_complete: next })
+  }
+
+  if (body.action === 'update_members_cap') {
+    const newCap = body.members_cap as number
+
+    if (typeof newCap !== 'number' || !Number.isInteger(newCap) || newCap < 1) {
+      return NextResponse.json({ error: 'Invalid members cap' }, { status: 400 })
+    }
+
+    if (group.members_cap !== null && newCap <= group.members_cap) {
+      return NextResponse.json({ error: 'Members cap can only be increased' }, { status: 400 })
+    }
+
+    const { error } = await serviceClient
+      .from('groups')
+      .update({ members_cap: newCap })
+      .eq('id', groupId)
+
+    if (error) {
+      return NextResponse.json({ error: 'Failed to update members cap' }, { status: 500 })
+    }
+
+    return NextResponse.json({ ok: true, members_cap: newCap })
   }
 
   // Default action: edit group name + event name

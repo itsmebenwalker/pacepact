@@ -46,7 +46,12 @@ export default async function JoinPage({ params }: { params: Promise<{ inviteCod
     .eq('user_id', user.id)
     .maybeSingle()
 
-  const gate = evaluateJoinGate(group.invite_locked, !!ban)
+  const { count: memberCount } = await serviceClient
+    .from('group_members')
+    .select('id', { count: 'exact', head: true })
+    .eq('group_id', group.id)
+
+  const gate = evaluateJoinGate(group.invite_locked, !!ban, memberCount ?? 0, group.members_cap)
 
   if (!gate.allowed && gate.reason === 'locked') {
     return (
@@ -67,6 +72,18 @@ export default async function JoinPage({ params }: { params: Promise<{ inviteCod
         <p className="text-zinc-500 dark:text-zinc-400 text-sm">
           You are not permitted to join{' '}
           <span className="text-zinc-900 dark:text-zinc-100 font-medium">{group.name}</span>.
+        </p>
+      </div>
+    )
+  }
+
+  if (!gate.allowed && gate.reason === 'full') {
+    return (
+      <div className="max-w-sm mx-auto text-center py-20 space-y-4">
+        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Group is full</h1>
+        <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+          <span className="text-zinc-900 dark:text-zinc-100 font-medium">{group.name}</span>{' '}
+          has reached its member limit.
         </p>
       </div>
     )

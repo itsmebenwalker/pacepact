@@ -46,9 +46,10 @@ export default function CreateGroupForm() {
     ambition: '' as Ambition,
     other_sport: '' as OtherSport | '',
     other_distance_km: '',
+    members_cap: 20,
   })
 
-  function update(field: keyof typeof form, value: string) {
+  function update(field: keyof typeof form, value: string | number) {
     setForm((prev) => {
       const next = { ...prev, [field]: value }
       if (field === 'event_type' && value !== 'other') {
@@ -185,6 +186,25 @@ export default function CreateGroupForm() {
               className={inputClass}
             />
           </div>
+
+          <div>
+            <div className="flex justify-between items-baseline mb-1.5">
+              <label className={labelClass + ' mb-0'}>Member limit</label>
+              <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50 tabular-nums">{form.members_cap}</span>
+            </div>
+            <input
+              type="range"
+              min={2}
+              max={100}
+              value={form.members_cap}
+              onChange={(e) => update('members_cap', Number(e.target.value))}
+              className="w-full accent-zinc-900 dark:accent-zinc-50"
+            />
+            <div className="flex justify-between text-[11px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+              <span>2</span>
+              <span>100</span>
+            </div>
+          </div>
         </div>
       )}
 
@@ -231,6 +251,7 @@ export default function CreateGroupForm() {
             />
             <Row label="Date" value={new Date(form.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} />
             <Row label="Ambition" value={AMBITIONS.find(a => a.value === form.ambition)?.label ?? ''} />
+            <Row label="Member limit" value={String(form.members_cap)} />
           </div>
 
           <p className="text-sm text-zinc-500 dark:text-zinc-400">

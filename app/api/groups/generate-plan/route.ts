@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   const { user } = auth
 
   const body = await request.json()
-  const { name, event_name, event_type, event_date, ambition, other_sport, other_distance_km } = body as {
+  const { name, event_name, event_type, event_date, ambition, other_sport, other_distance_km, members_cap } = body as {
     name: string
     event_name: string
     event_type: EventType
@@ -19,6 +19,7 @@ export async function POST(request: Request) {
     ambition: Ambition
     other_sport?: OtherSport
     other_distance_km?: string
+    members_cap?: number
   }
 
   if (!name || !event_name || !event_type || !event_date || !ambition) {
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
       event_type,
       event_date,
       ambition,
+      members_cap: members_cap ?? null,
       training_plan: [],
       plan_status: 'generating',
       invite_code: nanoid(8),
