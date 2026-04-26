@@ -103,7 +103,7 @@ export default function SessionCard({ session, pendingPart, hasAssignableSession
           </span>
           <div className="flex items-center gap-1.5 shrink-0">
             {tip && (
-              <div className="relative group">
+              <div className="relative group hidden sm:block">
                 <button
                   type="button"
                   aria-label="Training tip"
@@ -223,8 +223,20 @@ export default function SessionCard({ session, pendingPart, hasAssignableSession
             <div className="w-10 h-1 bg-zinc-200 dark:bg-zinc-700 rounded-full mx-auto" />
 
             <div>
-              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">{label}</span>
-              <p className="font-medium text-zinc-900 dark:text-zinc-50 mt-1 leading-snug">{session.target_description}</p>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">{label}</span>
+                <button
+                  onClick={() => setSheetOpen(false)}
+                  className="text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                  aria-label="Close"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+              <p className="font-medium text-zinc-900 dark:text-zinc-50 leading-snug">{session.target_description}</p>
               {(session.target_distance_km || session.target_duration_minutes) && (
                 <p className="text-zinc-400 dark:text-zinc-500 text-xs mt-0.5">
                   {session.target_distance_km ? `${session.target_distance_km} km` : ''}

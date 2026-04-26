@@ -305,7 +305,7 @@ pacepact/
 │   │   └── LeaderboardTable.tsx        # Realtime-subscribed, top 5 + current user pinned if outside top 5
 │   ├── training/
 │   │   ├── WeekView.tsx                # Weekly session grid + date range + past states
-│   │   ├── SessionCard.tsx             # Single session, completed state + "View on Strava" link + tip tooltip
+│   │   ├── SessionCard.tsx             # Single session, completed state + "View on Strava" link + tip tooltip (desktop only); mobile tap opens bottom sheet with tip + X close button
 │   │   └── BrickProgress.tsx           # Progress bar for parked brick legs; assign + drop actions; hides assign when no matching session exists
 │   ├── groups/
 │   │   ├── GroupCard.tsx               # Dashboard summary card
@@ -314,7 +314,7 @@ pacepact/
 │   │   ├── GroupActionsMenu.tsx        # ••• dropdown: invite copy, rotate/lock/manual-done toggle, edit, delete, leave
 │   │   ├── KickMemberButton.tsx        # Remove + ban a member (used on members page)
 │   │   ├── TransferCreatorButton.tsx   # Hand off admin rights (used on members page)
-│   │   ├── IncreaseMembersCapForm.tsx  # 2-step dedicated-page form to increase members_cap (creator only, increase-only)
+│   │   ├── IncreaseMembersCapForm.tsx  # 2-step dedicated-page form to increase members_cap (creator only, increase-only); hard cap of 100 enforced in both UI and API
 │   │   ├── MessageBoard.tsx            # Realtime group chat; shows member avatars
 │   │   ├── PlanGeneratingBanner.tsx    # Loading/error state while plan_status=generating; Realtime-subscribed, calls router.refresh() on ready/failed
 │   │   ├── WeekInReview.tsx            # Server component — fetches data, delegates to panel
@@ -386,7 +386,7 @@ The group creator has six admin-only actions, all enforced by a creator-only che
 | Rotate invite link | `PATCH /api/groups/[groupId]` `{ action: 'rotate_invite' }` | Generates a new `nanoid(8)` invite code; old link stops working immediately |
 | Lock/unlock invites | `PATCH /api/groups/[groupId]` `{ action: 'toggle_invite_lock' }` | Flips `invite_locked` on the group; locked groups reject all new joins |
 | Allow/disable manual done | `PATCH /api/groups/[groupId]` `{ action: 'toggle_manual_complete' }` | Flips `allow_manual_complete`; when false, "Mark done manually" is hidden for all members |
-| Increase member cap | `PATCH /api/groups/[groupId]` `{ action: 'update_members_cap', members_cap: n }` | Increases `members_cap`; API rejects decreases. Only shown when a cap is set (not null). Billing for overage applied later |
+| Increase member cap | `PATCH /api/groups/[groupId]` `{ action: 'update_members_cap', members_cap: n }` | Increases `members_cap`; API rejects decreases and values above the hard limit of 100. Only shown when a cap is set (not null) |
 | Transfer admin | `PATCH /api/groups/[groupId]/members/[userId]` `{ action: 'make_creator' }` | Updates `groups.created_by` to the target member; creator cannot undo this themselves |
 
 **Join gate** (`lib/groups/join-gate.ts`): the `/join/[inviteCode]` page runs `evaluateJoinGate(group.invite_locked, !!ban, memberCount, group.members_cap)` after fetching the group, checking `group_member_bans`, and counting current members. Returns `{ allowed: false, reason: 'locked' | 'banned' | 'full' }` before reaching the member insert step. `members_cap: null` means unlimited (legacy groups created before the cap feature).
