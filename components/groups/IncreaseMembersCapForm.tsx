@@ -12,18 +12,29 @@ interface Props {
 const STEPS = ['limit', 'review'] as const
 type Step = typeof STEPS[number]
 
+const MAX_MEMBERS = 100
+
 const inputClass = 'w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:border-transparent transition-colors'
 const labelClass = 'block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5'
 
 export default function IncreaseMembersCapForm({ groupId, currentCap, memberCount }: Props) {
   const router = useRouter()
   const [step, setStep] = useState<Step>('limit')
-  const [newCap, setNewCap] = useState<string>(String(currentCap + 10))
+  const [newCap, setNewCap] = useState<string>(String(Math.min(currentCap + 10, MAX_MEMBERS)))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const atHardLimit = currentCap >= MAX_MEMBERS
+  const spotsRemaining = Math.max(0, currentCap - memberCount)
   const newCapNum = parseInt(newCap, 10)
-  const isValid = !isNaN(newCapNum) && newCapNum > currentCap
+  const isValid = !isNaN(newCapNum) && newCapNum > currentCap && newCapNum <= MAX_MEMBERS
+
+  function capValidationError(): string | null {
+    if (newCap === '' || isNaN(newCapNum)) return null
+    if (newCapNum <= currentCap) return `New limit must be higher than ${currentCap}.`
+    if (newCapNum > MAX_MEMBERS) return `Groups cannot exceed ${MAX_MEMBERS} members.`
+    return null
+  }
 
   async function handleConfirm() {
     if (!isValid) return
@@ -79,23 +90,32 @@ export default function IncreaseMembersCapForm({ groupId, currentCap, memberCoun
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-3 text-sm">
             <Row label="Current limit" value={String(currentCap)} />
             <Row label="Members now" value={String(memberCount)} />
-            <Row label="Spots remaining" value={String(currentCap - memberCount)} />
+            <Row label="Spots remaining" value={String(spotsRemaining)} />
           </div>
 
-          <div>
-            <label className={labelClass}>New limit</label>
-            <input
-              type="number"
-              min={currentCap + 1}
-              max={10000}
-              value={newCap}
-              onChange={(e) => setNewCap(e.target.value)}
-              className={inputClass}
-            />
-            {newCap !== '' && !isNaN(newCapNum) && newCapNum <= currentCap && (
-              <p className="text-xs text-red-500 mt-1.5">New limit must be higher than the current limit of {currentCap}.</p>
-            )}
-          </div>
+          {atHardLimit ? (
+            <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">
+              Groups are limited to {MAX_MEMBERS} members — this group is already at the maximum.
+            </div>
+          ) : (
+            <div>
+              <div className="flex justify-between items-baseline mb-1.5">
+                <label className={labelClass + ' mb-0'}>New limit</label>
+                <span className="text-xs text-zinc-400 dark:text-zinc-500">max {MAX_MEMBERS}</span>
+              </div>
+              <input
+                type="number"
+                min={currentCap + 1}
+                max={MAX_MEMBERS}
+                value={newCap}
+                onChange={(e) => setNewCap(e.target.value)}
+                className={inputClass}
+              />
+              {capValidationError() && (
+                <p className="text-xs text-red-500 mt-1.5">{capValidationError()}</p>
+              )}
+            </div>
+          )}
 
           {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
         </div>
@@ -118,7 +138,7 @@ export default function IncreaseMembersCapForm({ groupId, currentCap, memberCoun
         {step === 'limit' && (
           <button
             onClick={() => setStep('review')}
-            disabled={!isValid}
+            disabled={atHardLimit || !isValid}
             className="w-full bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-40 text-white dark:text-zinc-900 font-medium py-2.5 rounded-md text-sm transition-colors"
           >
             Next

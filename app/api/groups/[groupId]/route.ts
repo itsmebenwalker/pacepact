@@ -72,8 +72,14 @@ export async function PATCH(
   if (body.action === 'update_members_cap') {
     const newCap = body.members_cap as number
 
+    const MAX_MEMBERS = 100
+
     if (typeof newCap !== 'number' || !Number.isInteger(newCap) || newCap < 1) {
       return NextResponse.json({ error: 'Invalid members cap' }, { status: 400 })
+    }
+
+    if (newCap > MAX_MEMBERS) {
+      return NextResponse.json({ error: `Groups cannot exceed ${MAX_MEMBERS} members` }, { status: 400 })
     }
 
     if (group.members_cap !== null && newCap <= group.members_cap) {

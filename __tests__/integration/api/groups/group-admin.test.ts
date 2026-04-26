@@ -217,6 +217,19 @@ describe("PATCH /api/groups/[groupId] — action: 'update_members_cap'", () => {
     expect(res.status).toBe(400)
   })
 
+  it('returns 400 when new cap exceeds the hard limit of 100', async () => {
+    const res = await PATCH(...makeRequest({ action: 'update_members_cap', members_cap: 101 }))
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.error).toMatch(/cannot exceed 100/i)
+  })
+
+  it('allows setting a cap exactly at the hard limit of 100', async () => {
+    mockGroupUpdate.mockReturnValueOnce({ eq: jest.fn().mockResolvedValue({ error: null }) })
+    const res = await PATCH(...makeRequest({ action: 'update_members_cap', members_cap: 100 }))
+    expect(res.status).toBe(200)
+  })
+
   it('allows setting a cap when the current cap is null', async () => {
     mockGroupSelect.single.mockResolvedValueOnce({
       data: { created_by: 'creator-user', invite_locked: false, members_cap: null },
