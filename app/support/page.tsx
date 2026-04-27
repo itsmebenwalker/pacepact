@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import PoweredByStrava from '@/components/ui/PoweredByStrava'
 
 export const metadata = {
   title: 'Support — PacePact',
@@ -152,7 +153,7 @@ export default function SupportPage() {
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between gap-4 flex-wrap">
           <div />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/powered-by-strava.svg" alt="Powered by Strava" width={150} height={28} className="h-5 w-auto opacity-70" />
+          <PoweredByStrava className="h-5 w-auto opacity-70" />
         </div>
       </footer>
     </div>
