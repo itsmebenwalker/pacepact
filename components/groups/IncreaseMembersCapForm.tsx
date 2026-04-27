@@ -2,11 +2,15 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { calculateCapUpgradePrice } from '@/lib/payments/calculate-price'
+
+const PAYMENTS_ENABLED = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true'
 
 interface Props {
   groupId: string
   currentCap: number
   memberCount: number
+  eventDate: string
 }
 
 const STEPS = ['limit', 'review'] as const
@@ -17,7 +21,7 @@ const MAX_MEMBERS = 100
 const inputClass = 'w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:border-transparent transition-colors'
 const labelClass = 'block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5'
 
-export default function IncreaseMembersCapForm({ groupId, currentCap, memberCount }: Props) {
+export default function IncreaseMembersCapForm({ groupId, currentCap, memberCount, eventDate }: Props) {
   const router = useRouter()
   const [step, setStep] = useState<Step>('limit')
   const [newCap, setNewCap] = useState<string>(String(Math.min(currentCap + 10, MAX_MEMBERS)))
@@ -28,6 +32,11 @@ export default function IncreaseMembersCapForm({ groupId, currentCap, memberCoun
   const spotsRemaining = Math.max(0, currentCap - memberCount)
   const newCapNum = parseInt(newCap, 10)
   const isValid = !isNaN(newCapNum) && newCapNum > currentCap && newCapNum <= MAX_MEMBERS
+
+  const deltaSeats = isValid ? newCapNum - currentCap : 0
+  const price = PAYMENTS_ENABLED && isValid
+    ? calculateCapUpgradePrice(deltaSeats, eventDate)
+    : null
 
   function capValidationError(): string | null {
     if (newCap === '' || isNaN(newCapNum)) return null
@@ -40,6 +49,30 @@ export default function IncreaseMembersCapForm({ groupId, currentCap, memberCoun
     if (!isValid) return
     setLoading(true)
     setError(null)
+
+    if (PAYMENTS_ENABLED) {
+      try {
+        const res = await fetch('/api/stripe/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_members_cap',
+            group_id: groupId,
+            new_cap: newCapNum,
+            current_cap: currentCap,
+            event_date: eventDate,
+          }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? 'Something went wrong')
+        window.location.href = data.url
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : 'Something went wrong')
+        setLoading(false)
+      }
+      return
+    }
+
     const res = await fetch(`/api/groups/${groupId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -129,7 +162,23 @@ export default function IncreaseMembersCapForm({ groupId, currentCap, memberCoun
             <Row label="Current limit" value={String(currentCap)} />
             <Row label="New limit" value={String(newCapNum)} />
             <Row label="New spots added" value={`+${newCapNum - currentCap}`} />
+
+            {PAYMENTS_ENABLED && price && (
+              <>
+                <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 space-y-3">
+                  <Row label="Weeks until event" value={String(price.weeks)} />
+                  <Row label="Rate" value={`$${price.ratePerSeatPerWeek.toFixed(2)}/seat/week`} />
+                  <Row label="Total (AUD)" value={price.displayAmount} />
+                </div>
+              </>
+            )}
           </div>
+
+          {PAYMENTS_ENABLED && (
+            <p className="text-xs text-zinc-400 dark:text-zinc-500">
+              You&apos;ll be taken to Stripe to complete payment. The limit is updated after payment is confirmed.
+            </p>
+          )}
         </div>
       )}
 
@@ -165,9 +214,9 @@ export default function IncreaseMembersCapForm({ groupId, currentCap, memberCoun
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
                   </svg>
-                  Saving…
+                  {PAYMENTS_ENABLED ? 'Redirecting…' : 'Saving…'}
                 </>
-              ) : 'Confirm'}
+              ) : PAYMENTS_ENABLED ? 'Pay with Stripe' : 'Confirm'}
             </button>
           </div>
         )}

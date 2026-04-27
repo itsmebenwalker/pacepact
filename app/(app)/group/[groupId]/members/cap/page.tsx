@@ -12,7 +12,7 @@ export default async function IncreaseCapPage({ params }: { params: Promise<{ gr
 
   const { data: group } = await supabase
     .from('groups')
-    .select('id, name, created_by, members_cap')
+    .select('id, name, created_by, members_cap, event_date')
     .eq('id', groupId)
     .single()
 
@@ -35,6 +35,7 @@ export default async function IncreaseCapPage({ params }: { params: Promise<{ gr
         groupId={groupId}
         currentCap={group.members_cap}
         memberCount={memberCount ?? 0}
+        eventDate={group.event_date}
       />
     </div>
   )

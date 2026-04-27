@@ -20,7 +20,8 @@
     "next": "^15.5.14",
     "react": "^18",
     "react-dom": "^18",
-    "resend": "^6.10.0"
+    "resend": "^6.10.0",
+    "stripe": "^22.1.0"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

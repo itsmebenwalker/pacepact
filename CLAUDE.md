@@ -19,6 +19,7 @@ MVP is fully free — no payments, no plans. Get users in, get the core loop wor
 | External API | Strava API v3 (OAuth + Webhooks) |
 | Styling | Tailwind CSS |
 | Email | Resend (invites, notifications) |
+| Payments | Stripe Checkout (feature-flagged — see `docs/stripe-setup.md`) |
 
 ---
 
@@ -572,8 +573,13 @@ ANTHROPIC_API_KEY=
 # Resend
 RESEND_API_KEY=
 
+# Stripe
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=           # whsec_... from Stripe CLI (local) or Stripe Dashboard (production)
+
 # App
 NEXT_PUBLIC_APP_URL=             # e.g. https://pacepact.com
+NEXT_PUBLIC_PAYMENTS_ENABLED=false  # Set to 'true' to enable Stripe payment step
 ```
 
 ---

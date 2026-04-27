@@ -2,7 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { calculateGroupPrice } from '@/lib/payments/calculate-price'
 import type { EventType, Ambition, OtherSport } from '@/types'
+
+const PAYMENTS_ENABLED = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true'
 
 const EVENT_TYPES: { value: EventType; label: string }[] = [
   { value: 'marathon', label: 'Marathon' },
@@ -26,8 +29,10 @@ const AMBITIONS: { value: Ambition; label: string; desc: string }[] = [
   { value: 'podium', label: 'Go for podium', desc: 'High volume, structured speed, peak performance' },
 ]
 
-type Step = 'event' | 'ambition' | 'review'
-const STEPS: Step[] = ['event', 'ambition', 'review']
+type Step = 'event' | 'ambition' | 'review' | 'payment'
+const STEPS: Step[] = PAYMENTS_ENABLED
+  ? ['event', 'ambition', 'review', 'payment']
+  : ['event', 'ambition', 'review']
 
 const inputClass = 'w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:border-transparent transition-colors'
 const labelClass = 'block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5'
@@ -60,18 +65,29 @@ export default function CreateGroupForm() {
     })
   }
 
-  async function handleGenerate() {
+  async function handleSubmit() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/groups/generate-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Something went wrong')
-      router.push(`/group/${data.groupId}`)
+      if (PAYMENTS_ENABLED) {
+        const res = await fetch('/api/stripe/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'create_group', ...form }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? 'Something went wrong')
+        window.location.href = data.url
+      } else {
+        const res = await fetch('/api/groups/generate-plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? 'Something went wrong')
+        router.push(`/group/${data.groupId}`)
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Something went wrong')
       setLoading(false)
@@ -83,6 +99,10 @@ export default function CreateGroupForm() {
   const eventStepValid =
     !!form.name && !!form.event_name && !!form.event_type && !!form.event_date &&
     (form.event_type !== 'other' || (!!form.other_sport && !!form.other_distance_km))
+
+  const price = PAYMENTS_ENABLED && form.members_cap && form.event_date
+    ? calculateGroupPrice(form.members_cap, form.event_date)
+    : null
 
   return (
     <div className="max-w-lg mx-auto pb-24 sm:pb-0">
@@ -99,7 +119,7 @@ export default function CreateGroupForm() {
             }`}>
               {i + 1}
             </div>
-            {i < 2 && <div className="w-8 h-px bg-zinc-200 dark:bg-zinc-700" />}
+            {i < STEPS.length - 1 && <div className="w-8 h-px bg-zinc-200 dark:bg-zinc-700" />}
           </div>
         ))}
       </div>
@@ -262,6 +282,30 @@ export default function CreateGroupForm() {
         </div>
       )}
 
+      {step === 'payment' && PAYMENTS_ENABLED && price && (
+        <div className="space-y-5">
+          <div>
+            <h2 className="text-base font-medium text-zinc-900 dark:text-zinc-50">Payment</h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">One-time charge to create this group.</p>
+          </div>
+
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-3 text-sm">
+            <Row label="Member limit" value={String(price.seats)} />
+            <Row label="Weeks until event" value={String(price.weeks)} />
+            <Row label="Rate" value={`$${price.ratePerSeatPerWeek.toFixed(2)}/seat/week`} />
+            <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800">
+              <Row label="Total (AUD)" value={price.displayAmount} />
+            </div>
+          </div>
+
+          <p className="text-xs text-zinc-400 dark:text-zinc-500">
+            You&apos;ll be taken to Stripe to complete payment. Your group is created after payment is confirmed.
+          </p>
+
+          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        </div>
+      )}
+
       {/* Sticky action bar — fixed on mobile, static on desktop */}
       <div className="fixed bottom-0 inset-x-0 z-10 sm:static sm:mt-5 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 sm:border-0 px-4 py-4 sm:p-0 space-y-2">
         {step === 'event' && (
@@ -301,8 +345,44 @@ export default function CreateGroupForm() {
             >
               Back
             </button>
+            {PAYMENTS_ENABLED ? (
+              <button
+                onClick={() => setStep('payment')}
+                className="flex-1 text-sm bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-medium py-2.5 rounded-md transition-colors"
+              >
+                Next
+              </button>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="flex-1 text-sm bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-50 text-white dark:text-zinc-900 font-medium py-2.5 rounded-md transition-colors flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+                    </svg>
+                    Creating…
+                  </>
+                ) : 'Create group'}
+              </button>
+            )}
+          </div>
+        )}
+
+        {step === 'payment' && PAYMENTS_ENABLED && (
+          <div className="flex gap-3">
             <button
-              onClick={handleGenerate}
+              onClick={() => setStep('review')}
+              disabled={loading}
+              className="flex-1 text-sm text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 font-medium py-2.5 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-40"
+            >
+              Back
+            </button>
+            <button
+              onClick={handleSubmit}
               disabled={loading}
               className="flex-1 text-sm bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-50 text-white dark:text-zinc-900 font-medium py-2.5 rounded-md transition-colors flex items-center justify-center gap-2"
             >
@@ -312,9 +392,9 @@ export default function CreateGroupForm() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
                   </svg>
-                  Creating…
+                  Redirecting…
                 </>
-              ) : 'Create group'}
+              ) : 'Pay with Stripe'}
             </button>
           </div>
         )}
