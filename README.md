@@ -18,6 +18,7 @@ Social training platform for groups of friends preparing for the same endurance 
 - **Rest day handling** — rest sessions are excluded from the session grid; a note shows how many rest days are recommended for the week
 - **Magic link auth** — passwordless sign-in via email OTP using Resend; styled email template matches the app
 - **Strava connect / disconnect** — connect Strava on the profile page; disconnect deauthorizes the Strava token and clears stored credentials
+- **Payments** — Stripe Embedded Checkout for group creation and member cap increases; gated by `NEXT_PUBLIC_PAYMENTS_ENABLED` feature flag (off by default)
 
 ## Tech stack
 
@@ -30,6 +31,7 @@ Social training platform for groups of friends preparing for the same endurance 
 | External API | Strava API v3 (OAuth + Webhooks) |
 | Styling | Tailwind CSS |
 | Email | Resend |
+| Payments | Stripe (Embedded Checkout) |
 
 ## Quick start
 
@@ -77,6 +79,9 @@ pacepact/
 │   │   │       └── members/
 │   │   │           ├── me/          # DELETE leave group (non-creator members)
 │   │   │           └── [userId]/    # DELETE kick+ban; PATCH transfer creator
+│   │   ├── stripe/
+│   │   │   ├── checkout/     # Create Stripe Checkout Session (create_group / update_members_cap)
+│   │   │   └── webhook/      # Stripe webhook receiver (checkout.session.completed)
 │   │   ├── activities/
 │   │   │   └── assign/       # Assign parked brick leg to standalone session
 │   │   ├── notifications/
@@ -97,14 +102,18 @@ pacepact/
 │   ├── strava/               # OAuth, webhook processing, activity matching
 │   ├── claude/               # Plan generation prompt + parsing
 │   ├── resend/               # Magic link email template
-│   ├── groups/               # Session fan-out helper
+│   ├── stripe/               # Lazy Stripe client initialisation
+│   ├── payments/             # Price calculation (members × weeks × rate)
+│   ├── groups/               # Session fan-out helper, createGroup() shared fn
 │   ├── points/               # Points calculation
 │   └── utils/                # Week status, date formatting helpers
 ├── types/index.ts            # Shared TypeScript types
 ├── supabase/
 │   ├── schema.sql            # Full DB schema + RLS policies
 │   └── migrations/           # Incremental migrations (e.g. messages table)
-└── docs/setup.md             # Setup guide
+├── docs/
+│   ├── setup.md              # Full setup guide
+│   └── stripe-setup.md       # Stripe keys, webhook registration, pricing, test cards
 ```
 
 ## Development

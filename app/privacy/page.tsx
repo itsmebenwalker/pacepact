@@ -95,6 +95,7 @@ export default function PrivacyPage() {
               <li><strong className="text-zinc-700 dark:text-zinc-300">Anthropic</strong> — AI plan generation (prompts contain only event type, date, and ambition — no personal data)</li>
               <li><strong className="text-zinc-700 dark:text-zinc-300">Resend</strong> — transactional email (magic link login)</li>
               <li><strong className="text-zinc-700 dark:text-zinc-300">Strava</strong> — activity data source</li>
+              <li><strong className="text-zinc-700 dark:text-zinc-300">Stripe</strong> — payment processing (US)</li>
             </ul>
             <p>We do not share data with any other third parties.</p>
             <p className="mt-2">

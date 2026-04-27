@@ -1,9 +1,10 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { EmbeddedCheckout, EmbeddedCheckoutProvider } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
 
-// Initialised once at module level — not inside the component
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 interface Props {
@@ -12,8 +13,12 @@ interface Props {
 }
 
 export default function StripeCheckoutModal({ clientSecret, onClose }: Props) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  if (!mounted) return null
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4">
       {/* Sheet on mobile, centered card on desktop */}
       <div className="bg-white dark:bg-zinc-900 w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl flex flex-col max-h-[92dvh] sm:max-h-[90vh]">
         {/* Header */}
@@ -37,6 +42,7 @@ export default function StripeCheckoutModal({ clientSecret, onClose }: Props) {
           </EmbeddedCheckoutProvider>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
