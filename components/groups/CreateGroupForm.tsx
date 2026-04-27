@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { calculateGroupPrice } from '@/lib/payments/calculate-price'
+import StripeCheckoutModal from '@/components/groups/StripeCheckoutModal'
 import type { EventType, Ambition, OtherSport } from '@/types'
 
 const PAYMENTS_ENABLED = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true'
@@ -42,6 +43,7 @@ export default function CreateGroupForm() {
   const [step, setStep] = useState<Step>('event')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     name: '',
@@ -77,7 +79,8 @@ export default function CreateGroupForm() {
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error ?? 'Something went wrong')
-        window.location.href = data.url
+        setClientSecret(data.clientSecret)
+        setLoading(false)
       } else {
         const res = await fetch('/api/groups/generate-plan', {
           method: 'POST',
@@ -105,254 +108,290 @@ export default function CreateGroupForm() {
     : null
 
   return (
-    <div className="max-w-lg mx-auto pb-24 sm:pb-0">
-      {/* Step indicator */}
-      <div className="flex items-center gap-2 mb-8">
-        {STEPS.map((s, i) => (
-          <div key={s} className="flex items-center gap-2">
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center font-medium text-xs transition-colors ${
-              step === s
-                ? 'bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900'
-                : currentStepIndex > i
-                ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
-                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500'
-            }`}>
-              {i + 1}
-            </div>
-            {i < STEPS.length - 1 && <div className="w-8 h-px bg-zinc-200 dark:bg-zinc-700" />}
-          </div>
-        ))}
-      </div>
+    <>
+      {clientSecret && (
+        <StripeCheckoutModal
+          clientSecret={clientSecret}
+          onClose={() => setClientSecret(null)}
+        />
+      )}
 
-      {/* Step content */}
-      {step === 'event' && (
-        <div className="space-y-5">
-          <h2 className="text-base font-medium text-zinc-900 dark:text-zinc-50">Event details</h2>
-
-          <div>
-            <label className={labelClass}>Group name</label>
-            <input
-              type="text"
-              value={form.name}
-              onChange={(e) => update('name', e.target.value)}
-              placeholder="e.g. Berlin Marathon Crew"
-              className={inputClass}
-            />
-          </div>
-
-          <div>
-            <label className={labelClass}>Event name</label>
-            <input
-              type="text"
-              value={form.event_name}
-              onChange={(e) => update('event_name', e.target.value)}
-              placeholder="e.g. Berlin Marathon 2026"
-              className={inputClass}
-            />
-          </div>
-
-          <div>
-            <label className={labelClass}>Event type</label>
-            <select
-              value={form.event_type}
-              onChange={(e) => update('event_type', e.target.value)}
-              className={inputClass}
-            >
-              <option value="">Select type</option>
-              {EVENT_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {form.event_type === 'other' && (
-            <>
-              <div>
-                <label className={labelClass}>Sport</label>
-                <select
-                  value={form.other_sport}
-                  onChange={(e) => update('other_sport', e.target.value)}
-                  className={inputClass}
-                >
-                  <option value="">Select sport</option>
-                  {OTHER_SPORTS.map((s) => (
-                    <option key={s.value} value={s.value}>{s.label}</option>
-                  ))}
-                </select>
+      <div className="max-w-lg mx-auto pb-24 sm:pb-0">
+        {/* Step indicator */}
+        <div className="flex items-center gap-2 mb-8">
+          {STEPS.map((s, i) => (
+            <div key={s} className="flex items-center gap-2">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center font-medium text-xs transition-colors ${
+                step === s
+                  ? 'bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900'
+                  : currentStepIndex > i
+                  ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300'
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500'
+              }`}>
+                {i + 1}
               </div>
-
-              <div>
-                <label className={labelClass}>Target distance (km)</label>
-                <input
-                  type="number"
-                  min="1"
-                  step="0.5"
-                  value={form.other_distance_km}
-                  onChange={(e) => update('other_distance_km', e.target.value)}
-                  placeholder="e.g. 10"
-                  className={inputClass}
-                />
-              </div>
-            </>
-          )}
-
-          <div>
-            <label className={labelClass}>Event date</label>
-            <input
-              type="date"
-              value={form.event_date}
-              min={new Date().toISOString().split('T')[0]}
-              onChange={(e) => update('event_date', e.target.value)}
-              className={inputClass}
-            />
-          </div>
-
-          <div>
-            <div className="flex justify-between items-baseline mb-1.5">
-              <label className={labelClass + ' mb-0'}>Member limit</label>
-              <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50 tabular-nums">{form.members_cap}</span>
+              {i < STEPS.length - 1 && <div className="w-8 h-px bg-zinc-200 dark:bg-zinc-700" />}
             </div>
-            <input
-              type="range"
-              min={2}
-              max={100}
-              value={form.members_cap}
-              onChange={(e) => update('members_cap', Number(e.target.value))}
-              className="w-full accent-zinc-900 dark:accent-zinc-50"
-            />
-            <div className="flex justify-between text-[11px] text-zinc-400 dark:text-zinc-500 mt-0.5">
-              <span>2</span>
-              <span>100</span>
-            </div>
-          </div>
+          ))}
         </div>
-      )}
 
-      {step === 'ambition' && (
-        <div className="space-y-5">
-          <div>
-            <h2 className="text-base font-medium text-zinc-900 dark:text-zinc-50">Training ambition</h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">This shapes the intensity of the plan for everyone in the group.</p>
-          </div>
-
-          <div className="space-y-2">
-            {AMBITIONS.map((a) => (
-              <button
-                key={a.value}
-                onClick={() => update('ambition', a.value)}
-                className={`w-full text-left p-4 rounded-lg border transition-colors ${
-                  form.ambition === a.value
-                    ? 'border-zinc-900 dark:border-zinc-50 bg-zinc-50 dark:bg-zinc-800'
-                    : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:border-zinc-400 dark:hover:border-zinc-500'
-                }`}
-              >
-                <div className="text-sm font-medium text-zinc-900 dark:text-zinc-50">{a.label}</div>
-                <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{a.desc}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {step === 'review' && (
-        <div className="space-y-5">
-          <h2 className="text-base font-medium text-zinc-900 dark:text-zinc-50">Review</h2>
-
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-3 text-sm">
-            <Row label="Group" value={form.name} />
-            <Row label="Event" value={form.event_name} />
-            <Row
-              label="Type"
-              value={
-                form.event_type === 'other' && form.other_sport
-                  ? `${OTHER_SPORTS.find(s => s.value === form.other_sport)?.label ?? ''} · ${form.other_distance_km} km`
-                  : EVENT_TYPES.find(t => t.value === form.event_type)?.label ?? ''
-              }
-            />
-            <Row label="Date" value={new Date(form.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} />
-            <Row label="Ambition" value={AMBITIONS.find(a => a.value === form.ambition)?.label ?? ''} />
-            <Row label="Member limit" value={String(form.members_cap)} />
-          </div>
-
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            AI will generate a personalised training plan in the background — usually a minute or two. You&apos;ll be notified when it&apos;s ready.
-          </p>
-
-          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-        </div>
-      )}
-
-      {step === 'payment' && PAYMENTS_ENABLED && price && (
-        <div className="space-y-5">
-          <div>
-            <h2 className="text-base font-medium text-zinc-900 dark:text-zinc-50">Payment</h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">One-time charge to create this group.</p>
-          </div>
-
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-3 text-sm">
-            <Row label="Member limit" value={String(price.seats)} />
-            <Row label="Weeks until event" value={String(price.weeks)} />
-            <Row label="Rate" value={`$${price.ratePerSeatPerWeek.toFixed(2)}/seat/week`} />
-            <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800">
-              <Row label="Total (AUD)" value={price.displayAmount} />
-            </div>
-          </div>
-
-          <p className="text-xs text-zinc-400 dark:text-zinc-500">
-            You&apos;ll be taken to Stripe to complete payment. Your group is created after payment is confirmed.
-          </p>
-
-          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-        </div>
-      )}
-
-      {/* Sticky action bar — fixed on mobile, static on desktop */}
-      <div className="fixed bottom-0 inset-x-0 z-10 sm:static sm:mt-5 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 sm:border-0 px-4 py-4 sm:p-0 space-y-2">
+        {/* Step content */}
         {step === 'event' && (
-          <button
-            onClick={() => setStep('ambition')}
-            disabled={!eventStepValid}
-            className="w-full bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-40 text-white dark:text-zinc-900 font-medium py-2.5 rounded-md text-sm transition-colors"
-          >
-            Next
-          </button>
+          <div className="space-y-5">
+            <h2 className="text-base font-medium text-zinc-900 dark:text-zinc-50">Event details</h2>
+
+            <div>
+              <label className={labelClass}>Group name</label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => update('name', e.target.value)}
+                placeholder="e.g. Berlin Marathon Crew"
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Event name</label>
+              <input
+                type="text"
+                value={form.event_name}
+                onChange={(e) => update('event_name', e.target.value)}
+                placeholder="e.g. Berlin Marathon 2026"
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Event type</label>
+              <select
+                value={form.event_type}
+                onChange={(e) => update('event_type', e.target.value)}
+                className={inputClass}
+              >
+                <option value="">Select type</option>
+                {EVENT_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {form.event_type === 'other' && (
+              <>
+                <div>
+                  <label className={labelClass}>Sport</label>
+                  <select
+                    value={form.other_sport}
+                    onChange={(e) => update('other_sport', e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="">Select sport</option>
+                    {OTHER_SPORTS.map((s) => (
+                      <option key={s.value} value={s.value}>{s.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className={labelClass}>Target distance (km)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.5"
+                    value={form.other_distance_km}
+                    onChange={(e) => update('other_distance_km', e.target.value)}
+                    placeholder="e.g. 10"
+                    className={inputClass}
+                  />
+                </div>
+              </>
+            )}
+
+            <div>
+              <label className={labelClass}>Event date</label>
+              <input
+                type="date"
+                value={form.event_date}
+                min={new Date().toISOString().split('T')[0]}
+                onChange={(e) => update('event_date', e.target.value)}
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <div className="flex justify-between items-baseline mb-1.5">
+                <label className={labelClass + ' mb-0'}>Member limit</label>
+                <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50 tabular-nums">{form.members_cap}</span>
+              </div>
+              <input
+                type="range"
+                min={2}
+                max={100}
+                value={form.members_cap}
+                onChange={(e) => update('members_cap', Number(e.target.value))}
+                className="w-full accent-zinc-900 dark:accent-zinc-50"
+              />
+              <div className="flex justify-between text-[11px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+                <span>2</span>
+                <span>100</span>
+              </div>
+            </div>
+          </div>
         )}
 
         {step === 'ambition' && (
-          <div className="flex gap-3">
-            <button
-              onClick={() => setStep('event')}
-              className="flex-1 text-sm text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 font-medium py-2.5 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-            >
-              Back
-            </button>
-            <button
-              onClick={() => setStep('review')}
-              disabled={!form.ambition}
-              className="flex-1 text-sm bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-40 text-white dark:text-zinc-900 font-medium py-2.5 rounded-md transition-colors"
-            >
-              Next
-            </button>
+          <div className="space-y-5">
+            <div>
+              <h2 className="text-base font-medium text-zinc-900 dark:text-zinc-50">Training ambition</h2>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">This shapes the intensity of the plan for everyone in the group.</p>
+            </div>
+
+            <div className="space-y-2">
+              {AMBITIONS.map((a) => (
+                <button
+                  key={a.value}
+                  onClick={() => update('ambition', a.value)}
+                  className={`w-full text-left p-4 rounded-lg border transition-colors ${
+                    form.ambition === a.value
+                      ? 'border-zinc-900 dark:border-zinc-50 bg-zinc-50 dark:bg-zinc-800'
+                      : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:border-zinc-400 dark:hover:border-zinc-500'
+                  }`}
+                >
+                  <div className="text-sm font-medium text-zinc-900 dark:text-zinc-50">{a.label}</div>
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{a.desc}</div>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
         {step === 'review' && (
-          <div className="flex gap-3">
+          <div className="space-y-5">
+            <h2 className="text-base font-medium text-zinc-900 dark:text-zinc-50">Review</h2>
+
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-3 text-sm">
+              <Row label="Group" value={form.name} />
+              <Row label="Event" value={form.event_name} />
+              <Row
+                label="Type"
+                value={
+                  form.event_type === 'other' && form.other_sport
+                    ? `${OTHER_SPORTS.find(s => s.value === form.other_sport)?.label ?? ''} · ${form.other_distance_km} km`
+                    : EVENT_TYPES.find(t => t.value === form.event_type)?.label ?? ''
+                }
+              />
+              <Row label="Date" value={new Date(form.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} />
+              <Row label="Ambition" value={AMBITIONS.find(a => a.value === form.ambition)?.label ?? ''} />
+              <Row label="Member limit" value={String(form.members_cap)} />
+            </div>
+
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              AI will generate a personalised training plan in the background — usually a minute or two. You&apos;ll be notified when it&apos;s ready.
+            </p>
+
+            {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+          </div>
+        )}
+
+        {step === 'payment' && PAYMENTS_ENABLED && price && (
+          <div className="space-y-5">
+            <div>
+              <h2 className="text-base font-medium text-zinc-900 dark:text-zinc-50">Payment</h2>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">One-time charge to create this group.</p>
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-3 text-sm">
+              <Row label="Member limit" value={String(price.seats)} />
+              <Row label="Weeks until event" value={String(price.weeks)} />
+              <Row label="Rate" value={`$${price.ratePerSeatPerWeek.toFixed(2)}/seat/week`} />
+              <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                <Row label="Total (AUD)" value={price.displayAmount} />
+              </div>
+            </div>
+
+            <p className="text-xs text-zinc-400 dark:text-zinc-500">
+              Payment is handled securely by Stripe. Your group is created after payment is confirmed.
+            </p>
+
+            {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+          </div>
+        )}
+
+        {/* Sticky action bar — fixed on mobile, static on desktop */}
+        <div className="fixed bottom-0 inset-x-0 z-10 sm:static sm:mt-5 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 sm:border-0 px-4 py-4 sm:p-0 space-y-2">
+          {step === 'event' && (
             <button
               onClick={() => setStep('ambition')}
-              disabled={loading}
-              className="flex-1 text-sm text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 font-medium py-2.5 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-40"
+              disabled={!eventStepValid}
+              className="w-full bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-40 text-white dark:text-zinc-900 font-medium py-2.5 rounded-md text-sm transition-colors"
             >
-              Back
+              Next
             </button>
-            {PAYMENTS_ENABLED ? (
+          )}
+
+          {step === 'ambition' && (
+            <div className="flex gap-3">
               <button
-                onClick={() => setStep('payment')}
-                className="flex-1 text-sm bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-medium py-2.5 rounded-md transition-colors"
+                onClick={() => setStep('event')}
+                className="flex-1 text-sm text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 font-medium py-2.5 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+              >
+                Back
+              </button>
+              <button
+                onClick={() => setStep('review')}
+                disabled={!form.ambition}
+                className="flex-1 text-sm bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-40 text-white dark:text-zinc-900 font-medium py-2.5 rounded-md transition-colors"
               >
                 Next
               </button>
-            ) : (
+            </div>
+          )}
+
+          {step === 'review' && (
+            <div className="flex gap-3">
+              <button
+                onClick={() => setStep('ambition')}
+                disabled={loading}
+                className="flex-1 text-sm text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 font-medium py-2.5 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-40"
+              >
+                Back
+              </button>
+              {PAYMENTS_ENABLED ? (
+                <button
+                  onClick={() => setStep('payment')}
+                  className="flex-1 text-sm bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-medium py-2.5 rounded-md transition-colors"
+                >
+                  Next
+                </button>
+              ) : (
+                <button
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  className="flex-1 text-sm bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-50 text-white dark:text-zinc-900 font-medium py-2.5 rounded-md transition-colors flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+                      </svg>
+                      Creating…
+                    </>
+                  ) : 'Create group'}
+                </button>
+              )}
+            </div>
+          )}
+
+          {step === 'payment' && PAYMENTS_ENABLED && (
+            <div className="flex gap-3">
+              <button
+                onClick={() => setStep('review')}
+                disabled={loading}
+                className="flex-1 text-sm text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 font-medium py-2.5 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-40"
+              >
+                Back
+              </button>
               <button
                 onClick={handleSubmit}
                 disabled={loading}
@@ -364,42 +403,15 @@ export default function CreateGroupForm() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"/>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
                     </svg>
-                    Creating…
+                    Loading…
                   </>
-                ) : 'Create group'}
+                ) : 'Pay with Stripe'}
               </button>
-            )}
-          </div>
-        )}
-
-        {step === 'payment' && PAYMENTS_ENABLED && (
-          <div className="flex gap-3">
-            <button
-              onClick={() => setStep('review')}
-              disabled={loading}
-              className="flex-1 text-sm text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 font-medium py-2.5 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-40"
-            >
-              Back
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="flex-1 text-sm bg-zinc-900 dark:bg-zinc-50 hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-50 text-white dark:text-zinc-900 font-medium py-2.5 rounded-md transition-colors flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
-                  </svg>
-                  Redirecting…
-                </>
-              ) : 'Pay with Stripe'}
-            </button>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 

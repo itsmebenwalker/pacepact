@@ -84,6 +84,9 @@ NEXT_PUBLIC_PAYMENTS_ENABLED=false
 # Stripe secret key (server-side only)
 STRIPE_SECRET_KEY=sk_test_...
 
+# Stripe publishable key (used client-side to load Stripe.js)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+
 # Stripe webhook signing secret
 STRIPE_WEBHOOK_SECRET=whsec_...
 ```

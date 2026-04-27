@@ -10,9 +10,9 @@ const mockCreateGroup = jest.fn()
 const mockServiceUpdate = jest.fn()
 
 jest.mock('@/lib/stripe/client', () => ({
-  stripe: {
+  getStripe: () => ({
     webhooks: { constructEvent: mockConstructEvent },
-  },
+  }),
 }))
 
 jest.mock('@/lib/groups/create-group', () => ({

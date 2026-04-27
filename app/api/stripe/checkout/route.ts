@@ -1,5 +1,5 @@
 import { requireAuth } from '@/lib/supabase/server'
-import { stripe } from '@/lib/stripe/client'
+import { getStripe } from '@/lib/stripe/client'
 import { calculateGroupPrice, calculateCapUpgradePrice } from '@/lib/payments/calculate-price'
 import { NextResponse } from 'next/server'
 import type { EventType, Ambition, OtherSport } from '@/types'
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
     const price = calculateGroupPrice(members_cap, event_date)
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{
         price_data: {
@@ -49,8 +49,8 @@ export async function POST(request: Request) {
         quantity: 1,
       }],
       mode: 'payment',
-      success_url: `${appUrl}/group/new/processing?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appUrl}/group/new`,
+      ui_mode: 'embedded_page',
+      return_url: `${appUrl}/group/new/processing?session_id={CHECKOUT_SESSION_ID}`,
       metadata: {
         action: 'create_group',
         user_id: user.id,
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       },
     })
 
-    return NextResponse.json({ url: session.url })
+    return NextResponse.json({ clientSecret: session.client_secret })
   }
 
   if (action === 'update_members_cap') {
@@ -85,7 +85,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'New cap must be greater than current cap' }, { status: 400 })
     }
 
-    // Verify caller is the group creator
     const { data: group } = await supabase
       .from('groups')
       .select('created_by')
@@ -98,7 +97,7 @@ export async function POST(request: Request) {
 
     const price = calculateCapUpgradePrice(deltaSeats, event_date)
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{
         price_data: {
@@ -112,8 +111,8 @@ export async function POST(request: Request) {
         quantity: 1,
       }],
       mode: 'payment',
-      success_url: `${appUrl}/group/${group_id}/members?upgraded=true`,
-      cancel_url: `${appUrl}/group/${group_id}/members/cap`,
+      ui_mode: 'embedded_page',
+      return_url: `${appUrl}/group/${group_id}/members?upgraded=true`,
       metadata: {
         action: 'update_members_cap',
         group_id,
@@ -122,7 +121,7 @@ export async function POST(request: Request) {
       },
     })
 
-    return NextResponse.json({ url: session.url })
+    return NextResponse.json({ clientSecret: session.client_secret })
   }
 
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 })

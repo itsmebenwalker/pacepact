@@ -576,6 +576,7 @@ RESEND_API_KEY=
 # Stripe
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=           # whsec_... from Stripe CLI (local) or Stripe Dashboard (production)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=  # pk_test_... or pk_live_...
 
 # App
 NEXT_PUBLIC_APP_URL=             # e.g. https://pacepact.com

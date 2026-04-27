@@ -10,11 +10,9 @@ const mockCreateSession = jest.fn()
 const mockRequireAuth = jest.fn()
 
 jest.mock('@/lib/stripe/client', () => ({
-  stripe: {
-    checkout: {
-      sessions: { create: mockCreateSession },
-    },
-  },
+  getStripe: () => ({
+    checkout: { sessions: { create: mockCreateSession } },
+  }),
 }))
 
 jest.mock('@/lib/supabase/server', () => ({
@@ -43,7 +41,7 @@ function makeRequest(body: object): Request {
 
 const AUTHED_USER = { id: 'user-123' }
 
-function mockAuth(extra?: object) {
+function mockAuth() {
   mockRequireAuth.mockResolvedValue({
     user: AUTHED_USER,
     supabase: {
@@ -56,7 +54,6 @@ function mockAuth(extra?: object) {
       }),
     },
     error: null,
-    ...extra,
   })
 }
 
@@ -75,7 +72,7 @@ const VALID_CREATE_GROUP_BODY = {
 describe('POST /api/stripe/checkout — create_group', () => {
   beforeEach(() => {
     mockAuth()
-    mockCreateSession.mockResolvedValue({ url: 'https://checkout.stripe.com/test' })
+    mockCreateSession.mockResolvedValue({ client_secret: 'cs_test_secret_abc' })
   })
 
   it('returns 401 when not authenticated', async () => {
@@ -91,7 +88,7 @@ describe('POST /api/stripe/checkout — create_group', () => {
     expect(body.error).toMatch(/missing/i)
   })
 
-  it('creates a Stripe session with AUD currency', async () => {
+  it('creates a Stripe session with AUD currency and embedded ui_mode', async () => {
     await POST(makeRequest(VALID_CREATE_GROUP_BODY))
     expect(mockCreateSession).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -99,8 +96,21 @@ describe('POST /api/stripe/checkout — create_group', () => {
           price_data: expect.objectContaining({ currency: 'aud' }),
         })],
         mode: 'payment',
+        ui_mode: 'embedded_page',
       })
     )
+  })
+
+  it('uses return_url (not success_url) for embedded mode', async () => {
+    await POST(makeRequest(VALID_CREATE_GROUP_BODY))
+    expect(mockCreateSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        return_url: expect.stringContaining('/group/new/processing'),
+      })
+    )
+    const call = mockCreateSession.mock.calls[0][0]
+    expect(call).not.toHaveProperty('success_url')
+    expect(call).not.toHaveProperty('cancel_url')
   })
 
   it('embeds group params in session metadata', async () => {
@@ -118,20 +128,12 @@ describe('POST /api/stripe/checkout — create_group', () => {
     )
   })
 
-  it('sets success_url to the processing page', async () => {
-    await POST(makeRequest(VALID_CREATE_GROUP_BODY))
-    expect(mockCreateSession).toHaveBeenCalledWith(
-      expect.objectContaining({
-        success_url: expect.stringContaining('/group/new/processing'),
-      })
-    )
-  })
-
-  it('returns the Stripe checkout url', async () => {
+  it('returns clientSecret (not url)', async () => {
     const res = await POST(makeRequest(VALID_CREATE_GROUP_BODY))
     const body = await res.json()
     expect(res.status).toBe(200)
-    expect(body.url).toBe('https://checkout.stripe.com/test')
+    expect(body.clientSecret).toBe('cs_test_secret_abc')
+    expect(body).not.toHaveProperty('url')
   })
 
   it('charges at least $0.50 AUD (50 cents minimum)', async () => {
@@ -160,7 +162,7 @@ describe('POST /api/stripe/checkout — update_members_cap', () => {
 
   beforeEach(() => {
     mockAuth()
-    mockCreateSession.mockResolvedValue({ url: 'https://checkout.stripe.com/cap-test' })
+    mockCreateSession.mockResolvedValue({ client_secret: 'cs_cap_secret_xyz' })
   })
 
   it('returns 403 if caller is not the group creator', async () => {
@@ -198,13 +200,19 @@ describe('POST /api/stripe/checkout — update_members_cap', () => {
     )
   })
 
-  it('sets success_url to the group members page', async () => {
+  it('sets return_url to the group members page', async () => {
     await POST(makeRequest(VALID_CAP_BODY))
     expect(mockCreateSession).toHaveBeenCalledWith(
       expect.objectContaining({
-        success_url: expect.stringContaining('/group/group-abc/members'),
+        return_url: expect.stringContaining('/group/group-abc/members'),
       })
     )
+  })
+
+  it('returns clientSecret', async () => {
+    const res = await POST(makeRequest(VALID_CAP_BODY))
+    const body = await res.json()
+    expect(body.clientSecret).toBe('cs_cap_secret_xyz')
   })
 })
 
