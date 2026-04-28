@@ -289,7 +289,7 @@ pacepact/
 │   │   │           ├── me/route.ts       # DELETE leave group (any non-creator member)
 │   │   │           └── [userId]/route.ts # DELETE kick+ban; PATCH transfer creator (creator only)
 │   │   ├── activities/
-│   │   │   └── assign/route.ts         # POST: assign parked brick leg to standalone session; DELETE: drop (discard) a parked brick leg
+│   │   │   └── assign/route.ts         # POST: assign parked brick leg to a session (session_id selects specific session; omit to fall back to earliest); DELETE: drop (discard) a parked brick leg
 │   │   ├── sessions/
 │   │   │   └── [sessionId]/
 │   │   │       └── complete/route.ts   # POST: manually mark session complete (10 pts, no Strava)
@@ -307,7 +307,7 @@ pacepact/
 │   ├── training/
 │   │   ├── WeekView.tsx                # Weekly session grid + date range + past states
 │   │   ├── SessionCard.tsx             # Single session, completed state + "View on Strava" link + tip tooltip (desktop only); mobile tap opens bottom sheet with tip + X close button
-│   │   └── BrickProgress.tsx           # Progress bar for parked brick legs; assign + drop actions; hides assign when no matching session exists
+│   │   └── BrickProgress.tsx           # Progress bar for parked brick legs; single-session assign button or multi-session picker; drop action always visible
 │   ├── groups/
 │   │   ├── GroupCard.tsx               # Dashboard summary card
 │   ├── GroupList.tsx               # Client component — groups grid with points-sorted order; search box appears when > 5 groups
@@ -490,9 +490,9 @@ Always return HTTP 200 immediately — Strava will retry on non-200.
 Brick sessions (e.g. ride + run) are completed via a two-phase process:
 
 1. **Any run or ride arriving in a brick week** is parked in `brick_activity_parts` (first-leg park). The session card shows a 50% progress bar and two options:
-   - **Count as ride/run session instead** — assigns the leg to a matching standalone session via `POST /api/activities/assign`. Hidden when no matching pending session exists for the week.
+   - **Assign to a session** — assigns the leg to a standalone session of the matching type. If exactly one matching pending session exists, a single "Count as ride/run session instead" button appears. If multiple exist, a labelled list of session options is shown (with description + distance/duration) so the user can pick the right one. Hidden entirely when no matching pending session exists. Sends `session_id` to `POST /api/activities/assign` so the API targets the exact chosen session.
    - **Drop** — discards the parked leg via `DELETE /api/activities/assign`. Always visible as the fallback when there is nothing to assign to.
-   - `WeekView` computes `hasAssignableSession` (checks for a pending session matching the brick part's activity type in the same week) and threads it down to `SessionCard` → `BrickProgress` to drive this smart show/hide.
+   - `WeekView` computes `assignableSessions` (all pending sessions matching the brick part's activity type in the same week) and threads it as `Session[]` down to `SessionCard` → `BrickProgress` to drive the assign UI.
 
 2. **Automatic second-leg detection** — when a run or ride arrives, the webhook looks for a complementary leg (opposite type) already stored in `brick_activity_parts` on the same `activity_date`. This covers both Garmin multisport uploads and two separate manual uploads on the same day (e.g. morning ride + evening run). When a match is found, stats from both legs are combined, validated against the brick target (85% threshold), and the session is marked complete.
 

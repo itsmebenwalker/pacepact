@@ -24,7 +24,7 @@ const DEFAULT_TIPS: Record<string, string> = {
 interface Props {
   session: Session
   pendingPart?: BrickActivityPart
-  hasAssignableSession?: boolean
+  assignableSessions?: Session[]
   allowManualComplete?: boolean
 }
 
@@ -38,7 +38,15 @@ function isSessionInCurrentOrPastWeek(scheduledDate: string | null | undefined):
   return scheduledDate <= sunday.toISOString().split('T')[0]
 }
 
-export default function SessionCard({ session, pendingPart, hasAssignableSession, allowManualComplete = true }: Props) {
+function sessionStatsLabel(s: Session): string {
+  const parts = [
+    s.target_distance_km != null ? `${s.target_distance_km} km` : null,
+    s.target_duration_minutes != null ? `${s.target_duration_minutes} min` : null,
+  ].filter(Boolean)
+  return parts.length > 0 ? ` · ${parts.join(' · ')}` : ''
+}
+
+export default function SessionCard({ session, pendingPart, assignableSessions, allowManualComplete = true }: Props) {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -48,6 +56,7 @@ export default function SessionCard({ session, pendingPart, hasAssignableSession
   const tip = session.tip ?? DEFAULT_TIPS[session.session_type] ?? null
 
   const canMarkDone = !isCompleted && allowManualComplete && isSessionInCurrentOrPastWeek(session.scheduled_date)
+  const hasAssignable = !!assignableSessions && assignableSessions.length > 0
 
   async function markDone() {
     setLoading(true)
@@ -57,13 +66,13 @@ export default function SessionCard({ session, pendingPart, hasAssignableSession
     router.refresh()
   }
 
-  async function assignBrickPart() {
+  async function assignBrickPart(sessionId: string) {
     if (!pendingPart) return
     setLoading(true)
     await fetch('/api/activities/assign', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ brick_part_id: pendingPart.id }),
+      body: JSON.stringify({ brick_part_id: pendingPart.id, session_id: sessionId }),
     })
     setLoading(false)
     setSheetOpen(false)
@@ -81,6 +90,40 @@ export default function SessionCard({ session, pendingPart, hasAssignableSession
     setLoading(false)
     setSheetOpen(false)
     router.refresh()
+  }
+
+  // Renders the assign UI for the desktop inline section and mobile bottom sheet.
+  // Single session → one button. Multiple → labelled list of options.
+  function renderAssignActions(onClick: (sessionId: string) => void, buttonClass: string, labelClass: string) {
+    if (!assignableSessions || assignableSessions.length === 0) return null
+    if (assignableSessions.length === 1) {
+      return (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onClick(assignableSessions[0].id) }}
+          disabled={loading}
+          className={buttonClass}
+        >
+          Count as {pendingPart?.activity_type} session instead
+        </button>
+      )
+    }
+    return (
+      <div className="space-y-1.5">
+        <p className={labelClass}>Assign to:</p>
+        {assignableSessions.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onClick(s.id) }}
+            disabled={loading}
+            className={buttonClass}
+          >
+            {s.target_description}{sessionStatsLabel(s)}
+          </button>
+        ))}
+      </div>
+    )
   }
 
   return (
@@ -169,7 +212,7 @@ export default function SessionCard({ session, pendingPart, hasAssignableSession
           </div>
         )}
         {pendingPart && !isCompleted && (
-          <BrickProgress part={pendingPart} hasAssignableSession={hasAssignableSession} />
+          <BrickProgress part={pendingPart} assignableSessions={assignableSessions} />
         )}
 
         {/* Desktop inline actions */}
@@ -185,15 +228,10 @@ export default function SessionCard({ session, pendingPart, hasAssignableSession
                 {loading ? 'Saving…' : 'Mark done manually'}
               </button>
             )}
-            {pendingPart && hasAssignableSession !== false && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); assignBrickPart(); }}
-                disabled={loading}
-                className="w-full text-xs font-medium py-1.5 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 transition-colors"
-              >
-                Count as {pendingPart.activity_type} session instead
-              </button>
+            {pendingPart && hasAssignable && renderAssignActions(
+              assignBrickPart,
+              'w-full text-xs font-medium py-1.5 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 transition-colors',
+              'text-[10px] text-zinc-400 dark:text-zinc-500',
             )}
             {pendingPart && (
               <button
@@ -274,14 +312,10 @@ export default function SessionCard({ session, pendingPart, hasAssignableSession
                     Mark done manually
                   </button>
                 )}
-                {pendingPart && hasAssignableSession !== false && (
-                  <button
-                    onClick={assignBrickPart}
-                    disabled={loading}
-                    className="w-full border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium rounded-md text-sm py-3 transition-colors bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40"
-                  >
-                    Count as {pendingPart.activity_type} session instead
-                  </button>
+                {pendingPart && hasAssignable && renderAssignActions(
+                  assignBrickPart,
+                  'w-full border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium rounded-md text-sm py-3 transition-colors bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40',
+                  'text-xs text-zinc-400 dark:text-zinc-500',
                 )}
                 {pendingPart && (
                   <button

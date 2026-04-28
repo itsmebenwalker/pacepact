@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   const { user } = auth
 
   const body = await request.json()
-  const { brick_part_id } = body
+  const { brick_part_id, session_id } = body
   if (!brick_part_id) return NextResponse.json({ error: 'Missing brick_part_id' }, { status: 400 })
 
   const serviceClient = createServiceClient()
@@ -50,26 +50,47 @@ export async function POST(request: Request) {
   if (!part) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (!part.group_id) return NextResponse.json({ error: 'Part has no group context' }, { status: 422 })
 
-  // Find pending sessions of the matching type in the same calendar week
   const activityDate = part.activity_date ?? new Date(part.created_at).toISOString().split('T')[0]
-  const { start: weekStart, end: weekEnd } = getWeekBounds(activityDate)
 
-  const { data: candidates } = await serviceClient
-    .from('sessions')
-    .select('*')
-    .eq('group_id', part.group_id)
-    .eq('user_id', user.id)
-    .eq('session_type', part.activity_type)
-    .eq('completed', false)
-    .gte('scheduled_date', weekStart)
-    .lte('scheduled_date', weekEnd)
-    .order('scheduled_date', { ascending: true })
+  let session: Session
 
-  if (!candidates || candidates.length === 0) {
-    return NextResponse.json({ error: 'No matching session found for this week' }, { status: 404 })
+  if (session_id) {
+    // User selected a specific session — fetch and validate it
+    const { data: specificSession } = await serviceClient
+      .from('sessions')
+      .select('*')
+      .eq('id', session_id)
+      .eq('user_id', user.id)
+      .eq('group_id', part.group_id)
+      .eq('completed', false)
+      .eq('session_type', part.activity_type)
+      .single()
+
+    if (!specificSession) {
+      return NextResponse.json({ error: 'Session not found or already completed' }, { status: 404 })
+    }
+    session = specificSession as Session
+  } else {
+    // Fall back to earliest matching session in the week
+    const { start: weekStart, end: weekEnd } = getWeekBounds(activityDate)
+
+    const { data: candidates } = await serviceClient
+      .from('sessions')
+      .select('*')
+      .eq('group_id', part.group_id)
+      .eq('user_id', user.id)
+      .eq('session_type', part.activity_type)
+      .eq('completed', false)
+      .gte('scheduled_date', weekStart)
+      .lte('scheduled_date', weekEnd)
+      .order('scheduled_date', { ascending: true })
+
+    if (!candidates || candidates.length === 0) {
+      return NextResponse.json({ error: 'No matching session found for this week' }, { status: 404 })
+    }
+
+    session = candidates[0] as Session
   }
-
-  const session = candidates[0] as Session
 
   // Reconstruct a StravaActivity from the stored part stats for points calculation
   const fakeActivity: StravaActivity = {

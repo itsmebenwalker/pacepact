@@ -1,5 +1,5 @@
 /**
- * Integration tests for POST /api/activities/assign
+ * Integration tests for POST /api/activities/assign and DELETE /api/activities/assign.
  * Assigns a parked brick leg to a standalone session.
  */
 
@@ -10,6 +10,7 @@ import { POST } from '@/app/api/activities/assign/route'
 let mockGetUser: jest.Mock
 let mockGetPart: jest.Mock
 let mockGetCandidates: jest.Mock
+let mockGetSpecificSession: jest.Mock
 let mockGetMember: jest.Mock
 let mockGetGroup: jest.Mock
 
@@ -22,9 +23,9 @@ beforeEach(() => {
   mockGetUser = jest.fn()
   mockGetPart = jest.fn()
   mockGetCandidates = jest.fn()
+  mockGetSpecificSession = jest.fn()
   mockGetMember = jest.fn()
   mockGetGroup = jest.fn()
-  // Reset call history and install a fresh eq mock so each test gets a clean slate
   mockSessionsUpdate.mockClear()
   mockSessionsUpdate.mockReturnValue({ eq: jest.fn().mockResolvedValue({ error: null }) })
 })
@@ -46,21 +47,18 @@ jest.mock('@/lib/supabase/server', () => ({
       }
       if (table === 'sessions') {
         return {
-          select: () => ({
-            eq: () => ({
-              eq: () => ({
-                eq: () => ({
-                  eq: () => ({
-                    gte: () => ({
-                      lte: () => ({
-                        order: () => mockGetCandidates(),
-                      }),
-                    }),
-                  }),
-                }),
-              }),
-            }),
-          }),
+          // Flat fluent chain — terminates at either .single() (specific session path)
+          // or .order() (candidates path), whichever the route calls.
+          select: () => {
+            const chain: Record<string, unknown> = {}
+            const fluent = () => chain
+            chain.eq = fluent
+            chain.gte = fluent
+            chain.lte = fluent
+            chain.order = () => mockGetCandidates()
+            chain.single = () => mockGetSpecificSession()
+            return chain
+          },
           update: mockSessionsUpdate,
         }
       }
@@ -133,9 +131,9 @@ function makeSession(overrides: Record<string, unknown> = {}) {
   }
 }
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
+// ── Tests: no session_id (legacy / fallback path) ────────────────────────────
 
-describe('POST /api/activities/assign', () => {
+describe('POST /api/activities/assign — no session_id (fallback to earliest)', () => {
   it('returns 401 when not authenticated', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } })
     const res = await POST(makeRequest({ brick_part_id: 'part-1' }))
@@ -163,7 +161,7 @@ describe('POST /api/activities/assign', () => {
     expect(res.status).toBe(404)
   })
 
-  it('when multiple sessions match, only the earliest-scheduled one is assigned', async () => {
+  it('assigns to the earliest-scheduled candidate when multiple exist', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
     mockGetPart.mockResolvedValue({ data: makePart({ activity_type: 'run', activity_date: '2026-04-02' }), error: null })
 
@@ -198,5 +196,92 @@ describe('POST /api/activities/assign', () => {
       expect.objectContaining({ completed: true, points_awarded: 10 })
     )
     expect(mockPartsDelete).toHaveBeenCalledWith('id', 'part-1')
+  })
+})
+
+// ── Tests: with session_id (user-selected session) ───────────────────────────
+
+describe('POST /api/activities/assign — with session_id (user-selected)', () => {
+  it('assigns to the specified session when it is valid', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
+    mockGetPart.mockResolvedValue({ data: makePart({ activity_type: 'run' }), error: null })
+    mockGetSpecificSession.mockResolvedValue({ data: makeSession({ id: 'sess-chosen', session_type: 'run' }), error: null })
+    mockGetMember.mockResolvedValue({ data: { points: 0 }, error: null })
+    mockGetGroup.mockResolvedValue({ data: { name: 'Test Group' }, error: null })
+
+    const res = await POST(makeRequest({ brick_part_id: 'part-1', session_id: 'sess-chosen' }))
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.ok).toBe(true)
+    // Should update the chosen session, not fallback to candidates
+    const updateEq = mockSessionsUpdate.mock.results[0].value.eq
+    expect(updateEq).toHaveBeenCalledWith('id', 'sess-chosen')
+    // Candidates query should not have been called
+    expect(mockGetCandidates).not.toHaveBeenCalled()
+  })
+
+  it('returns 404 when the specified session is not found (wrong owner, wrong group, or already completed)', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
+    mockGetPart.mockResolvedValue({ data: makePart({ activity_type: 'run' }), error: null })
+    mockGetSpecificSession.mockResolvedValue({ data: null, error: { message: 'not found' } })
+
+    const res = await POST(makeRequest({ brick_part_id: 'part-1', session_id: 'sess-other-user' }))
+    expect(res.status).toBe(404)
+  })
+
+  it('does not fall through to the candidate query when session_id is provided but invalid', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
+    mockGetPart.mockResolvedValue({ data: makePart({ activity_type: 'run' }), error: null })
+    mockGetSpecificSession.mockResolvedValue({ data: null, error: null })
+
+    const res = await POST(makeRequest({ brick_part_id: 'part-1', session_id: 'sess-bad' }))
+
+    expect(res.status).toBe(404)
+    expect(mockGetCandidates).not.toHaveBeenCalled()
+  })
+
+  it('awards points and deletes the part after assigning to a specified session', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
+    mockGetPart.mockResolvedValue({ data: makePart({ activity_type: 'run', distance_km: 5, duration_minutes: 30 }), error: null })
+    mockGetSpecificSession.mockResolvedValue({
+      data: makeSession({ id: 'sess-5k', session_type: 'run', target_distance_km: 5, target_description: 'Easy run with strides' }),
+      error: null,
+    })
+    mockGetMember.mockResolvedValue({ data: { points: 10 }, error: null })
+    mockGetGroup.mockResolvedValue({ data: { name: 'Test Group' }, error: null })
+
+    const res = await POST(makeRequest({ brick_part_id: 'part-1', session_id: 'sess-5k' }))
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.ok).toBe(true)
+    expect(mockSessionsUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ completed: true, points_awarded: 10 })
+    )
+    expect(mockPartsDelete).toHaveBeenCalledWith('id', 'part-1')
+  })
+
+  it('inserts a notification with the correct session description', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
+    mockGetPart.mockResolvedValue({ data: makePart({ activity_type: 'run', activity_name: 'Morning Run' }), error: null })
+    mockGetSpecificSession.mockResolvedValue({
+      data: makeSession({ id: 'sess-5k', session_type: 'run', target_description: 'Easy run with strides' }),
+      error: null,
+    })
+    mockGetMember.mockResolvedValue({ data: { points: 0 }, error: null })
+    mockGetGroup.mockResolvedValue({ data: { name: 'Tri Squad' }, error: null })
+
+    await POST(makeRequest({ brick_part_id: 'part-1', session_id: 'sess-5k' }))
+
+    expect(mockNotificationsInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          activity_name: 'Morning Run',
+          session_description: 'Easy run with strides',
+          group_name: 'Tri Squad',
+        }),
+      })
+    )
   })
 })

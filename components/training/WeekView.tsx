@@ -49,9 +49,9 @@ export default function WeekView({ weekNumber, sessions, today, brickParts = [],
     : []
 
   const brickPart = weekBrickParts[0]
-  const hasAssignableSession = brickPart
-    ? sessions.some((s) => s.session_type === brickPart.activity_type && !s.completed)
-    : false
+  const assignableSessions: Session[] = brickPart
+    ? sessions.filter((s) => s.session_type === brickPart.activity_type && !s.completed)
+    : []
 
   const restNote = restCount === 1
     ? 'Recommended: 1 rest day this week'
@@ -116,7 +116,7 @@ export default function WeekView({ weekNumber, sessions, today, brickParts = [],
                     ? weekBrickParts[0]
                     : undefined
                 }
-                hasAssignableSession={session.session_type === 'brick' ? hasAssignableSession : undefined}
+                assignableSessions={session.session_type === 'brick' ? assignableSessions : undefined}
                 allowManualComplete={allowManualComplete}
               />
             ))}

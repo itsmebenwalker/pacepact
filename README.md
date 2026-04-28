@@ -177,7 +177,7 @@ Multiple activities in the same week can each match a different session — comp
 In any week that contains a pending brick session, every incoming run or ride is held in `brick_activity_parts` and shown as a 50% progress bar on the brick session card. There are two resolution paths:
 
 - **Auto-complete**: when a complementary leg (opposite type — ride + run) arrives on the same calendar date, stats from both legs are combined and validated against the brick target (85% threshold). The brick is marked complete automatically, and any other activities parked earlier that week are released and matched to remaining standalone sessions.
-- **Manual assign**: the user taps "Count as ride/run session instead" to credit a parked leg to a standalone session instead.
+- **Manual assign**: the user selects which standalone session to credit the parked leg to. If only one matching session exists in the week, a single button appears; if multiple exist, a labelled list lets the user pick the right one.
 
 ## Environment variables
 
