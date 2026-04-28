@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
+import Link from 'next/link'
 import IncreaseMembersCapForm from '@/components/groups/IncreaseMembersCapForm'
 
 export default async function IncreaseCapPage({ params }: { params: Promise<{ groupId: string }> }) {
@@ -26,9 +27,17 @@ export default async function IncreaseCapPage({ params }: { params: Promise<{ gr
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Member limit</h1>
-        <p className="text-zinc-500 dark:text-zinc-400 mt-0.5 text-sm">{group.name}</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Member limit</h1>
+          <p className="text-zinc-500 dark:text-zinc-400 mt-0.5 text-sm">{group.name}</p>
+        </div>
+        <Link
+          href={`/group/${groupId}/members`}
+          className="flex items-center gap-1.5 text-sm border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-3 py-1.5 rounded-md transition-colors"
+        >
+          Back
+        </Link>
       </div>
 
       <IncreaseMembersCapForm
