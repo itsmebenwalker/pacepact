@@ -172,6 +172,8 @@ When a Strava webhook arrives, PacePact matches the activity to a planned sessio
 
 Multiple activities in the same week can each match a different session — completing two runs on the same day will mark off two run sessions if both are scheduled that week.
 
+A duplicate webhook delivery for the *same* activity (Strava retries on non-200, and occasionally re-emits) is treated as idempotent: groups already credited or already holding a parked leg with that `strava_activity_id` are skipped, so a single Strava activity can never mark off a second session.
+
 ### Brick sessions
 
 In any week that contains a pending brick session, every incoming run or ride is held in `brick_activity_parts` and shown as a 50% progress bar on the brick session card. There are two resolution paths:

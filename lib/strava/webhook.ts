@@ -67,13 +67,39 @@ export async function processWebhookEvent(payload: StravaWebhookPayload) {
 
   if (!pendingSessions || pendingSessions.length === 0) return
 
+  // Idempotency: if this activity has already credited a session or been parked
+  // as a brick leg in a group, don't process that group again. Strava can
+  // re-deliver the same webhook (retries on non-200, occasional duplicates) and
+  // without this guard the second delivery would match a *different* pending
+  // session of the same type, double-crediting the user.
+  const [{ data: alreadyCredited }, { data: alreadyParked }] = await Promise.all([
+    serviceClient
+      .from('sessions')
+      .select('group_id')
+      .eq('user_id', profile.id)
+      .eq('strava_activity_id', stravaActivityId),
+    serviceClient
+      .from('brick_activity_parts')
+      .select('group_id')
+      .eq('user_id', profile.id)
+      .eq('strava_activity_id', stravaActivityId),
+  ])
+
+  const alreadyHandledGroups = new Set<string>([
+    ...(alreadyCredited ?? []).map((r) => r.group_id),
+    ...(alreadyParked ?? []).map((r) => r.group_id),
+  ])
+
   // Match one session per group so the same activity credits all relevant groups
   const sessionsByGroup = new Map<string, Session[]>()
   for (const session of pendingSessions as Session[]) {
+    if (alreadyHandledGroups.has(session.group_id)) continue
     const bucket = sessionsByGroup.get(session.group_id) ?? []
     bucket.push(session)
     sessionsByGroup.set(session.group_id, bucket)
   }
+
+  if (sessionsByGroup.size === 0) return
 
   const activityType = mapStravaType(activity.type ?? activity.sport_type)
   const activityDate = activity.start_date_local.split('T')[0]

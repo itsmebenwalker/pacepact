@@ -13,6 +13,8 @@ import type { Session, StravaActivity, StravaWebhookPayload } from '@/types'
 
 let mockPendingSessions: Session[] = []
 let mockGroupsResult: { id: string; name: string }[] = []
+let mockAlreadyCredited: { group_id: string }[] = []
+let mockAlreadyParked: { group_id: string }[] = []
 
 // ── Mock state ────────────────────────────────────────────────────────────────
 
@@ -44,6 +46,14 @@ jest.mock('@/lib/supabase/server', () => ({
               return {
                 eq: () => ({
                   eq: () => Promise.resolve({ data: mockPendingSessions, error: null }),
+                }),
+              }
+            }
+            if (fields === 'group_id') {
+              // Idempotency check: .select('group_id').eq().eq() → awaitable
+              return {
+                eq: () => ({
+                  eq: () => Promise.resolve({ data: mockAlreadyCredited, error: null }),
                 }),
               }
             }
@@ -91,13 +101,24 @@ jest.mock('@/lib/supabase/server', () => ({
 
       if (table === 'brick_activity_parts') {
         return {
-          select: () => ({
-            eq: () => ({
+          select: (fields: string) => {
+            if (fields === 'group_id') {
+              // Idempotency check: .select('group_id').eq().eq() → awaitable
+              return {
+                eq: () => ({
+                  eq: () => Promise.resolve({ data: mockAlreadyParked, error: null }),
+                }),
+              }
+            }
+            // Brick partner check: .select(...).eq().eq().eq() → awaitable
+            return {
               eq: () => ({
-                eq: () => Promise.resolve({ data: [], error: null }),
+                eq: () => ({
+                  eq: () => Promise.resolve({ data: [], error: null }),
+                }),
               }),
-            }),
-          }),
+            }
+          },
         }
       }
 
@@ -185,6 +206,8 @@ describe('processWebhookEvent — activity_matched notification', () => {
 
     mockPendingSessions = [makeSession()]
     mockGroupsResult = [{ id: 'group-1', name: 'Team Alpha' }]
+    mockAlreadyCredited = []
+    mockAlreadyParked = []
 
     mockGetUser.mockResolvedValue({ data: makeProfile(), error: null })
     mockGetActivity.mockResolvedValue(makeActivity())
@@ -272,5 +295,53 @@ describe('processWebhookEvent — activity_matched notification', () => {
     await processWebhookEvent(makePayload())
 
     expect(mockNotificationsInsert).not.toHaveBeenCalled()
+  })
+
+  // Idempotency: Strava re-delivers webhooks (retries on non-200, occasional
+  // duplicate emissions). A duplicate must not credit a second pending session
+  // of the same type — without this guard, one swim would mark off two swim
+  // sessions in a row.
+  describe('duplicate webhook idempotency', () => {
+    it('skips a group where the activity has already credited a session', async () => {
+      // Pending sessions still exist (e.g. another swim of the week is open),
+      // but this activity already credited a session in the same group.
+      mockPendingSessions = [makeSession({ id: 'sess-2', group_id: 'group-1' })]
+      mockAlreadyCredited = [{ group_id: 'group-1' }]
+
+      await processWebhookEvent(makePayload())
+
+      expect(mockSessionsUpdate).not.toHaveBeenCalled()
+      expect(mockNotificationsInsert).not.toHaveBeenCalled()
+    })
+
+    it('still credits other groups that have not yet seen the activity', async () => {
+      mockPendingSessions = [
+        makeSession({ id: 'sess-g1', group_id: 'group-1' }),
+        makeSession({ id: 'sess-g2', group_id: 'group-2' }),
+      ]
+      mockGroupsResult = [
+        { id: 'group-1', name: 'Team Alpha' },
+        { id: 'group-2', name: 'Team Beta' },
+      ]
+      // Only group-1 has already been credited
+      mockAlreadyCredited = [{ group_id: 'group-1' }]
+
+      await processWebhookEvent(makePayload())
+
+      // Only group-2 should be notified
+      expect(mockNotificationsInsert).toHaveBeenCalledTimes(1)
+      const inserted = mockNotificationsInsert.mock.calls[0][0]
+      expect(inserted.group_id).toBe('group-2')
+    })
+
+    it('skips a group where the activity is already parked as a brick leg', async () => {
+      mockPendingSessions = [makeSession({ id: 'sess-2', group_id: 'group-1' })]
+      mockAlreadyParked = [{ group_id: 'group-1' }]
+
+      await processWebhookEvent(makePayload())
+
+      expect(mockSessionsUpdate).not.toHaveBeenCalled()
+      expect(mockNotificationsInsert).not.toHaveBeenCalled()
+    })
   })
 })

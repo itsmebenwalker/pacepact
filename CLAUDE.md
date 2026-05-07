@@ -461,13 +461,14 @@ The webhook endpoint handles two things:
 2. If `object_type !== 'activity'` or `aspect_type !== 'create'`, return 200 and stop
 3. Look up the user by `owner_id` (Strava athlete ID) in `profiles`
 4. Fetch full activity from Strava API (need distance, type, elapsed time)
-5. Bucket all pending sessions by `group_id`
-6. Per group, in order:
+5. **Idempotency**: query `sessions` and `brick_activity_parts` for any rows already stamped with this `strava_activity_id` for the user. Groups already credited or already holding a parked leg of this activity are dropped from the bucketing — so a re-delivered webhook can't mark a *different* pending session of the same type
+6. Bucket remaining pending sessions by `group_id`
+7. Per group, in order:
    - **Brick partner check**: if a complementary leg (opposite type — run vs ride) on the same `activity_date` is already stored in `brick_activity_parts`, combine both legs' stats, validate against the brick session target (85% threshold), mark the brick complete, delete the partner row, then run an **orphan release** — any other parts parked for this group/week are matched to remaining standalone sessions
    - **First-leg park**: if a brick session is pending this week and the activity is a run or ride, store it in `brick_activity_parts` and show a 50% progress bar in the UI
    - **Regular match**: if no brick is pending, call `matchActivity` and award points to the matching session
-7. Mark matched sessions complete and award points per group
-8. Leaderboard updates via Supabase Realtime
+8. Mark matched sessions complete and award points per group
+9. Leaderboard updates via Supabase Realtime
 
 Always return HTTP 200 immediately — Strava will retry on non-200.
 

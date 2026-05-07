@@ -290,7 +290,7 @@ Located in `__tests__/unit/`. Cover pure business logic with no external depende
 | `points/calculator.test.ts` | All point bonus combinations |
 | `strava/activity-matcher.test.ts` | Type matching, date window, distance/duration thresholds, multi-candidate selection, brick session detection, combined stats validation |
 | `strava/webhook-processor.test.ts` | Multi-group matching logic, brick detection coordination |
-| `strava/webhook-notifications.test.ts` | Activity matched notification insertion |
+| `strava/webhook-notifications.test.ts` | Activity matched notification insertion, duplicate webhook idempotency (per-group skip on repeated `strava_activity_id`) |
 | `claude/generate-plan.test.ts` | JSON parsing, markdown stripping, validation, max_tokens limit, stop_reason guard |
 | `groups/generate-plan-route.test.ts` | Group created immediately with `plan_status: 'generating'`, `after()` scheduled, background success + failure paths |
 | `resend/otp-email.test.ts` | Magic link email rendering |
@@ -333,6 +333,7 @@ Located in `__tests__/integration/`. Cover API routes with Supabase mocked via `
 - Check Railway logs for errors from `processWebhookEvent`
 - Verify the webhook is registered: `GET https://www.strava.com/api/v3/push_subscriptions?client_id=X&client_secret=Y`
 - Check `strava_webhook_events` table in Supabase — events should appear with `processed = false` if they're arriving but failing
+- Duplicate deliveries are intentionally a no-op: `processWebhookEvent` skips any group where the activity's `strava_activity_id` is already on a session or `brick_activity_parts` row. If you expected a session to be credited but it wasn't, query `sessions` and `brick_activity_parts` for that `strava_activity_id` to confirm it landed somewhere
 
 **Plan generation fails**
 - Check `ANTHROPIC_API_KEY` is valid and has credits
