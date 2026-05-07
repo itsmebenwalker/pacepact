@@ -17,6 +17,21 @@ body {
   background: var(--background);
 }
 
+/*
+ * iOS Safari auto-zooms when a focused input has a font-size below 16px and
+ * does not always restore the original zoom on blur, which traps mobile users
+ * in a zoomed viewport. Force 16px on the rendered text up to the `sm`
+ * breakpoint (640px) — design intent of `text-sm` is preserved on tablet and
+ * desktop. Affects <input>, <textarea>, and <select>.
+ */
+@media (max-width: 639px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

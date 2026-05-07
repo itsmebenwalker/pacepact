@@ -107,6 +107,12 @@ Strava. Everything else is zinc.
 - **Scale.** Very compact. Page titles are only `text-xl` (20px). Most UI is
   `text-sm` (14px). Meta and labels `text-xs` (12px). Auth pages use `text-2xl`
   (24px) as the one upsized moment.
+- **Form inputs on mobile.** `<input>`, `<textarea>`, and `<select>` are
+  bumped to **16px** below the `sm` breakpoint via a global rule in
+  `app/globals.css`. iOS Safari auto-zooms when a focused input has a
+  font-size below 16px and does not always restore the original zoom on blur.
+  Components keep using `text-sm` — the global rule overrides only at
+  `max-width: 639px`.
 - **Backgrounds.** Flat. `bg-zinc-50` page / `bg-white` card in light mode,
   `bg-zinc-950` page / `bg-zinc-900` card in dark. **No** gradients,
   illustrations, patterns, textures, photography, or hero imagery anywhere in
