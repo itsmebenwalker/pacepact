@@ -1,6 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
-import { generateTrainingPlan } from '@/lib/claude/generate-plan'
-import { fanOutSessionsForUser } from '@/lib/groups/fan-out'
+import { tryRunPlanGeneration } from '@/lib/groups/plan-generation'
 import { after } from 'next/server'
 import { nanoid } from 'nanoid'
 import type { EventType, Ambition, OtherSport } from '@/types'
@@ -20,7 +19,7 @@ export interface CreateGroupParams {
 
 export async function createGroup(params: CreateGroupParams): Promise<{ groupId: string }> {
   const serviceClient = createServiceClient()
-  const distanceKm = params.other_distance_km ? parseFloat(params.other_distance_km) : undefined
+  const distanceKm = params.other_distance_km ? parseFloat(params.other_distance_km) : null
 
   const { data: group, error: groupError } = await serviceClient
     .from('groups')
@@ -30,6 +29,8 @@ export async function createGroup(params: CreateGroupParams): Promise<{ groupId:
       event_type: params.event_type,
       event_date: params.event_date,
       ambition: params.ambition,
+      other_sport: params.other_sport ?? null,
+      other_distance_km: distanceKm,
       members_cap: params.members_cap ?? null,
       training_plan: [],
       plan_status: 'generating',
@@ -50,36 +51,7 @@ export async function createGroup(params: CreateGroupParams): Promise<{ groupId:
     points: 0,
   })
 
-  const userId = params.user_id
-  const name = params.name
-
-  after(async () => {
-    try {
-      const { sessions, raw } = await generateTrainingPlan(
-        params.event_type, params.event_date, params.ambition, params.other_sport, distanceKm
-      )
-
-      await serviceClient
-        .from('groups')
-        .update({ training_plan: sessions, training_plan_raw: raw, plan_status: 'ready' })
-        .eq('id', group.id)
-
-      await fanOutSessionsForUser(serviceClient, { ...group, training_plan: sessions }, userId)
-
-      await serviceClient.from('notifications').insert({
-        user_id: userId,
-        type: 'plan_ready',
-        group_id: group.id,
-        data: { group_name: name },
-      })
-    } catch (e) {
-      console.error('Background plan generation error:', e)
-      await serviceClient
-        .from('groups')
-        .update({ plan_status: 'failed' })
-        .eq('id', group.id)
-    }
-  })
+  after(() => tryRunPlanGeneration(group.id))
 
   return { groupId: group.id }
 }

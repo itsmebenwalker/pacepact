@@ -113,6 +113,10 @@ groups (
   allow_manual_complete boolean not null default true,
   members_cap integer,             -- max members allowed; null = unlimited (legacy groups)
   plan_status text not null default 'ready', -- 'generating' | 'ready' | 'failed'
+  plan_generation_attempts integer not null default 0,
+  plan_generation_last_attempt_at timestamptz,
+  other_sport text,                -- persisted plan inputs for event_type='other' (needed for retry)
+  other_distance_km numeric,
   created_by uuid references profiles(id),
   created_at timestamptz default now()
 )
@@ -409,6 +413,26 @@ The group creation is a multi-step form:
 On submit, the API route immediately creates the group with `plan_status: 'generating'` and adds the creator as a member, then returns `{ groupId }` and redirects to the group page — no waiting for Claude. Plan generation runs in the background via Next.js `after()`. When complete, the group is updated to `plan_status: 'ready'`, sessions are fanned out to the creator, and a `plan_ready` notification is inserted.
 
 The group page renders `PlanGeneratingBanner` instead of `TrainingPlanSection` while `plan_status === 'generating'`. The banner subscribes to Supabase Realtime on the `groups` table and calls `router.refresh()` when `plan_status` changes to `ready` or `failed`. If generation fails, `plan_status` is set to `'failed'` and the banner shows an error state.
+
+### Plan Generation Retry & Stuck Recovery
+
+`after()` background tasks can die silently — a Railway redeploy, OOM kill, or hung Anthropic stream can leave the `try/catch` in `runPlanGeneration` from ever firing, stranding the group at `plan_status='generating'` indefinitely. To recover automatically there is no user-facing retry button (cost control); recovery is fully server-side.
+
+The retry module is [lib/groups/plan-generation.ts](lib/groups/plan-generation.ts):
+
+- **`MAX_PLAN_GENERATION_ATTEMPTS = 3`** — hard cap on automatic retries per group.
+- **`STUCK_THRESHOLD_MS = 10 min`** — an in-flight attempt older than this is considered dead and eligible to be re-claimed.
+- **`claimGenerationAttempt(client, groupId)`** — atomic CAS on the `groups` row. Increments `plan_generation_attempts` and stamps `plan_generation_last_attempt_at = now()` only if `plan_status='generating'`, attempts < MAX, and `last_attempt_at` is null OR older than the stuck cutoff. Returns the claimed row, or `null` if another caller already owns the in-flight attempt.
+- **`runPlanGeneration(client, group)`** — calls Claude, marks ready, fans out, inserts the `plan_ready` notification. On failure: if attempts has just hit MAX, marks `plan_status='failed'` and emails the creator via `buildPlanGenerationFailedEmail`. On non-final failure, leaves the row alone so the next caller's stuck-detection picks it up.
+- **`tryRunPlanGeneration(groupId)`** — claim + run. Safe to call from anywhere; under concurrent renders, only one caller wins the CAS.
+
+**Trigger points**:
+1. `createGroup()` schedules `tryRunPlanGeneration(group.id)` via `after()` immediately after insert (attempt 1).
+2. The group page render (`app/(app)/group/[groupId]/page.tsx`) calls `tryRunPlanGeneration` via `after()` whenever it sees `plan_status='generating'`. This is the primary recovery path — if the original task died, the next time anyone loads the group page, the retry is kicked off.
+
+**Final-failure email**: when attempt 3 fails, `runPlanGeneration` looks up the creator's email via `supabase.auth.admin.getUserById` and sends the `plan-generation-failed-email` template via Resend, directing them to `support@pacepact.com.au`. The user is **not** given a self-serve retry button — support generates the plan manually after escalation.
+
+**`other_sport` / `other_distance_km`** are persisted on the `groups` row (added in `20260507_plan_generation_retry.sql`) so retries can rebuild the exact prompt without the original API request body.
 
 ### Claude Plan Generation (`lib/claude/generate-plan.ts`)
 

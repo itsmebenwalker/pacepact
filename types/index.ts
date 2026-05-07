@@ -65,6 +65,10 @@ export interface Group {
   allow_manual_complete: boolean
   members_cap: number | null
   plan_status?: 'generating' | 'ready' | 'failed'
+  plan_generation_attempts?: number
+  plan_generation_last_attempt_at?: string | null
+  other_sport?: OtherSport | null
+  other_distance_km?: number | null
   created_by: string
   created_at: string
 }

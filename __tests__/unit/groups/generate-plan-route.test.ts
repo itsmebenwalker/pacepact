@@ -1,17 +1,18 @@
 /**
- * Tests for POST /api/groups/generate-plan.
+ * Tests for POST /api/groups/generate-plan and the underlying createGroup helper.
  *
  * Key behaviours verified:
  *  - Group is created immediately with plan_status 'generating' and groupId returned
  *    without waiting for Claude (synchronous path is fast).
- *  - after() is called once to schedule the background task.
- *  - Background task: generates plan, updates group to 'ready', fans out sessions,
- *    inserts a plan_ready notification.
- *  - Background task: on error, updates group to 'failed' instead.
+ *  - The new other_sport / other_distance_km columns are persisted so a retry
+ *    can rebuild the prompt.
+ *  - after() is called once to schedule background plan generation, which is
+ *    delegated to tryRunPlanGeneration (the retry-aware module).
  *  - Validation: 400 for missing required fields.
+ *
+ * Plan generation, retries, fan-out, notifications, and the failure-email path
+ * are tested separately in plan-generation.test.ts.
  */
-
-import type { TrainingSession } from '@/types'
 
 // ── Mock setup ────────────────────────────────────────────────────────────────
 // Variables that start with 'mock' are hoisted alongside jest.mock() calls.
@@ -19,8 +20,7 @@ import type { TrainingSession } from '@/types'
 const mockRequireAuth = jest.fn()
 const mockCreateServiceClient = jest.fn()
 const mockAfter = jest.fn()
-const mockGenerateTrainingPlan = jest.fn()
-const mockFanOutSessionsForUser = jest.fn()
+const mockTryRunPlanGeneration = jest.fn()
 
 jest.mock('@/lib/supabase/server', () => ({
   requireAuth: mockRequireAuth,
@@ -39,12 +39,8 @@ jest.mock('next/server', () => ({
 
 jest.mock('nanoid', () => ({ nanoid: () => 'test1234' }))
 
-jest.mock('@/lib/claude/generate-plan', () => ({
-  generateTrainingPlan: mockGenerateTrainingPlan,
-}))
-
-jest.mock('@/lib/groups/fan-out', () => ({
-  fanOutSessionsForUser: mockFanOutSessionsForUser,
+jest.mock('@/lib/groups/plan-generation', () => ({
+  tryRunPlanGeneration: mockTryRunPlanGeneration,
 }))
 
 // Import AFTER mocks so the route picks up the mocked dependencies
@@ -67,18 +63,6 @@ const MOCK_GROUP = {
   created_by: 'user-456',
   created_at: '2026-04-23T00:00:00Z',
 }
-
-const MOCK_SESSIONS: TrainingSession[] = [
-  {
-    week_number: 1,
-    session_type: 'run',
-    target_distance_km: 5,
-    target_duration_minutes: null,
-    target_description: 'Easy 5km run',
-    day_of_week: 1,
-    tip: 'Keep a conversational pace.',
-  },
-]
 
 const VALID_BODY = {
   name: 'Test Group',
@@ -104,19 +88,15 @@ function makeDb() {
   const mockSingle = jest.fn().mockResolvedValue({ data: MOCK_GROUP, error: null })
   const mockSelect = jest.fn(() => ({ single: mockSingle }))
   const mockGroupInsert = jest.fn(() => ({ select: mockSelect }))
-  const mockEq = jest.fn().mockResolvedValue({ data: null, error: null })
-  const mockUpdate = jest.fn(() => ({ eq: mockEq }))
   const mockMembersInsert = jest.fn().mockResolvedValue({ data: null, error: null })
-  const mockNotifInsert = jest.fn().mockResolvedValue({ data: null, error: null })
 
   const mockFrom = jest.fn((table: string) => {
-    if (table === 'groups') return { insert: mockGroupInsert, update: mockUpdate }
+    if (table === 'groups') return { insert: mockGroupInsert }
     if (table === 'group_members') return { insert: mockMembersInsert }
-    if (table === 'notifications') return { insert: mockNotifInsert }
     return {}
   })
 
-  return { client: { from: mockFrom }, mockFrom, mockGroupInsert, mockMembersInsert, mockUpdate, mockEq, mockNotifInsert }
+  return { client: { from: mockFrom }, mockFrom, mockGroupInsert, mockMembersInsert }
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -129,8 +109,7 @@ describe('POST /api/groups/generate-plan', () => {
     db = makeDb()
     mockRequireAuth.mockResolvedValue({ user: MOCK_USER, supabase: {}, error: null })
     mockCreateServiceClient.mockReturnValue(db.client)
-    mockGenerateTrainingPlan.mockResolvedValue({ sessions: MOCK_SESSIONS, raw: JSON.stringify(MOCK_SESSIONS) })
-    mockFanOutSessionsForUser.mockResolvedValue(undefined)
+    mockTryRunPlanGeneration.mockResolvedValue(undefined)
   })
 
   // ── Validation ─────────────────────────────────────────────────────────────
@@ -148,13 +127,40 @@ describe('POST /api/groups/generate-plan', () => {
 
   // ── Synchronous path ───────────────────────────────────────────────────────
 
-  it('creates the group with plan_status generating before Claude is called', async () => {
+  it('creates the group with plan_status generating before the background task runs', async () => {
     await POST(makeRequest(VALID_BODY))
 
     expect(db.mockGroupInsert).toHaveBeenCalledWith(
       expect.objectContaining({ plan_status: 'generating', training_plan: [] })
     )
-    expect(mockGenerateTrainingPlan).not.toHaveBeenCalled()
+    expect(mockTryRunPlanGeneration).not.toHaveBeenCalled()
+  })
+
+  it('persists other_sport and other_distance_km when provided', async () => {
+    await POST(makeRequest({
+      ...VALID_BODY,
+      event_type: 'other',
+      other_sport: 'cycling',
+      other_distance_km: '120',
+    }))
+
+    expect(db.mockGroupInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        other_sport: 'cycling',
+        other_distance_km: 120,
+      })
+    )
+  })
+
+  it('persists null other fields for non-other event types', async () => {
+    await POST(makeRequest(VALID_BODY))
+
+    expect(db.mockGroupInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        other_sport: null,
+        other_distance_km: null,
+      })
+    )
   })
 
   it('adds the creator to group_members immediately', async () => {
@@ -180,61 +186,11 @@ describe('POST /api/groups/generate-plan', () => {
 
   // ── Background task ────────────────────────────────────────────────────────
 
-  async function runBackground() {
+  it('background task delegates to tryRunPlanGeneration with the new groupId', async () => {
     await POST(makeRequest(VALID_BODY))
     const bgTask = mockAfter.mock.calls[0][0] as () => Promise<void>
     await bgTask()
-  }
 
-  it('background: calls generateTrainingPlan with the correct event details', async () => {
-    await runBackground()
-
-    expect(mockGenerateTrainingPlan).toHaveBeenCalledWith(
-      VALID_BODY.event_type,
-      VALID_BODY.event_date,
-      VALID_BODY.ambition,
-      undefined,
-      undefined
-    )
-  })
-
-  it('background: updates group to plan_status ready with the generated sessions', async () => {
-    await runBackground()
-
-    expect(db.mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ plan_status: 'ready', training_plan: MOCK_SESSIONS })
-    )
-    expect(db.mockEq).toHaveBeenCalledWith('id', MOCK_GROUP.id)
-  })
-
-  it('background: fans out sessions to the group creator', async () => {
-    await runBackground()
-
-    expect(mockFanOutSessionsForUser).toHaveBeenCalledWith(
-      db.client,
-      expect.objectContaining({ id: MOCK_GROUP.id, training_plan: MOCK_SESSIONS }),
-      MOCK_USER.id
-    )
-  })
-
-  it('background: inserts a plan_ready notification for the creator', async () => {
-    await runBackground()
-
-    expect(db.mockNotifInsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        user_id: MOCK_USER.id,
-        type: 'plan_ready',
-        group_id: MOCK_GROUP.id,
-        data: expect.objectContaining({ group_name: VALID_BODY.name }),
-      })
-    )
-  })
-
-  it('background: sets plan_status to failed when Claude throws', async () => {
-    mockGenerateTrainingPlan.mockRejectedValue(new Error('Claude error'))
-
-    await runBackground()
-
-    expect(db.mockUpdate).toHaveBeenCalledWith({ plan_status: 'failed' })
+    expect(mockTryRunPlanGeneration).toHaveBeenCalledWith(MOCK_GROUP.id)
   })
 })

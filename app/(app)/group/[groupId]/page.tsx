@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
+import { after } from 'next/server'
 import LeaderboardTable from '@/components/leaderboard/LeaderboardTable'
 import TrainingPlanSection from '@/components/training/TrainingPlanSection'
 import PlanGeneratingBanner from '@/components/groups/PlanGeneratingBanner'
@@ -10,6 +11,7 @@ import MessageBoard from '@/components/groups/MessageBoard'
 import WeekInReview from '@/components/groups/WeekInReview'
 import { sortWeeks } from '@/lib/utils/week-status'
 import { getLocalToday } from '@/lib/utils/local-date'
+import { tryRunPlanGeneration } from '@/lib/groups/plan-generation'
 import type { BrickActivityPart, Session } from '@/types'
 
 export default async function GroupPage({ params }: { params: Promise<{ groupId: string }> }) {
@@ -34,6 +36,15 @@ export default async function GroupPage({ params }: { params: Promise<{ groupId:
 
   if (!group) notFound()
   if (!membership) notFound()
+
+  // Auto-recover from stuck plan generation. If the group is still 'generating'
+  // and the last attempt is dead (or this is attempt 1 that never started due
+  // to a process crash), kick another attempt off in the background. The CAS
+  // inside tryRunPlanGeneration ensures only one caller wins under concurrent
+  // renders, and it's a no-op once attempts hit MAX or status leaves 'generating'.
+  if (group.plan_status === 'generating') {
+    after(() => tryRunPlanGeneration(group.id))
+  }
 
   const serviceClient = createServiceClient()
   const { data: membersRaw } = await serviceClient
