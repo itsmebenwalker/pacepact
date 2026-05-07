@@ -23,12 +23,16 @@ body {
  * in a zoomed viewport. Force 16px on the rendered text up to the `sm`
  * breakpoint (640px) — design intent of `text-sm` is preserved on tablet and
  * desktop. Affects <input>, <textarea>, and <select>.
+ *
+ * !important is required because Tailwind utility classes like `text-sm`
+ * have higher specificity than a bare element selector and would otherwise
+ * win even inside a media query.
  */
 @media (max-width: 639px) {
   input,
   textarea,
   select {
-    font-size: 16px;
+    font-size: 16px !important;
   }
 }
 
